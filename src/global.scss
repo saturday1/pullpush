@@ -1,0 +1,122 @@
+:root {
+  --bg:      #faf9f7;
+  --bg2:     #f0ede8;
+  --bg3:     #e5e0d8;
+  --card:    #ffffff;
+  --card2:   #fdf9f6;
+  --border:  #e4dfd8;
+  --accent:  #ff5c35;
+  --accent2: #d94820;
+  --red:     #dc2626;
+  --green:   #16a34a;
+  --blue:    #2563eb;
+  --orange:  #ea580c;
+  --pink:    #e8197d;
+  --purple:  #7c3aed;
+  --text:    #0f0e0d;
+  --muted:   #6e6760;
+  --faint:   #a89f97;
+  --gradient: linear-gradient(135deg, #ff5c35 0%, #e8197d 55%, #7c3aed 100%);
+  --gradient-h: linear-gradient(90deg, #ff5c35 0%, #e8197d 55%, #7c3aed 100%);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+
+  // Ambient color blobs — organic feel
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 10%, rgba(255,92,53,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 90% 85%, rgba(124,58,237,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 60% 40%, rgba(232,25,125,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
+// Macro pills
+.pill {
+  display: inline-block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+
+  &-p { background: rgba(234,88,12,0.10);  color: #c24408; }
+  &-k { background: rgba(37,99,235,0.10);  color: #1d4ed8; }
+  &-f { background: rgba(22,163,74,0.10);  color: #15803d; }
+}
+
+// Staggered card animations
+.fade-in {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeUp 0.45s ease forwards;
+
+  &:nth-child(1) { animation-delay: 0.04s; }
+  &:nth-child(2) { animation-delay: 0.09s; }
+  &:nth-child(3) { animation-delay: 0.14s; }
+  &:nth-child(4) { animation-delay: 0.19s; }
+  &:nth-child(5) { animation-delay: 0.24s; }
+  &:nth-child(6) { animation-delay: 0.29s; }
+}
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-4px); }
+}
+
+// Scrollbar
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255,92,53,0.3), rgba(124,58,237,0.3));
+  border-radius: 10px;
+}

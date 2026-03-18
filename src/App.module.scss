@@ -1,0 +1,12 @@
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px 100px;
+
+  section { padding-top: 80px; }
+
+  @media (max-width: 768px) {
+    padding: 0 20px 72px;
+    section { padding-top: 56px; }
+  }
+}

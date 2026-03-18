@@ -1,0 +1,248 @@
+.subHeading {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  font-style: italic;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 20px;
+  margin-top: 0;
+}
+
+.gridMargin { margin-bottom: 24px; }
+
+.section { margin-bottom: 24px; }
+
+// ── Progress bar ─────────────────────────────────────────────
+
+.goalSection {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+.goalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.goalTitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.goalNums {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.goalBarBg {
+  height: 18px;
+  background: var(--bg3);
+  overflow: hidden;
+  border-radius: 9px;
+  position: relative;
+}
+
+.goalBarFill {
+  height: 18px;
+  border-radius: 9px;
+  background: var(--gradient-h);
+  background-size: 300% 100%;
+  animation: shimmer 3s linear infinite;
+  transition: width 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.goalLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.inputsCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+.inputsCardTitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.inputSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inputLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.logForm {
+  display: flex;
+  gap: 8px;
+}
+
+.logInput {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &::placeholder { color: var(--faint); }
+  &:focus {
+    outline: none;
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px rgba(232,25,125,0.08);
+  }
+}
+
+.logBtn {
+  background: var(--gradient);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 8px;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.15s;
+
+  &:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+  &:disabled { opacity: 0.4; cursor: default; }
+}
+
+// ── Macro card ───────────────────────────────────────────────
+
+.macroCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 28px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+.macroCardTitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.macroRow {
+  display: grid;
+  grid-template-columns: 130px 1fr 80px 56px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-of-type { border-bottom: none; }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 90px 1fr 70px;
+    .macroPct { display: none; }
+  }
+}
+
+.macroName {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.macroBarWrap {
+  background: var(--bg3);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.macroBar {
+  height: 8px;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.macroGram {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.macroPct {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.proteinRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.proteinVal {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

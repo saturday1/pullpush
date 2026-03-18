@@ -1,0 +1,110 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+  padding: 40px;
+  background: var(--card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+}
+
+.title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 11px 14px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &::placeholder { color: var(--faint); }
+  &:focus {
+    outline: none;
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px rgba(232,25,125,0.08);
+  }
+}
+
+.error {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--red);
+}
+
+.message {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--green);
+}
+
+.btn {
+  background: var(--gradient);
+  background-size: 200% 100%;
+  color: #fff;
+  border: none;
+  padding: 13px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 19px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 8px;
+  margin-top: 4px;
+  transition: opacity 0.2s, transform 0.15s;
+  animation: gradientShift 3s ease infinite;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  &:disabled { opacity: 0.4; cursor: default; }
+}
+
+.checkEmailText {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+
+  strong { color: var(--text); }
+}
+
+.toggle {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+  transition: color 0.15s;
+
+  &:hover { color: var(--accent); }
+}
