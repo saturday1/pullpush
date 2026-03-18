@@ -56,24 +56,28 @@ export default function Login() {
     <div className={styles.wrapper}>
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.title}>{mode === 'login' ? 'Logga in' : 'Skapa konto'}</div>
-        <input
-          type="email"
-          placeholder="Email"
-          aria-label="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className={styles.input}
-          autoComplete="email"
-        />
-        <input
-          type="password"
-          placeholder="Lösenord"
-          aria-label="Lösenord"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className={styles.input}
-          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-        />
+        <label className={styles.label}>
+          Email
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className={styles.input}
+            autoComplete="email"
+          />
+        </label>
+        <label className={styles.label}>
+          Lösenord
+          <input
+            type="password"
+            placeholder="Lösenord"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className={styles.input}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+          />
+        </label>
         {error && <div className={styles.error}>{error}</div>}
         <button type="submit" disabled={loading} className={styles.btn}>
           {loading ? '…' : mode === 'login' ? 'Logga in' : 'Skapa konto'}

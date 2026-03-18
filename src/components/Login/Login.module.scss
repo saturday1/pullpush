@@ -26,11 +26,18 @@
   font-style: italic;
   letter-spacing: 1px;
   text-transform: uppercase;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #000;
   margin-bottom: 4px;
+}
+
+.label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .input {
