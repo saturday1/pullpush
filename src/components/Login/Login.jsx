@@ -68,7 +68,7 @@ export default function Login() {
                     />
                 </label>
                 <label className={styles.label}>
-                    Lösenord william
+                    Lösenord
                     <input
                         type="password"
                         placeholder="Lösenord"
