@@ -18,6 +18,20 @@
   --faint:   #a89f97;
   --gradient: linear-gradient(135deg, #ff5c35 0%, #e8197d 55%, #7c3aed 100%);
   --gradient-h: linear-gradient(90deg, #ff5c35 0%, #e8197d 55%, #7c3aed 100%);
+  --nav-bg:  rgba(250, 249, 247, 0.92);
+}
+
+[data-theme="dark"] {
+  --bg:      #111110;
+  --bg2:     #1a1917;
+  --bg3:     #242220;
+  --card:    #1c1b19;
+  --card2:   #201f1d;
+  --border:  #2d2b28;
+  --text:    #f4efe9;
+  --muted:   #8a8278;
+  --faint:   #605850;
+  --nav-bg:  rgba(17, 16, 15, 0.92);
 }
 
 * {

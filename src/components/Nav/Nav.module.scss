@@ -2,7 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(250, 249, 247, 0.92);
+  background: var(--nav-bg);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   padding: 0 40px;
@@ -38,6 +38,21 @@
 .active {
   color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+.themeToggle {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 16px 12px;
+  color: var(--muted);
+  transition: color 0.15s, transform 0.2s;
+  white-space: nowrap;
+
+  &:hover { color: var(--text); transform: rotate(20deg); }
+
+  @media (max-width: 768px) { padding: 14px 8px; }
 }
 
 .logout {

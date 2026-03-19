@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../../supabase'
+import { useTheme } from '../../context/ThemeContext'
 import styles from './Nav.module.scss'
 
 const links = [
@@ -12,6 +13,8 @@ const links = [
 ]
 
 export default function Nav() {
+  const { theme, toggle } = useTheme()
+
   return (
     <nav className={styles.nav}>
       {links.map(({ to, label }) => (
@@ -23,6 +26,9 @@ export default function Nav() {
           {label}
         </NavLink>
       ))}
+      <button className={styles.themeToggle} onClick={toggle} title={theme === 'light' ? 'Mörkt läge' : 'Ljust läge'}>
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
       <button className={styles.logout} onClick={() => supabase.auth.signOut()}>
         Logga ut
       </button>
