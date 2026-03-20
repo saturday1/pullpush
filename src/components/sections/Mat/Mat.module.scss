@@ -51,6 +51,148 @@
   &:hover { opacity: 1; }
 }
 
+// ── Food search ───────────────────────────────────────────────
+
+.searchSection {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.searchSectionLabel {
+  display: block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.searchRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.searchWrap {
+  position: relative;
+  flex: 1;
+}
+
+.searchInput {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 36px 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: var(--accent); }
+}
+
+.searchSpinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+.searchDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 500;
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.searchItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--bg2); }
+}
+
+.searchItemName {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.searchItemBrand {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.gramsWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.gramsInput {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 28px 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  width: 72px;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: var(--accent); }
+  &::-webkit-inner-spin-button { opacity: 0; }
+}
+
+.gramsUnit {
+  position: absolute;
+  right: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  pointer-events: none;
+}
+
 // ── Modal ─────────────────────────────────────────────────────
 
 .overlay {

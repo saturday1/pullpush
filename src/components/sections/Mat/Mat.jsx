@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../../supabase'
 import Reveal from '../../Reveal/Reveal'
@@ -12,10 +12,112 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
     const valid = form.label.trim() && form.food.trim()
 
+    const [searchQuery, setSearchQuery] = useState('')
+    const [searchResults, setSearchResults] = useState([])
+    const [searchLoading, setSearchLoading] = useState(false)
+    const [showDropdown, setShowDropdown] = useState(false)
+    const [grams, setGrams] = useState('100')
+    const dropdownRef = useRef(null)
+
+    useEffect(() => {
+        if (!searchQuery.trim()) { setSearchResults([]); setShowDropdown(false); return }
+        const timer = setTimeout(async () => {
+            setSearchLoading(true)
+            try {
+                const res = await fetch(
+                    `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchQuery)}&pageSize=8&api_key=${import.meta.env.VITE_USDA_API_KEY}`
+                )
+                const data = await res.json()
+                const products = (data.foods ?? []).map(f => ({
+                    product_name: f.description,
+                    brands: f.brandOwner ?? f.brandName ?? '',
+                    nutriments: {
+                        proteins_100g: f.foodNutrients?.find(n => n.nutrientId === 1003)?.value ?? 0,
+                        carbohydrates_100g: f.foodNutrients?.find(n => n.nutrientId === 1005)?.value ?? 0,
+                        fat_100g: f.foodNutrients?.find(n => n.nutrientId === 1004)?.value ?? 0,
+                        'energy-kcal_100g': f.foodNutrients?.find(n => n.nutrientId === 1008)?.value ?? 0,
+                    }
+                }))
+                setSearchResults(products)
+                setShowDropdown(products.length > 0)
+            } catch {
+                setSearchResults([])
+            }
+            setSearchLoading(false)
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [searchQuery])
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false)
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    function selectProduct(product) {
+        const g = parseFloat(grams) || 100
+        const factor = g / 100
+        const n = product.nutriments ?? {}
+        const protein = Math.round((n['proteins_100g'] ?? 0) * factor)
+        const carbs = Math.round((n['carbohydrates_100g'] ?? 0) * factor)
+        const fat = Math.round((n['fat_100g'] ?? 0) * factor)
+        const kcal = Math.round((n['energy-kcal_100g'] ?? (n['energy_100g'] ?? 0) / 4.184) * factor)
+        setForm(f => ({
+            ...f,
+            food: `${g}g ${product.product_name}`,
+            protein_g: String(protein),
+            carbs_g: String(carbs),
+            fat_g: String(fat),
+            kcal: String(kcal),
+        }))
+        setSearchQuery('')
+        setSearchResults([])
+        setShowDropdown(false)
+    }
+
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 <div className={styles.modalTitle}>{initial ? t('Edit meal') : t('New meal')}</div>
+
+                <div className={styles.searchSection}>
+                    <span className={styles.searchSectionLabel}>{t('Search food database')}</span>
+                    <div className={styles.searchRow} ref={dropdownRef}>
+                        <div className={styles.searchWrap}>
+                            <input
+                                className={styles.searchInput}
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                placeholder={t('e.g. chicken breast, oats…')}
+                                autoComplete="off"
+                            />
+                            {searchLoading && <span className={styles.searchSpinner} />}
+                            {showDropdown && (
+                                <div className={styles.searchDropdown}>
+                                    {searchResults.map((p, i) => (
+                                        <button key={i} className={styles.searchItem} type="button" onClick={() => selectProduct(p)}>
+                                            <span className={styles.searchItemName}>{p.product_name}</span>
+                                            {p.brands && <span className={styles.searchItemBrand}>{p.brands.split(',')[0]}</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.gramsWrap}>
+                            <input
+                                className={styles.gramsInput}
+                                type="number"
+                                min="1"
+                                value={grams}
+                                onChange={e => setGrams(e.target.value)}
+                            />
+                            <span className={styles.gramsUnit}>g</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div className={styles.modalFields}>
                     <label className={styles.modalField}>
                         <span className={styles.modalLabel}>{t('Time')}</span>
@@ -23,7 +125,7 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
                     </label>
                     <label className={styles.modalField}>
                         <span className={styles.modalLabel}>{t('Label')}</span>
-                        <select className={styles.modalInput} value={form.label} onChange={e => set('label', e.target.value)} autoFocus>
+                        <select className={styles.modalInput} value={form.label} onChange={e => set('label', e.target.value)}>
                             <option>{t('Breakfast')}</option>
                             <option>{t('Snack')}</option>
                             <option>{t('Lunch')}</option>
