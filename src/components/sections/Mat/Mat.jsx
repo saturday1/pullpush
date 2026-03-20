@@ -10,28 +10,43 @@ const EMPTY_FORM = { time_label: '', label: '', food: '', note: '', protein_g: '
 
 function BarcodeScanner({ onResult, onClose, t }) {
     const videoRef = useRef(null)
-    const controlsRef = useRef(null)
+    const streamRef = useRef(null)
     const [camError, setCamError] = useState(null)
 
+    function stopCamera() {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop())
+            streamRef.current = null
+        }
+    }
+
+    function handleClose() {
+        stopCamera()
+        onClose()
+    }
+
     useEffect(() => {
-        const reader = new BrowserMultiFormatReader()
         let handled = false
-        reader.decodeFromVideoDevice(undefined, videoRef.current, (result) => {
-            if (result && !handled) {
-                handled = true
-                controlsRef.current?.stop()
-                onResult(result.getText())
-            }
-        }).then(controls => {
-            controlsRef.current = controls
-        }).catch(() => {
-            setCamError(t('Could not open camera'))
-        })
-        return () => { controlsRef.current?.stop() }
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => {
+                streamRef.current = stream
+                videoRef.current.srcObject = stream
+                videoRef.current.play()
+                const reader = new BrowserMultiFormatReader()
+                return reader.decodeFromStream(stream, videoRef.current, (result) => {
+                    if (result && !handled) {
+                        handled = true
+                        stopCamera()
+                        onResult(result.getText())
+                    }
+                })
+            })
+            .catch(() => setCamError(t('Could not open camera')))
+        return () => { stopCamera() }
     }, [])
 
     return (
-        <div className={styles.scannerOverlay} onClick={onClose}>
+        <div className={styles.scannerOverlay} onClick={handleClose}>
             <div className={styles.scannerModal} onClick={e => e.stopPropagation()}>
                 <div className={styles.scannerTitle}>{t('Point camera at barcode')}</div>
                 {camError
@@ -41,7 +56,7 @@ function BarcodeScanner({ onResult, onClose, t }) {
                         <div className={styles.scannerTarget} />
                     </div>
                 }
-                <button className={styles.scannerCancelBtn} onClick={onClose} type="button">{t('Cancel')}</button>
+                <button className={styles.scannerCancelBtn} onClick={handleClose} type="button">{t('Cancel')}</button>
             </div>
         </div>
     )
@@ -56,10 +71,41 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
     const [searchResults, setSearchResults] = useState([])
     const [searchLoading, setSearchLoading] = useState(false)
     const [showDropdown, setShowDropdown] = useState(false)
-    const [grams, setGrams] = useState('100')
+    const parsedGrams = initial?.food?.match(/^(\d+(?:\.\d+)?)g\s/)?.[1]
+    const [grams, setGrams] = useState(parsedGrams ?? '100')
     const [scannerOpen, setScannerOpen] = useState(false)
     const [scanError, setScanError] = useState('')
     const dropdownRef = useRef(null)
+    const baseNutrients = useRef(null)
+
+    useEffect(() => {
+        if (!initial || !parsedGrams) return
+        const g = parseFloat(parsedGrams)
+        const factor = g / 100
+        baseNutrients.current = {
+            proteins_100g: (parseFloat(initial.protein_g) || 0) / factor,
+            carbohydrates_100g: (parseFloat(initial.carbs_g) || 0) / factor,
+            fat_100g: (parseFloat(initial.fat_g) || 0) / factor,
+            'energy-kcal_100g': (parseFloat(initial.kcal) || 0) / factor,
+        }
+    }, [])
+
+    const r = v => Math.round(v * 10) / 10
+
+    useEffect(() => {
+        if (!baseNutrients.current) return
+        const g = parseFloat(grams) || 100
+        const factor = g / 100
+        const n = baseNutrients.current
+        setForm(f => ({
+            ...f,
+            food: f.food.replace(/^\d+(\.\d+)?g /, `${g}g `),
+            protein_g: String(r(n.proteins_100g * factor)),
+            carbs_g: String(r(n.carbohydrates_100g * factor)),
+            fat_g: String(r(n.fat_100g * factor)),
+            kcal: String(r(n['energy-kcal_100g'] * factor)),
+        }))
+    }, [grams])
 
     useEffect(() => {
         if (!searchQuery.trim()) { setSearchResults([]); setShowDropdown(false); return }
@@ -102,17 +148,20 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
         const g = parseFloat(grams) || 100
         const factor = g / 100
         const n = product.nutriments ?? {}
-        const protein = Math.round((n['proteins_100g'] ?? 0) * factor)
-        const carbs = Math.round((n['carbohydrates_100g'] ?? 0) * factor)
-        const fat = Math.round((n['fat_100g'] ?? 0) * factor)
-        const kcal = Math.round((n['energy-kcal_100g'] ?? (n['energy_100g'] ?? 0) / 4.184) * factor)
+        const base = {
+            proteins_100g: n['proteins_100g'] ?? 0,
+            carbohydrates_100g: n['carbohydrates_100g'] ?? 0,
+            fat_100g: n['fat_100g'] ?? 0,
+            'energy-kcal_100g': n['energy-kcal_100g'] ?? (n['energy_100g'] ?? 0) / 4.184,
+        }
+        baseNutrients.current = base
         setForm(f => ({
             ...f,
             food: `${g}g ${product.product_name}`,
-            protein_g: String(protein),
-            carbs_g: String(carbs),
-            fat_g: String(fat),
-            kcal: String(kcal),
+            protein_g: String(r(base.proteins_100g * factor)),
+            carbs_g: String(r(base.carbohydrates_100g * factor)),
+            fat_g: String(r(base.fat_100g * factor)),
+            kcal: String(r(base['energy-kcal_100g'] * factor)),
         }))
         setSearchQuery('')
         setSearchResults([])
@@ -137,6 +186,7 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
                         'energy-kcal_100g': n['energy-kcal_100g'] ?? 0,
                     }
                 })
+                setScannerOpen(false)
             } else {
                 setScanError(t('Product not found') + ' (' + barcode + ')')
             }
@@ -320,10 +370,10 @@ export default function Mat() {
             label: form.label.trim(),
             food: form.food.trim(),
             note: form.note.trim() || null,
-            protein_g: parseInt(form.protein_g) || 0,
-            carbs_g: parseInt(form.carbs_g) || 0,
-            fat_g: parseInt(form.fat_g) || 0,
-            kcal: parseInt(form.kcal) || 0,
+            protein_g: Math.round(parseFloat(form.protein_g)) || 0,
+            carbs_g: Math.round(parseFloat(form.carbs_g)) || 0,
+            fat_g: Math.round(parseFloat(form.fat_g)) || 0,
+            kcal: Math.round(parseFloat(form.kcal)) || 0,
         }
         const { data } = await supabase.from('meals').insert(row).select().single()
         if (data) setMeals(prev => [...prev, data])
@@ -338,10 +388,10 @@ export default function Mat() {
             label: form.label.trim(),
             food: form.food.trim(),
             note: form.note.trim() || null,
-            protein_g: parseInt(form.protein_g) || 0,
-            carbs_g: parseInt(form.carbs_g) || 0,
-            fat_g: parseInt(form.fat_g) || 0,
-            kcal: parseInt(form.kcal) || 0,
+            protein_g: Math.round(parseFloat(form.protein_g)) || 0,
+            carbs_g: Math.round(parseFloat(form.carbs_g)) || 0,
+            fat_g: Math.round(parseFloat(form.fat_g)) || 0,
+            kcal: Math.round(parseFloat(form.kcal)) || 0,
         }).eq('id', editMeal.id).select().single()
         if (data) setMeals(prev => prev.map(m => m.id === data.id ? data : m))
         setSaving(false)

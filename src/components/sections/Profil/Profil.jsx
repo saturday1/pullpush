@@ -12,7 +12,7 @@ function formatDate(dateStr) {
 }
 
 export default function Profil() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { loading, firstName, lastName, birthDate, phone, age, height, goalWeight, updateProfile } = useProfile()
   const [email, setEmail] = useState('')
 
@@ -52,10 +52,6 @@ export default function Profil() {
     })
     setSaving(false)
     setEditing(false)
-  }
-
-  function changeLanguage(lng) {
-    i18n.changeLanguage(lng)
   }
 
   return (
@@ -113,32 +109,6 @@ export default function Profil() {
               <div className={styles.infoRow}><span>{t('Email')}</span><span>{email || '…'}</span></div>
             </div>
           )}
-        </div>
-      </Reveal>
-
-      <Reveal>
-        <div className={styles.infoCard}>
-          <div className={styles.infoCardHeader}>
-            <span className={styles.infoCardTitle}>{t('Language')}</span>
-          </div>
-          <div className={styles.infoRows}>
-            <div style={{ display: 'flex', gap: '8px', padding: '8px 0' }}>
-              <button
-                className={styles.editBtn}
-                onClick={() => changeLanguage('sv')}
-                style={{ opacity: i18n.language?.startsWith('sv') ? 1 : 0.5 }}
-              >
-                {t('Svenska')}
-              </button>
-              <button
-                className={styles.editBtn}
-                onClick={() => changeLanguage('en')}
-                style={{ opacity: i18n.language?.startsWith('en') ? 1 : 0.5 }}
-              >
-                {t('English')}
-              </button>
-            </div>
-          </div>
         </div>
       </Reveal>
 
