@@ -62,7 +62,7 @@ function BarcodeScanner({ onResult, onClose, t }) {
     )
 }
 
-function MealModal({ initial, onSave, onClose, saving, t }) {
+function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
     const [form, setForm] = useState(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
     const valid = form.label.trim() && form.food.trim()
@@ -290,6 +290,7 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
                         </label>
                     </div>
                 </div>
+                {saveError && <div className={styles.saveError}>{saveError}</div>}
                 <div className={styles.modalActions}>
                     <button className={styles.cancelBtn} onClick={onClose} type="button">{t('Cancel')}</button>
                     <button className={styles.saveBtn} onClick={() => onSave(form)} disabled={saving || !valid} type="button">
@@ -348,6 +349,7 @@ export default function Mat() {
     const [addOpen, setAddOpen] = useState(false)
     const [editMeal, setEditMeal] = useState(null)
     const [saving, setSaving] = useState(false)
+    const [saveError, setSaveError] = useState('')
 
     useEffect(() => { loadMeals() }, [])
 
@@ -360,6 +362,7 @@ export default function Mat() {
 
     async function handleAdd(form) {
         setSaving(true)
+        setSaveError('')
         const { data: { user } } = await supabase.auth.getUser()
         const currentMax = meals.filter(m => m.day_type === tab).reduce((acc, m) => Math.max(acc, m.sort_order), -1)
         const row = {
@@ -375,15 +378,17 @@ export default function Mat() {
             fat_g: Math.round(parseFloat(form.fat_g)) || 0,
             kcal: Math.round(parseFloat(form.kcal)) || 0,
         }
-        const { data } = await supabase.from('meals').insert(row).select().single()
-        if (data) setMeals(prev => [...prev, data])
+        const { data, error } = await supabase.from('meals').insert(row).select().single()
+        if (error) { setSaveError(error.message); setSaving(false); return }
+        setMeals(prev => [...prev, data])
         setSaving(false)
         setAddOpen(false)
     }
 
     async function handleEdit(form) {
         setSaving(true)
-        const { data } = await supabase.from('meals').update({
+        setSaveError('')
+        const { data, error } = await supabase.from('meals').update({
             time_label: form.time_label.trim(),
             label: form.label.trim(),
             food: form.food.trim(),
@@ -393,7 +398,8 @@ export default function Mat() {
             fat_g: Math.round(parseFloat(form.fat_g)) || 0,
             kcal: Math.round(parseFloat(form.kcal)) || 0,
         }).eq('id', editMeal.id).select().single()
-        if (data) setMeals(prev => prev.map(m => m.id === data.id ? data : m))
+        if (error) { setSaveError(error.message); setSaving(false); return }
+        setMeals(prev => prev.map(m => m.id === data.id ? data : m))
         setSaving(false)
         setEditMeal(null)
     }
@@ -470,8 +476,9 @@ export default function Mat() {
             {addOpen && (
                 <MealModal
                     onSave={handleAdd}
-                    onClose={() => setAddOpen(false)}
+                    onClose={() => { setAddOpen(false); setSaveError('') }}
                     saving={saving}
+                    saveError={saveError}
                     t={t}
                 />
             )}
@@ -479,8 +486,9 @@ export default function Mat() {
                 <MealModal
                     initial={{ ...editMeal, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '' }}
                     onSave={handleEdit}
-                    onClose={() => setEditMeal(null)}
+                    onClose={() => { setEditMeal(null); setSaveError('') }}
                     saving={saving}
+                    saveError={saveError}
                     t={t}
                 />
             )}
