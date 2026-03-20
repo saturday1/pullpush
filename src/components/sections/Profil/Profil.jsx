@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { supabase } from '../../../supabase'
@@ -11,10 +12,10 @@ function formatDate(dateStr) {
 }
 
 export default function Profil() {
+  const { t, i18n } = useTranslation()
   const { loading, firstName, lastName, birthDate, phone, age, height, goalWeight, updateProfile } = useProfile()
   const [email, setEmail] = useState('')
 
-  // Edit mode
   const [editing,    setEditing]    = useState(false)
   const [editFirst,  setEditFirst]  = useState('')
   const [editLast,   setEditLast]   = useState('')
@@ -53,16 +54,20 @@ export default function Profil() {
     setEditing(false)
   }
 
+  function changeLanguage(lng) {
+    i18n.changeLanguage(lng)
+  }
+
   return (
     <section id="profil">
-      <SectionHeader number="01" title="Profil" />
+      <SectionHeader number="01" title={t('Profile')} />
 
       <Reveal>
         <div className={styles.infoCard}>
           <div className={styles.infoCardHeader}>
-            <span className={styles.infoCardTitle}>Personuppgifter</span>
+            <span className={styles.infoCardTitle}>{t('Personal information')}</span>
             {!editing && (
-              <button className={styles.editBtn} onClick={startEdit}>Redigera</button>
+              <button className={styles.editBtn} onClick={startEdit}>{t('Edit')}</button>
             )}
           </div>
 
@@ -70,44 +75,70 @@ export default function Profil() {
             <form onSubmit={handleSave} className={styles.editForm}>
               <div className={styles.fieldRow}>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Förnamn</span>
+                  <span className={styles.fieldLabel}>{t('First name')}</span>
                   <input className={styles.fieldInput} type="text" value={editFirst} onChange={e => setEditFirst(e.target.value)} />
                 </label>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Efternamn</span>
+                  <span className={styles.fieldLabel}>{t('Last name')}</span>
                   <input className={styles.fieldInput} type="text" value={editLast} onChange={e => setEditLast(e.target.value)} />
                 </label>
               </div>
               <div className={styles.fieldRow}>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Födelsedag</span>
+                  <span className={styles.fieldLabel}>{t('Birthday')}</span>
                   <input className={styles.fieldInput} type="date" value={editBirth} onChange={e => setEditBirth(e.target.value)} />
                 </label>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Längd (cm)</span>
+                  <span className={styles.fieldLabel}>{t('Height (cm)')}</span>
                   <input className={styles.fieldInput} type="number" value={editHeight} onChange={e => setEditHeight(e.target.value)} placeholder="cm" />
                 </label>
               </div>
               <div className={styles.fieldRow}>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Telefon</span>
-                  <input className={styles.fieldInput} type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Valfritt" />
+                  <span className={styles.fieldLabel}>{t('Phone')}</span>
+                  <input className={styles.fieldInput} type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder={t('Optional')} />
                 </label>
               </div>
               <div className={styles.editActions}>
-                <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>Avbryt</button>
-                <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? 'Sparar…' : 'Spara'}</button>
+                <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>{t('Cancel')}</button>
+                <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? t('Saving…') : t('Save')}</button>
               </div>
             </form>
           ) : (
             <div className={styles.infoRows}>
-              <div className={styles.infoRow}><span>Namn</span><span>{loading ? '…' : `${firstName ?? '–'} ${lastName ?? ''}`}</span></div>
-              <div className={styles.infoRow}><span>Ålder</span><span>{loading ? '…' : `${age ?? '–'} år (${formatDate(birthDate)})`}</span></div>
-              <div className={styles.infoRow}><span>Längd</span><span>{loading ? '…' : `${height ?? '–'} cm`}</span></div>
-              <div className={styles.infoRow}><span>Telefon</span><span>{loading ? '…' : (phone ?? '–')}</span></div>
-              <div className={styles.infoRow}><span>E-post</span><span>{email || '…'}</span></div>
+              <div className={styles.infoRow}><span>{t('Name')}</span><span>{loading ? '…' : `${firstName ?? '–'} ${lastName ?? ''}`}</span></div>
+              <div className={styles.infoRow}><span>{t('Age')}</span><span>{loading ? '…' : t('{{age}} years ({{date}})', { age: age ?? '–', date: formatDate(birthDate) })}</span></div>
+              <div className={styles.infoRow}><span>{t('Height')}</span><span>{loading ? '…' : t('{{height}} cm', { height: height ?? '–' })}</span></div>
+              <div className={styles.infoRow}><span>{t('Phone')}</span><span>{loading ? '…' : (phone ?? '–')}</span></div>
+              <div className={styles.infoRow}><span>{t('Email')}</span><span>{email || '…'}</span></div>
             </div>
           )}
+        </div>
+      </Reveal>
+
+      <Reveal>
+        <div className={styles.infoCard}>
+          <div className={styles.infoCardHeader}>
+            <span className={styles.infoCardTitle}>{t('Language')}</span>
+          </div>
+          <div className={styles.infoRows}>
+            <div style={{ display: 'flex', gap: '8px', padding: '8px 0' }}>
+              <button
+                className={styles.editBtn}
+                onClick={() => changeLanguage('sv')}
+                style={{ opacity: i18n.language?.startsWith('sv') ? 1 : 0.5 }}
+              >
+                {t('Svenska')}
+              </button>
+              <button
+                className={styles.editBtn}
+                onClick={() => changeLanguage('en')}
+                style={{ opacity: i18n.language?.startsWith('en') ? 1 : 0.5 }}
+              >
+                {t('English')}
+              </button>
+            </div>
+          </div>
         </div>
       </Reveal>
 

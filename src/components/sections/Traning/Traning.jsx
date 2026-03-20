@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { supabase } from '../../../supabase'
@@ -9,10 +10,8 @@ const KG_TO_LBS = 2.20462
 const toKg  = lbs => +(lbs / KG_TO_LBS).toFixed(2)
 const toLbs = kg  => +(kg  * KG_TO_LBS).toFixed(1)
 
-const DAY_ABBREV = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
-const DAY_FULL   = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
-
 function NameModal({ exercise, onRename, onDelete, onClose }) {
+  const { t } = useTranslation()
   const [name,       setName]       = useState(exercise.name)
   const [saving,     setSaving]     = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -34,15 +33,15 @@ function NameModal({ exercise, onRename, onDelete, onClose }) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>Övning</div>
+        <div className={styles.modalTitle}>{t('Exercise')}</div>
 
         {confirming ? (
           <>
-            <p className={styles.confirmText}>Ta bort <strong>{exercise.name}</strong>? Detta går inte att ångra.</p>
+            <p className={styles.confirmText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong>? This cannot be undone.', { name: exercise.name }) }} />
             <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>Avbryt</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>{t('Cancel')}</button>
               <button className={styles.deleteConfirmBtn} onClick={handleDelete} disabled={deleting}>
-                {deleting ? '…' : 'Ja, ta bort'}
+                {deleting ? '…' : t('Yes, delete')}
               </button>
             </div>
           </>
@@ -50,7 +49,7 @@ function NameModal({ exercise, onRename, onDelete, onClose }) {
           <>
             <div className={styles.modalFields}>
               <label className={styles.modalField}>
-                <span className={styles.modalLabel}>Namn</span>
+                <span className={styles.modalLabel}>{t('Name')}</span>
                 <input
                   className={styles.modalInput}
                   type="text"
@@ -63,11 +62,11 @@ function NameModal({ exercise, onRename, onDelete, onClose }) {
             </div>
             <div className={styles.modalActions}>
               <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>
-                Ta bort
+                {t('Delete')}
               </button>
-              <button className={styles.cancelBtn} onClick={onClose}>Avbryt</button>
+              <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
               <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !name.trim()}>
-                {saving ? '…' : 'Spara'}
+                {saving ? '…' : t('Save')}
               </button>
             </div>
           </>
@@ -78,6 +77,7 @@ function NameModal({ exercise, onRename, onDelete, onClose }) {
 }
 
 function LogModal({ exercise, current, onSave, onClose }) {
+  const { t } = useTranslation()
   const [kg,     setKg]     = useState(current?.kg?.toString() ?? '')
   const [lbs,    setLbs]    = useState(current?.kg ? toLbs(current.kg).toString() : '')
   const [reps,   setReps]   = useState(current?.reps?.toString() ?? '')
@@ -108,22 +108,22 @@ function LogModal({ exercise, current, onSave, onClose }) {
         <div className={styles.modalTitle}>{exercise.name}</div>
         <div className={styles.modalFields}>
           <label className={styles.modalField}>
-            <span className={styles.modalLabel}>Vikt (kg)</span>
+            <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
             <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} autoFocus />
           </label>
           <label className={styles.modalField}>
-            <span className={styles.modalLabel}>Vikt (lbs)</span>
+            <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
             <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
           </label>
           <label className={styles.modalField}>
-            <span className={styles.modalLabel}>Reps</span>
+            <span className={styles.modalLabel}>{t('Reps')}</span>
             <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
           </label>
         </div>
         <div className={styles.modalActions}>
-          <button className={styles.cancelBtn} onClick={onClose}>Avbryt</button>
+          <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
           <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-            {saving ? '…' : 'Spara'}
+            {saving ? '…' : t('Save')}
           </button>
         </div>
       </div>
@@ -132,6 +132,8 @@ function LogModal({ exercise, current, onSave, onClose }) {
 }
 
 function AddSessionModal({ userId, sortOrder, onSave, onClose }) {
+  const { t } = useTranslation()
+  const dayFull = t('dayFull', { returnObjects: true })
   const [name, setName] = useState('')
   const [day,  setDay]  = useState(1)
   const [saving, setSaving] = useState(false)
@@ -147,31 +149,31 @@ function AddSessionModal({ userId, sortOrder, onSave, onClose }) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>Nytt träningspass</div>
+        <div className={styles.modalTitle}>{t('New training session')}</div>
         <div className={styles.modalFields}>
           <label className={styles.modalField}>
-            <span className={styles.modalLabel}>Passnamn</span>
+            <span className={styles.modalLabel}>{t('Session name')}</span>
             <input
               className={styles.modalInput}
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
-              placeholder="t.ex. Push, Ben, Helkropp…"
+              placeholder={t('e.g. Push, Legs, Full body…')}
               autoFocus
             />
           </label>
           <label className={styles.modalField}>
-            <span className={styles.modalLabel}>Dag</span>
+            <span className={styles.modalLabel}>{t('Day')}</span>
             <select className={styles.modalInput} value={day} onChange={e => setDay(Number(e.target.value))}>
-              {DAY_FULL.map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
+              {dayFull.map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
             </select>
           </label>
         </div>
         <div className={styles.modalActions}>
-          <button className={styles.cancelBtn} onClick={onClose}>Avbryt</button>
+          <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
           <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !name.trim()}>
-            {saving ? '…' : 'Lägg till'}
+            {saving ? '…' : t('Add')}
           </button>
         </div>
       </div>
@@ -180,6 +182,8 @@ function AddSessionModal({ userId, sortOrder, onSave, onClose }) {
 }
 
 function EditSessionModal({ session, onSave, onDelete, onClose }) {
+  const { t } = useTranslation()
+  const dayFull = t('dayFull', { returnObjects: true })
   const [name,       setName]       = useState(session.name)
   const [day,        setDay]        = useState(session.day_of_week)
   const [saving,     setSaving]     = useState(false)
@@ -202,17 +206,15 @@ function EditSessionModal({ session, onSave, onDelete, onClose }) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>Redigera pass</div>
+        <div className={styles.modalTitle}>{t('Edit session')}</div>
 
         {confirming ? (
           <>
-            <p className={styles.confirmText}>
-              Ta bort <strong>{session.name}</strong> och alla dess övningar? Detta går inte att ångra.
-            </p>
+            <p className={styles.confirmText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong> and all its exercises? This cannot be undone.', { name: session.name }) }} />
             <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>Avbryt</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>{t('Cancel')}</button>
               <button className={styles.deleteConfirmBtn} onClick={handleDelete} disabled={deleting}>
-                {deleting ? '…' : 'Ja, ta bort'}
+                {deleting ? '…' : t('Yes, delete')}
               </button>
             </div>
           </>
@@ -220,23 +222,23 @@ function EditSessionModal({ session, onSave, onDelete, onClose }) {
           <>
             <div className={styles.modalFields}>
               <label className={styles.modalField}>
-                <span className={styles.modalLabel}>Passnamn</span>
+                <span className={styles.modalLabel}>{t('Session name')}</span>
                 <input className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} autoFocus />
               </label>
               <label className={styles.modalField}>
-                <span className={styles.modalLabel}>Dag</span>
+                <span className={styles.modalLabel}>{t('Day')}</span>
                 <select className={styles.modalInput} value={day} onChange={e => setDay(Number(e.target.value))}>
-                  {DAY_FULL.map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
+                  {dayFull.map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
                 </select>
               </label>
             </div>
             <div className={styles.modalActions}>
               <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>
-                Ta bort pass
+                {t('Delete session')}
               </button>
-              <button className={styles.cancelBtn} onClick={onClose}>Avbryt</button>
+              <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
               <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !name.trim()}>
-                {saving ? '…' : 'Spara'}
+                {saving ? '…' : t('Save')}
               </button>
             </div>
           </>
@@ -247,6 +249,7 @@ function EditSessionModal({ session, onSave, onDelete, onClose }) {
 }
 
 function EditProgramModal({ program, onRename, onDelete, onClose }) {
+  const { t } = useTranslation()
   const [name,       setName]       = useState(program.name)
   const [saving,     setSaving]     = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -270,16 +273,14 @@ function EditProgramModal({ program, onRename, onDelete, onClose }) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>Redigera program</div>
+        <div className={styles.modalTitle}>{t('Edit program')}</div>
         {confirming ? (
           <>
-            <p className={styles.confirmText}>
-              Ta bort <strong>{program.name}</strong> och alla dess träningspass? Detta går inte att ångra.
-            </p>
+            <p className={styles.confirmText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong> and all its training sessions? This cannot be undone.', { name: program.name }) }} />
             <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>Avbryt</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>{t('Cancel')}</button>
               <button className={styles.deleteConfirmBtn} onClick={handleDelete} disabled={deleting}>
-                {deleting ? '…' : 'Ja, ta bort'}
+                {deleting ? '…' : t('Yes, delete')}
               </button>
             </div>
           </>
@@ -287,7 +288,7 @@ function EditProgramModal({ program, onRename, onDelete, onClose }) {
           <>
             <div className={styles.modalFields}>
               <label className={styles.modalField}>
-                <span className={styles.modalLabel}>Namn</span>
+                <span className={styles.modalLabel}>{t('Name')}</span>
                 <input
                   className={styles.modalInput}
                   type="text"
@@ -299,10 +300,10 @@ function EditProgramModal({ program, onRename, onDelete, onClose }) {
               </label>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>Ta bort</button>
-              <button className={styles.cancelBtn} onClick={onClose}>Avbryt</button>
+              <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>{t('Delete')}</button>
+              <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
               <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !name.trim()}>
-                {saving ? '…' : 'Spara'}
+                {saving ? '…' : t('Save')}
               </button>
             </div>
           </>
@@ -313,6 +314,7 @@ function EditProgramModal({ program, onRename, onDelete, onClose }) {
 }
 
 function CreateProgramModal({ onSave, onClose }) {
+  const { t } = useTranslation()
   const [name,    setName]    = useState('')
   const [saving,  setSaving]  = useState(false)
 
@@ -327,25 +329,25 @@ function CreateProgramModal({ onSave, onClose }) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>Nytt träningsprogram</div>
+        <div className={styles.modalTitle}>{t('New training program')}</div>
         <div className={styles.modalFields}>
           <label className={styles.modalField}>
-            <span className={styles.modalLabel}>Namn</span>
+            <span className={styles.modalLabel}>{t('Name')}</span>
             <input
               className={styles.modalInput}
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
-              placeholder="t.ex. Bulking, Deload, Sommar…"
+              placeholder={t('e.g. Bulking, Deload, Summer…')}
               autoFocus
             />
           </label>
         </div>
         <div className={styles.modalActions}>
-          <button className={styles.cancelBtn} onClick={onClose}>Avbryt</button>
+          <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
           <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !name.trim()}>
-            {saving ? '…' : 'Skapa'}
+            {saving ? '…' : t('Create')}
           </button>
         </div>
       </div>
@@ -354,6 +356,9 @@ function CreateProgramModal({ onSave, onClose }) {
 }
 
 export default function Traning() {
+  const { t } = useTranslation()
+  const dayAbbrev = t('dayAbbrev', { returnObjects: true })
+  const dayFull   = t('dayFull',   { returnObjects: true })
   const { sessions, programs, activeProgramId, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
   const [activeTab,      setActiveTab]      = useState(null)
   const [exercises,      setExercises]      = useState({})
@@ -475,7 +480,7 @@ export default function Traning() {
 
   return (
     <section id="traning">
-      <SectionHeader number="04" title="Träningspass" />
+      <SectionHeader number="04" title={t('Training sessions')} />
 
       {programs.length > 0 && (
         <Reveal>
@@ -489,12 +494,12 @@ export default function Traning() {
                   {p.name}
                 </button>
                 {p.id === activeProgramId && (
-                  <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title="Redigera program">✎</button>
+                  <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
                 )}
               </span>
             ))}
             <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>
-              + Nytt program
+              {t('+ New program')}
             </button>
           </div>
         </Reveal>
@@ -509,13 +514,13 @@ export default function Traning() {
                 className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
                 onClick={() => { setActiveTab(s.id); setAdding(false) }}
               >
-                {DAY_ABBREV[s.day_of_week - 1]} — {s.name}
+                {dayAbbrev[s.day_of_week - 1]} — {s.name}
               </button>
             ))}
           </div>
           <div className={styles.topActions}>
             <button className={styles.addSessionBtn} onClick={() => setAddingSession(true)}>
-              + Lägg till pass
+              {t('+ Add session')}
             </button>
           </div>
         </div>
@@ -526,11 +531,11 @@ export default function Traning() {
           <div className={styles.dayBadge}>
             <div className={styles.dot} />
             <span className={styles.dayLabel}>
-              {currentSession ? DAY_FULL[currentSession.day_of_week - 1] : ''}
+              {currentSession ? dayFull[currentSession.day_of_week - 1] : ''}
             </span>
           </div>
           {currentSession && (
-            <button className={styles.editSessionIconBtn} onClick={() => setEditingSession(true)} title="Redigera pass">
+            <button className={styles.editSessionIconBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>
               ✎
             </button>
           )}
@@ -540,10 +545,10 @@ export default function Traning() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Övning</th>
+                <th>{t('Exercise')}</th>
                 <th className={styles.numCol}>kg</th>
                 <th className={styles.numCol}>lbs</th>
-                <th className={styles.numCol}>Reps</th>
+                <th className={styles.numCol}>{t('Reps')}</th>
               </tr>
             </thead>
             <tbody>
@@ -575,13 +580,13 @@ export default function Traning() {
                     <div className={styles.addRow}>
                       <input
                         className={styles.inlineInput}
-                        placeholder="Övningsnamn…"
+                        placeholder={t('Exercise name…')}
                         value={newName}
                         onChange={e => setNewName(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
                         autoFocus
                       />
-                      <button className={styles.addConfirmBtn} onClick={handleAdd}>Lägg till</button>
+                      <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
                       <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
                     </div>
                   </td>
@@ -592,7 +597,7 @@ export default function Traning() {
         </div>
 
         {!adding && (
-          <button className={styles.addBtn} onClick={() => setAdding(true)}>+ Lägg till övning</button>
+          <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
         )}
       </Reveal>
 
