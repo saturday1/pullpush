@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { BrowserMultiFormatReader } from '@zxing/browser'
 import { supabase } from '../../../supabase'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
@@ -7,8 +8,47 @@ import styles from './Mat.module.scss'
 
 const EMPTY_FORM = { time_label: '', label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '' }
 
+function BarcodeScanner({ onResult, onClose, t }) {
+    const videoRef = useRef(null)
+    const controlsRef = useRef(null)
+    const [camError, setCamError] = useState(null)
+
+    useEffect(() => {
+        const reader = new BrowserMultiFormatReader()
+        let handled = false
+        reader.decodeFromVideoDevice(undefined, videoRef.current, (result) => {
+            if (result && !handled) {
+                handled = true
+                controlsRef.current?.stop()
+                onResult(result.getText())
+            }
+        }).then(controls => {
+            controlsRef.current = controls
+        }).catch(() => {
+            setCamError(t('Could not open camera'))
+        })
+        return () => { controlsRef.current?.stop() }
+    }, [])
+
+    return (
+        <div className={styles.scannerOverlay} onClick={onClose}>
+            <div className={styles.scannerModal} onClick={e => e.stopPropagation()}>
+                <div className={styles.scannerTitle}>{t('Point camera at barcode')}</div>
+                {camError
+                    ? <div className={styles.scannerError}>{camError}</div>
+                    : <div className={styles.scannerVideoWrap}>
+                        <video ref={videoRef} className={styles.scannerVideo} />
+                        <div className={styles.scannerTarget} />
+                    </div>
+                }
+                <button className={styles.scannerCancelBtn} onClick={onClose} type="button">{t('Cancel')}</button>
+            </div>
+        </div>
+    )
+}
+
 function MealModal({ initial, onSave, onClose, saving, t }) {
-    const [form, setForm] = useState(initial ?? EMPTY_FORM)
+    const [form, setForm] = useState(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
     const valid = form.label.trim() && form.food.trim()
 
@@ -17,6 +57,8 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
     const [searchLoading, setSearchLoading] = useState(false)
     const [showDropdown, setShowDropdown] = useState(false)
     const [grams, setGrams] = useState('100')
+    const [scannerOpen, setScannerOpen] = useState(false)
+    const [scanError, setScanError] = useState('')
     const dropdownRef = useRef(null)
 
     useEffect(() => {
@@ -77,6 +119,33 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
         setShowDropdown(false)
     }
 
+    async function handleBarcode(barcode) {
+        setScanError('')
+        setSearchLoading(true)
+        try {
+            const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`)
+            const data = await res.json()
+            if (data.status === 1 && data.product?.product_name) {
+                const p = data.product
+                const n = p.nutriments ?? {}
+                selectProduct({
+                    product_name: p.product_name,
+                    nutriments: {
+                        proteins_100g: n.proteins_100g ?? 0,
+                        carbohydrates_100g: n.carbohydrates_100g ?? 0,
+                        fat_100g: n.fat_100g ?? 0,
+                        'energy-kcal_100g': n['energy-kcal_100g'] ?? 0,
+                    }
+                })
+            } else {
+                setScanError(t('Product not found') + ' (' + barcode + ')')
+            }
+        } catch {
+            setScanError(t('Could not fetch product'))
+        }
+        setSearchLoading(false)
+    }
+
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
@@ -105,6 +174,14 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
                                 </div>
                             )}
                         </div>
+                        <button className={styles.scanBtn} type="button" onClick={() => { setScanError(''); setScannerOpen(true) }} title={t('Scan barcode')}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                                <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                                <line x1="7" y1="12" x2="7" y2="12"/><line x1="12" y1="7" x2="12" y2="17"/>
+                                <line x1="17" y1="12" x2="17" y2="12"/>
+                            </svg>
+                        </button>
                         <div className={styles.gramsWrap}>
                             <input
                                 className={styles.gramsInput}
@@ -116,7 +193,9 @@ function MealModal({ initial, onSave, onClose, saving, t }) {
                             <span className={styles.gramsUnit}>g</span>
                         </div>
                     </div>
+                    {scanError && <div className={styles.scanError}>{scanError}</div>}
                 </div>
+                {scannerOpen && <BarcodeScanner onResult={handleBarcode} onClose={() => setScannerOpen(false)} t={t} />}
 
                 <div className={styles.modalFields}>
                     <label className={styles.modalField}>
