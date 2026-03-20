@@ -1,0 +1,28 @@
+{
+  "dayAbbrev": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  "dayFull": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+  "dayNames": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+
+  "trainMeals": [
+    { "time": "07:00", "label": "Breakfast", "food": "140g quark + 30g whey + 40g oats + 100ml milk 3%", "p": "46g", "k": "38g", "f": "8g", "kcal": 405 },
+    { "time": "10:30", "label": "Snack", "food": "1 boiled egg + 1 apple + 10 almonds", "p": "12g", "k": "21g", "f": "15g", "kcal": 267 },
+    { "time": "13:00", "label": "Lunch", "food": "300g chicken breast (oven) + 150g sweet potato + large salad + 1 tbsp olive oil", "p": "72g", "k": "32g", "f": "23g", "kcal": 624 },
+    { "time": "15:30", "label": "Snack", "food": "2 boiled eggs + 1 apple + 10 almonds", "p": "19g", "k": "21g", "f": "21g", "kcal": 348 },
+    { "time": "Post-workout", "label": "Protein", "food": "30g whey in water/milk. Creatine (5g) can be taken here.", "p": "23g", "k": "2g", "f": "2g", "kcal": 114 },
+    { "time": "19:00", "label": "Dinner", "food": "200g salmon/cod/beef + 100g quinoa/rice + broccoli/zucchini", "p": "46g", "k": "29g", "f": "21g", "kcal": 489 },
+    { "time": "21:00", "label": "Evening snack", "food": "200g quark + 100g berries (frozen OK) + 30g whey (in the quark)", "p": "44g", "k": "16g", "f": "2g", "kcal": 260 }
+  ],
+  "restMeals": [
+    { "time": "07:00", "label": "Breakfast", "food": "140g quark + 30g whey + 40g oats + 100ml milk 3%", "p": "46g", "k": "38g", "f": "8g", "kcal": 405 },
+    { "time": "10:30", "label": "Snack", "food": "1 boiled egg + 1 apple", "p": "8g", "k": "18g", "f": "6g", "kcal": 157 },
+    { "time": "13:00", "label": "Lunch", "food": "300g chicken breast (oven) + large salad + 1 tbsp olive oil", "p": "70g", "k": "3g", "f": "23g", "kcal": 499, "note": "(skip the sweet potato)" },
+    { "time": "15:30", "label": "Snack", "food": "2 boiled eggs + 1 apple", "p": "15g", "k": "19g", "f": "11g", "kcal": 238 },
+    { "time": "19:00", "label": "Dinner", "food": "200g salmon/cod/beef + 75g quinoa/rice + broccoli/zucchini", "p": "45g", "k": "23g", "f": "21g", "kcal": 462, "note": "(half portion rice)" },
+    { "time": "21:00", "label": "Evening snack", "food": "200g quark + 100g berries + 30g whey (in the quark)", "p": "44g", "k": "16g", "f": "2g", "kcal": 260 }
+  ],
+  "supplements": [
+    { "name": "Creatine monohydrate", "dose": "5 g/day", "info": "Timing doesn't matter — take it whenever convenient. No loading phase needed. Be consistent every day, including rest days." },
+    { "name": "Whey 100 (post-workout)", "dose": "1 scoop (~30g)", "info": "Drink within 1–2h after training. On rest days it's included in the evening snack (in the quark)." },
+    { "name": "Water", "dose": "3+ liters/day", "info": "Creatine increases water needs. Signs of dehydration: fatigue, reduced performance, hunger." }
+  ]
+}

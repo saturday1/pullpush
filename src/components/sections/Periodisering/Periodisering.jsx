@@ -1,30 +1,21 @@
+import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
 import styles from './Periodisering.module.scss'
 
-const infoBoxes = [
-  {
-    variant: '',
-    title: 'Progressiv överlastning',
-    text: 'Klara du fler reps än övre intervallet med bra teknik → höj vikten nästa gång. Öka med 1.25–2.5 kg för överkropp, 2.5–5 kg för ben. Logga alltid dina vikter.',
-  },
-  {
-    variant: 'blue',
-    title: 'Byte av övningar',
-    text: 'Byt 1–2 övningar per pass var 6–8:e vecka. Behåll kärnövningarna (bänk, lat pulldown, benpress). Byt inte för att det är "tråkigt" — progression är resultatet.',
-  },
-  {
-    variant: 'green',
-    title: 'Fria vikter',
-    text: 'Lägg till fria vikter (hantelpress, marklyft) efter 3–4 månader när tekniken sitter. Aktiverar fler stabiliseringsmuskler.',
-  },
-]
-
 export default function Periodisering() {
+  const { t } = useTranslation()
+
+  const infoBoxes = [
+    { variant: '',      title: t('Progressive overload'), text: t('If you can do more reps than the upper range with good form → increase the weight next time. Add 1.25–2.5 kg for upper body, 2.5–5 kg for legs. Always log your weights.') },
+    { variant: 'blue',  title: t('Exercise rotation'),    text: t('Swap 1–2 exercises per session every 6–8 weeks. Keep the core lifts (bench, lat pulldown, leg press). Don\'t swap because it\'s "boring" — progression is the result.') },
+    { variant: 'green', title: t('Free weights'),         text: t('Add free weights (dumbbell press, deadlift) after 3–4 months when technique is solid. Activates more stabilizer muscles.') },
+  ]
+
   return (
     <section id="periodisering">
-      <SectionHeader number="05" title="Periodisering" />
+      <SectionHeader number="05" title={t('Periodization')} />
 
       <Reveal>
         <div className={styles.infoGrid}>
@@ -39,20 +30,16 @@ export default function Periodisering() {
 
       <Reveal>
         <div className={styles.deloadNote}>
-          <strong>DELOAD</strong>
-          <span>
-            Var 6–8:e vecka: kör samma övningar och set, men <strong>minska vikten med 50%</strong> och håll lägre reps.
-            Aktiv deload — vila inte helt. Tecken på att du behöver deload NU: prestanda minskar 2 pass i rad,
-            sömnproblem, led-/muskelömhet som inte försvinner, kraftigt sjunkande motivation.
-          </span>
+          <strong>{t('DELOAD')}</strong>
+          <span dangerouslySetInnerHTML={{ __html: t('Every 6–8 weeks: do the same exercises and sets, but <strong>reduce the weight by 50%</strong> and keep reps lower. Active deload — don\'t rest completely. Signs you need a deload NOW: performance drops 2 sessions in a row, sleep problems, joint/muscle soreness that won\'t go away, sharply declining motivation.') }} />
         </div>
       </Reveal>
 
       <Reveal>
         <CardGrid>
-          <CardGridItem label="Deload — hur ofta" value="Var 6–8 v"   valueStyle={{ fontSize: '22px' }} sub="Ökar till var 4–6 v när intensiteten ökar" />
-          <CardGridItem label="Deload-vikt"       value="50%"         valueStyle={{ color: 'var(--orange)' }}                                           sub="Av din normala arbetsvikt" />
-          <CardGridItem label="Kost under deload" value="Underhåll"   valueStyle={{ fontSize: '18px' }}                                                 sub="Äta lite mer stödjer återhämtning" />
+          <CardGridItem label={t('Deload — how often')} value={t('Every 6–8 w')}  valueStyle={{ fontSize: '22px' }} sub={t('Increases to every 4–6 w as intensity rises')} />
+          <CardGridItem label={t('Deload weight')}      value="50%"                valueStyle={{ color: 'var(--orange)' }}  sub={t('Of your normal working weight')} />
+          <CardGridItem label={t('Diet during deload')} value={t('Maintenance')}   valueStyle={{ fontSize: '18px' }}        sub={t('Eating a bit more supports recovery')} />
         </CardGrid>
       </Reveal>
     </section>

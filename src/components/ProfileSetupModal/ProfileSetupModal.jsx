@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useProfile } from '../../context/ProfileContext'
 import styles from './ProfileSetupModal.module.scss'
 
 export default function ProfileSetupModal() {
+  const { t } = useTranslation()
   const { loading, goalWeight, logWeight, updateProfile } = useProfile()
   const [firstName,   setFirstName]   = useState('')
   const [lastName,    setLastName]    = useState('')
@@ -19,14 +21,14 @@ export default function ProfileSetupModal() {
   async function handleSetup(e) {
     e.preventDefault()
     if (!firstName.trim() || !lastName.trim() || !birthDate) {
-      setError('Fyll i förnamn, efternamn och födelsedag.')
+      setError(t('Please fill in first name, last name and birthday.'))
       return
     }
     const goal_weight = parseFloat(setupGoal.replace(',', '.'))
     const height_cm   = parseFloat(setupHeight.replace(',', '.'))
     const startKg     = parseFloat(setupWeight.replace(',', '.'))
     if (isNaN(goal_weight) || isNaN(height_cm) || isNaN(startKg)) {
-      setError('Fyll i nuvarande vikt, målvikt och längd.')
+      setError(t('Please fill in current weight, goal weight and height.'))
       return
     }
     setError('')
@@ -48,51 +50,51 @@ export default function ProfileSetupModal() {
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-        <div className={styles.badge}>PROFIL</div>
-        <h2 className={styles.title}>Välkommen —<br />fyll i din profil</h2>
-        <p className={styles.sub}>Uppgifterna används för att beräkna kalorier, makros och viktmål.</p>
+        <div className={styles.badge}>{t('PROFILE')}</div>
+        <h2 className={styles.title} dangerouslySetInnerHTML={{ __html: t('Welcome —<br/>fill in your profile') }} />
+        <p className={styles.sub}>{t('This information is used to calculate calories, macros and weight goals.')}</p>
 
         <form onSubmit={handleSetup} className={styles.form}>
           <div className={styles.row2}>
             <label className={styles.field}>
-              <span className={styles.label}>Förnamn *</span>
-              <input className={styles.input} type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Förnamn" />
+              <span className={styles.label}>{t('First name *')}</span>
+              <input className={styles.input} type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder={t('First name')} />
             </label>
             <label className={styles.field}>
-              <span className={styles.label}>Efternamn *</span>
-              <input className={styles.input} type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Efternamn" />
+              <span className={styles.label}>{t('Last name *')}</span>
+              <input className={styles.input} type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder={t('Last name')} />
             </label>
           </div>
 
           <div className={styles.row2}>
             <label className={styles.field}>
-              <span className={styles.label}>Födelsedag *</span>
+              <span className={styles.label}>{t('Birthday *')}</span>
               <input className={styles.input} type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
             </label>
             <label className={styles.field}>
-              <span className={styles.label}>Telefon</span>
-              <input className={styles.input} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Valfritt" />
+              <span className={styles.label}>{t('Phone')}</span>
+              <input className={styles.input} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder={t('Optional')} />
             </label>
           </div>
 
           <div className={styles.row3}>
             <label className={styles.field}>
-              <span className={styles.label}>Vikt (kg) *</span>
+              <span className={styles.label}>{t('Weight (kg) *')}</span>
               <input className={styles.input} type="number" step="0.1" value={setupWeight} onChange={e => setSetupWeight(e.target.value)} placeholder="kg" />
             </label>
             <label className={styles.field}>
-              <span className={styles.label}>Målvikt *</span>
+              <span className={styles.label}>{t('Goal weight *')}</span>
               <input className={styles.input} type="number" step="0.1" value={setupGoal} onChange={e => setSetupGoal(e.target.value)} placeholder="kg" />
             </label>
             <label className={styles.field}>
-              <span className={styles.label}>Längd *</span>
+              <span className={styles.label}>{t('Height *')}</span>
               <input className={styles.input} type="number" value={setupHeight} onChange={e => setSetupHeight(e.target.value)} placeholder="cm" />
             </label>
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" disabled={saving} className={styles.btn}>
-            {saving ? 'Sparar…' : 'Kom igång'}
+            {saving ? t('Saving…') : t('Get started')}
           </button>
         </form>
       </div>

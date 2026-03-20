@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next'
 import { useProfile } from '../../context/ProfileContext'
 import styles from './PageHeader.module.scss'
 
 export default function PageHeader() {
+  const { t } = useTranslation()
   const { loading, firstName, startWeight, currentWeight } = useProfile()
 
   const rawDiff = !loading && startWeight != null && currentWeight != null
@@ -15,12 +17,12 @@ export default function PageHeader() {
       <div className={styles.blobPink}   aria-hidden="true" />
       <div className={styles.blobPurple} aria-hidden="true" />
       <h1 className={styles.title}>
-        Hej <span>{loading ? '…' : (firstName ?? '–')}</span>
+        {t('Hi')} <span>{loading ? '…' : (firstName ?? '–')}</span>
       </h1>
-      <p className={styles.subtitle}>Tränings- &amp; Kostplan</p>
+      <p className={styles.subtitle}>{t('Training & Diet Plan')}</p>
       {diff !== null && (
         <div className={styles.weightStat}>
-          {diff > 0 ? `+${diff}` : diff} kg sedan start
+          {t('{{diff}} kg since start', { diff: diff > 0 ? `+${diff}` : diff })}
         </div>
       )}
     </header>

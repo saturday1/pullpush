@@ -1,48 +1,31 @@
+import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import styles from './Tillskott.module.scss'
 
-const supplements = [
-  {
-    name: 'Kreatin monohydrat',
-    dose: '5 g/dag',
-    doseStyle: {},
-    info: 'Timing spelar ingen roll — ta det när det passar. Ingen laddningsfas behövs. Kör konsekvent varje dag, även vilodagar.',
-  },
-  {
-    name: 'Whey 100 (post-workout)',
-    dose: '1 dl (~30g)',
-    doseStyle: {},
-    info: 'Drick inom 1–2h efter träning. På vilodagar ingår det i kvällsmålet (i kvargen).',
-  },
-  {
-    name: 'Vatten',
-    dose: '3+ liter/dag',
-    doseStyle: { color: 'var(--blue)' },
-    info: 'Kreatin ökar vattenbehovet. Tecken på underfuktning: trötthet, sämre prestanda, hunger.',
-  },
-]
-
 export default function Tillskott() {
+  const { t } = useTranslation()
+  const supplements = t('supplements', { returnObjects: true })
+
   return (
     <section id="tillskott">
-      <SectionHeader number="06" title="Kreatin & Tillskott" />
+      <SectionHeader number="06" title={t('Creatine & Supplements')} />
 
       <Reveal>
         <div style={{ overflowX: 'auto' }}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Tillskott</th>
-                <th>Dos</th>
-                <th>Rekommendation</th>
+                <th>{t('Supplement')}</th>
+                <th>{t('Dose')}</th>
+                <th>{t('Recommendation')}</th>
               </tr>
             </thead>
             <tbody>
-              {supplements.map(({ name, dose, doseStyle, info }) => (
-                <tr key={name}>
+              {supplements.map(({ name, dose, info }, i) => (
+                <tr key={i}>
                   <td><div className={styles.suppName}>{name}</div></td>
-                  <td><span className={styles.suppDose} style={doseStyle}>{dose}</span></td>
+                  <td><span className={styles.suppDose} style={name === 'Vatten' || name === 'Water' ? { color: 'var(--blue)' } : {}}>{dose}</span></td>
                   <td>{info}</td>
                 </tr>
               ))}

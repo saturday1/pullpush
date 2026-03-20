@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../../supabase'
 import styles from './Login.module.scss'
 
 export default function Login() {
+    const { t } = useTranslation()
     const [mode, setMode] = useState('login')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -18,13 +20,13 @@ export default function Login() {
 
         if (mode === 'login') {
             const { error } = await supabase.auth.signInWithPassword({ email, password })
-            if (error) setError('Fel email eller lösenord.')
+            if (error) setError(t('Wrong email or password.'))
         } else {
             const { data, error } = await supabase.auth.signUp({ email, password })
             if (error) {
                 setError(error.message)
             } else if (data.user?.identities?.length === 0) {
-                setError('Det finns redan ett konto med den emailadressen.')
+                setError(t('An account with this email already exists.'))
             } else {
                 setMessage('check-email')
             }
@@ -36,16 +38,14 @@ export default function Login() {
         return (
             <div className={styles.wrapper}>
                 <div className={styles.form}>
-                    <div className={styles.title}>Kolla din mail</div>
-                    <p className={styles.checkEmailText}>
-                        Vi har skickat en bekräftelselänk till <strong>{email}</strong>. Klicka på länken i mailet för att aktivera ditt konto och sedan logga in.
-                    </p>
+                    <div className={styles.title}>{t('Check your email')}</div>
+                    <p className={styles.checkEmailText} dangerouslySetInnerHTML={{ __html: t('We sent a confirmation link to <strong>{{email}}</strong>. Click the link in the email to activate your account and log in.', { email }) }} />
                     <button
                         type="button"
                         className={styles.toggle}
                         onClick={() => { setMessage(null); setMode('login') }}
                     >
-                        Tillbaka till inloggning
+                        {t('Back to login')}
                     </button>
                 </div>
             </div>
@@ -55,12 +55,12 @@ export default function Login() {
     return (
         <div className={styles.wrapper}>
             <form className={styles.form} onSubmit={handleSubmit}>
-                <div className={styles.title}>{mode === 'login' ? 'Logga in' : 'Skapa konto'}</div>
+                <div className={styles.title}>{mode === 'login' ? t('Log in') : t('Create account')}</div>
                 <label className={styles.label}>
-                    Email
+                    {t('Email')}
                     <input
                         type="email"
-                        placeholder="Email"
+                        placeholder={t('Email')}
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         className={styles.input}
@@ -68,10 +68,10 @@ export default function Login() {
                     />
                 </label>
                 <label className={styles.label}>
-                    Lösenord
+                    {t('Password')}
                     <input
                         type="password"
-                        placeholder="Lösenord"
+                        placeholder={t('Password')}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         className={styles.input}
@@ -80,14 +80,14 @@ export default function Login() {
                 </label>
                 {error && <div className={styles.error}>{error}</div>}
                 <button type="submit" disabled={loading} className={styles.btn}>
-                    {loading ? '…' : mode === 'login' ? 'Logga in' : 'Skapa konto'}
+                    {loading ? '…' : mode === 'login' ? t('Log in') : t('Create account')}
                 </button>
                 <button
                     type="button"
                     className={styles.toggle}
                     onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setMessage(null) }}
                 >
-                    {mode === 'login' ? 'Skapa nytt konto' : 'Logga in istället'}
+                    {mode === 'login' ? t('Create new account') : t('Log in instead')}
                 </button>
             </form>
         </div>
