@@ -83,6 +83,7 @@ function LogModal({ exercise, current, onSave, onClose }) {
   const { t } = useTranslation()
   const [kg,     setKg]     = useState(current?.kg?.toString() ?? '')
   const [lbs,    setLbs]    = useState(current?.kg ? toLbs(current.kg).toString() : '')
+  const [sets,   setSets]   = useState(current?.sets?.toString() ?? '')
   const [reps,   setReps]   = useState(current?.reps?.toString() ?? '')
   const [saving, setSaving] = useState(false)
 
@@ -98,10 +99,11 @@ function LogModal({ exercise, current, onSave, onClose }) {
   }
   async function handleSave() {
     const kgVal   = parseFloat(kg.replace(',', '.'))
+    const setsVal = parseInt(sets)
     const repsVal = parseInt(reps)
     if (isNaN(kgVal) || isNaN(repsVal)) return
     setSaving(true)
-    await onSave(exercise.id, kgVal, repsVal)
+    await onSave(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
     setSaving(false)
   }
 
@@ -117,6 +119,10 @@ function LogModal({ exercise, current, onSave, onClose }) {
           <label className={styles.modalField}>
             <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
             <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+          </label>
+          <label className={styles.modalField}>
+            <span className={styles.modalLabel}>{t('Sets')}</span>
+            <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
           </label>
           <label className={styles.modalField}>
             <span className={styles.modalLabel}>{t('Reps')}</span>
@@ -369,8 +375,9 @@ function SortableRow({ ex, log, onName, onLog }) {
     <div ref={setNodeRef} style={style} className={styles.exerciseRow}>
       <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>
       <span><button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button></span>
-      <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.kg ?? '–'}</span>
-      <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.kg != null ? toLbs(log.kg) : '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell}`} onClick={() => onLog(ex)}>{log?.kg ?? '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell}`} onClick={() => onLog(ex)}>{log?.kg != null ? toLbs(log.kg) : '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.sets ?? '–'}</span>
       <span className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => onLog(ex)}>{log?.reps ?? '–'}</span>
     </div>
   )
@@ -409,7 +416,7 @@ export default function Traning() {
 
     const [{ data: exData }, { data: logData }] = await Promise.all([
       supabase.from('exercises').select('*').eq('user_id', user.id).order('sort_order'),
-      supabase.from('exercise_log').select('exercise_id, weight_kg, reps, logged_at').eq('user_id', user.id).order('logged_at', { ascending: false }),
+      supabase.from('exercise_log').select('exercise_id, weight_kg, sets, reps, logged_at').eq('user_id', user.id).order('logged_at', { ascending: false }),
     ])
 
     const grouped = {}
@@ -426,15 +433,15 @@ export default function Traning() {
     if (logData) {
       const latest = {}
       for (const row of logData) {
-        if (!latest[row.exercise_id]) latest[row.exercise_id] = { kg: row.weight_kg, reps: row.reps }
+        if (!latest[row.exercise_id]) latest[row.exercise_id] = { kg: row.weight_kg, sets: row.sets, reps: row.reps }
       }
       setLogs(latest)
     }
   }
 
-  async function handleLogSave(exerciseId, kg, reps) {
-    await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, reps })
-    setLogs(prev => ({ ...prev, [exerciseId]: { kg, reps } }))
+  async function handleLogSave(exerciseId, kg, sets, reps) {
+    await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps })
+    setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps } }))
     setLogging(null)
   }
 
@@ -588,8 +595,9 @@ export default function Traning() {
           <div className={styles.exerciseHeader}>
             <span></span>
             <span>{t('Exercise')}</span>
-            <span className={styles.numCol}>kg</span>
-            <span className={styles.numCol}>lbs</span>
+            <span className={`${styles.numCol} ${styles.weightCol}`}>kg</span>
+            <span className={`${styles.numCol} ${styles.weightCol}`}>lbs</span>
+            <span className={styles.numCol}>{t('Sets')}</span>
             <span className={styles.numCol}>{t('Reps')}</span>
           </div>
 
