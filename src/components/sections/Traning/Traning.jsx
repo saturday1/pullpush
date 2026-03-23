@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DndContext, closestCenter } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { supabase } from '../../../supabase'
@@ -355,6 +358,24 @@ function CreateProgramModal({ onSave, onClose }) {
   )
 }
 
+function SortableRow({ ex, log, onName, onLog }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+  return (
+    <div ref={setNodeRef} style={style} className={styles.exerciseRow}>
+      <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>
+      <span><button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button></span>
+      <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.kg ?? '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.kg != null ? toLbs(log.kg) : '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => onLog(ex)}>{log?.reps ?? '–'}</span>
+    </div>
+  )
+}
+
 export default function Traning() {
   const { t } = useTranslation()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true })
@@ -475,11 +496,33 @@ export default function Traning() {
     setEditingSession(false)
   }
 
+  async function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const sessionId = activeTab
+    const items = [...(exercises[sessionId] ?? [])]
+    const oldIndex = items.findIndex(e => e.id === active.id)
+    const newIndex = items.findIndex(e => e.id === over.id)
+    const reordered = arrayMove(items, oldIndex, newIndex)
+
+    setExercises(prev => ({ ...prev, [sessionId]: reordered }))
+
+    await Promise.all(
+      reordered.map((ex, i) =>
+        ex.sort_order !== i
+          ? supabase.from('exercises').update({ sort_order: i }).eq('id', ex.id)
+          : null
+      ).filter(Boolean)
+    )
+  }
+
   const currentSession   = sessions.find(s => s.id === activeTab)
   const currentExercises = exercises[activeTab] ?? []
 
   return (
     <section id="traning">
+      <div className={styles.gradientBar} />
       <SectionHeader number="04" title={t('Training sessions')} />
 
       {programs.length > 0 && (
@@ -541,59 +584,39 @@ export default function Traning() {
           )}
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>{t('Exercise')}</th>
-                <th className={styles.numCol}>kg</th>
-                <th className={styles.numCol}>lbs</th>
-                <th className={styles.numCol}>{t('Reps')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentExercises.map(ex => {
-                const log = logs[ex.id]
-                return (
-                  <tr key={ex.id}>
-                    <td>
-                      <button className={styles.exNameBtn} onClick={() => setNaming(ex)}>
-                        {ex.name}
-                      </button>
-                    </td>
-                    <td className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => setLogging(ex)}>
-                      {log?.kg ?? '–'}
-                    </td>
-                    <td className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => setLogging(ex)}>
-                      {log?.kg != null ? toLbs(log.kg) : '–'}
-                    </td>
-                    <td className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => setLogging(ex)}>
-                      {log?.reps ?? '–'}
-                    </td>
-                  </tr>
-                )
-              })}
+        <div className={styles.exerciseList}>
+          <div className={styles.exerciseHeader}>
+            <span></span>
+            <span>{t('Exercise')}</span>
+            <span className={styles.numCol}>kg</span>
+            <span className={styles.numCol}>lbs</span>
+            <span className={styles.numCol}>{t('Reps')}</span>
+          </div>
 
-              {adding && (
-                <tr>
-                  <td colSpan={4}>
-                    <div className={styles.addRow}>
-                      <input
-                        className={styles.inlineInput}
-                        placeholder={t('Exercise name…')}
-                        value={newName}
-                        onChange={e => setNewName(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-                        autoFocus
-                      />
-                      <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
-                      <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
+              {currentExercises.map(ex => (
+                <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} />
+              ))}
+            </SortableContext>
+          </DndContext>
+
+          {adding && (
+            <div className={styles.exerciseRow}>
+              <div className={styles.addRow} style={{ gridColumn: '1 / -1' }}>
+                <input
+                  className={styles.inlineInput}
+                  placeholder={t('Exercise name…')}
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                  autoFocus
+                />
+                <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
+                <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
+              </div>
+            </div>
+          )}
         </div>
 
         {!adding && (
