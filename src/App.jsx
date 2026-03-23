@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import { ProfileProvider } from './context/ProfileContext'
+import { ThemeProvider } from './context/ThemeContext'
 import Login from './components/Login/Login'
 import ProfileSetupModal from './components/ProfileSetupModal/ProfileSetupModal'
 import PageHeader from './components/PageHeader/PageHeader'
@@ -30,6 +31,7 @@ export default function App() {
 
   return (
     <HashRouter>
+      <ThemeProvider>
       <ProfileProvider>
         <ProfileSetupModal />
         <PageHeader />
@@ -46,6 +48,7 @@ export default function App() {
           </Routes>
         </main>
       </ProfileProvider>
+      </ThemeProvider>
     </HashRouter>
   )
 }
