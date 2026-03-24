@@ -365,6 +365,36 @@ function CreateProgramModal({ onSave, onClose }) {
   )
 }
 
+function SetupGuide({ step, onCreateProgram, onAddSession }) {
+  const { t } = useTranslation()
+  const steps = [
+    { num: 1, title: t('Create a training program'), desc: t('Start by naming your program, e.g. Bulking, Deload or Summer.'), action: onCreateProgram, label: t('Create program') },
+    { num: 2, title: t('Add training sessions'), desc: t('Add sessions for each training day, e.g. Push, Legs, Full body.'), action: onAddSession, label: t('Add session') },
+    { num: 3, title: t('Add exercises'), desc: t('Add exercises to each session and log your weights.'), action: null, label: null },
+  ]
+  return (
+    <div className={styles.setupGuide}>
+      {steps.map(s => {
+        const done   = s.num < step
+        const active = s.num === step
+        const locked = s.num > step
+        return (
+          <div key={s.num} className={`${styles.setupStep} ${done ? styles.setupDone : ''} ${active ? styles.setupActive : ''} ${locked ? styles.setupLocked : ''}`}>
+            <div className={styles.setupNum}>{done ? '✓' : s.num}</div>
+            <div className={styles.setupContent}>
+              <div className={styles.setupTitle}>{s.title}</div>
+              {active && <div className={styles.setupDesc}>{s.desc}</div>}
+              {active && s.action && (
+                <button className={styles.setupCta} onClick={s.action}>{s.label}</button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function SortableRow({ ex, log, onName, onLog }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id })
   const style = {
@@ -388,7 +418,7 @@ export default function Traning() {
   const { t } = useTranslation()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true })
   const dayFull   = t('dayFull',   { returnObjects: true })
-  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
   const [activeTab,        setActiveTab]        = useState(null)
   const [exercises,        setExercises]        = useState({})
   const [logs,             setLogs]             = useState({})
@@ -487,11 +517,8 @@ export default function Traning() {
   }
 
   async function handleAddSession(sessionData) {
-    const { data } = await supabase.from('training_sessions').insert({ ...sessionData, program_id: activeProgramId }).select().single()
-    if (data) {
-      await loadProfile()
-      setActiveTab(data.id)
-    }
+    const data = await addSession({ ...sessionData, program_id: activeProgramId })
+    if (data) setActiveTab(data.id)
     setAddingSession(false)
   }
 
@@ -531,130 +558,173 @@ export default function Traning() {
   const currentSession   = sessions.find(s => s.id === activeTab)
   const currentExercises = exercises[activeTab] ?? []
 
+  const setupStep = (!programsLoading && programs.length === 0) ? 1
+    : (!programsLoading && !sessionsLoading && programs.length > 0 && sessions.length === 0) ? 2
+    : null
+
   return (
     <section id="traning">
       <SectionHeader number="04" title={t('Training sessions')} />
 
-      {programs.length > 0 && (
+      {setupStep === 1 && (
         <Reveal>
-          <div className={styles.programBar}>
-            {programs.map(p => (
-              <span key={p.id} className={styles.programChipWrap}>
-                <button
-                  className={`${styles.programChip} ${p.id === activeProgramId ? styles.programChipActive : ''}`}
-                  onClick={() => { switchProgram(p.id); setAdding(false) }}
-                >
-                  {p.name}
-                </button>
-                {p.id === activeProgramId && (
-                  <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
-                )}
-              </span>
-            ))}
-            <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>
-              {t('+ New program')}
-            </button>
-          </div>
+          <SetupGuide step={1} onCreateProgram={() => setCreatingProgram(true)} />
         </Reveal>
       )}
 
-      <Reveal>
-        <div className={styles.topRow}>
-          <div className={styles.tabs}>
-            {sessionsLoading ? (
-              <>
-                <Skeleton width={110} height={36} borderRadius={20} />
-                <Skeleton width={110} height={36} borderRadius={20} />
-                <Skeleton width={110} height={36} borderRadius={20} />
-              </>
-            ) : (
-              sessions.map(s => (
-                <button
-                  key={s.id}
-                  className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
-                  onClick={() => { setActiveTab(s.id); setAdding(false) }}
-                >
-                  {dayAbbrev[s.day_of_week - 1]} — {s.name}
-                </button>
-              ))
-            )}
-          </div>
-          <div className={styles.topActions}>
-            <button className={styles.addSessionBtn} onClick={() => setAddingSession(true)}>
-              {t('+ Add session')}
-            </button>
-          </div>
-        </div>
-      </Reveal>
+      {setupStep === 2 && (
+        <>
+          <Reveal>
+            <div className={styles.programBar}>
+              {programs.map(p => (
+                <span key={p.id} className={styles.programChipWrap}>
+                  <button
+                    className={`${styles.programChip} ${p.id === activeProgramId ? styles.programChipActive : ''}`}
+                    onClick={() => { switchProgram(p.id); setAdding(false) }}
+                  >
+                    {p.name}
+                  </button>
+                  {p.id === activeProgramId && (
+                    <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
+                  )}
+                </span>
+              ))}
+              <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>
+                {t('+ New program')}
+              </button>
+            </div>
+          </Reveal>
+          <Reveal>
+            <SetupGuide step={2} onAddSession={() => setAddingSession(true)} />
+          </Reveal>
+        </>
+      )}
 
-      <Reveal key={activeTab}>
-        <div className={styles.dayBadgeRow}>
-          <div className={styles.dayBadge}>
-            <div className={styles.dot} />
-            <span className={styles.dayLabel}>
-              {currentSession ? dayFull[currentSession.day_of_week - 1] : ''}
-            </span>
-          </div>
-          {currentSession && (
-            <button className={styles.editSessionIconBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>
-              ✎
-            </button>
-          )}
-        </div>
-
-        <div className={styles.exerciseList}>
-          <div className={styles.exerciseHeader}>
-            <span></span>
-            <span className={`${styles.numCol}`}>kg</span>
-            <span>{t('Exercise')}</span>
-            <span className={`${styles.numCol}`}>lbs</span>
-            <span className={styles.numCol}>{t('Sets')}</span>
-            <span className={styles.numCol}>{t('Reps')}</span>
-          </div>
-
-          {exercisesLoading ? (
-            [0, 1, 2, 3].map(i => (
-              <div key={i} className={styles.exerciseRow}>
-                <span><Skeleton width={16} height={16} /></span>
-                <span><Skeleton width="70%" height={14} /></span>
-                <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
-                <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
-                <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
-                <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
-              </div>
-            ))
-          ) : (
-            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
-                {currentExercises.map(ex => (
-                  <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} />
+      {setupStep === null && (
+        <>
+          {programs.length > 0 && (
+            <Reveal>
+              <div className={styles.programBar}>
+                {programs.map(p => (
+                  <span key={p.id} className={styles.programChipWrap}>
+                    <button
+                      className={`${styles.programChip} ${p.id === activeProgramId ? styles.programChipActive : ''}`}
+                      onClick={() => { switchProgram(p.id); setAdding(false) }}
+                    >
+                      {p.name}
+                    </button>
+                    {p.id === activeProgramId && (
+                      <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
+                    )}
+                  </span>
                 ))}
-              </SortableContext>
-            </DndContext>
+                <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>
+                  {t('+ New program')}
+                </button>
+              </div>
+            </Reveal>
           )}
 
-          {adding && (
-            <div className={styles.exerciseRow}>
-              <div className={styles.addRow} style={{ gridColumn: '1 / -1' }}>
-                <input
-                  className={styles.inlineInput}
-                  placeholder={t('Exercise name…')}
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-                  autoFocus
-                />
-                <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
-                <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
+          <Reveal>
+            <div className={styles.topRow}>
+              <div className={styles.tabs}>
+                {sessionsLoading ? (
+                  <>
+                    <Skeleton width={110} height={36} borderRadius={20} />
+                    <Skeleton width={110} height={36} borderRadius={20} />
+                    <Skeleton width={110} height={36} borderRadius={20} />
+                  </>
+                ) : (
+                  sessions.map(s => (
+                    <button
+                      key={s.id}
+                      className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
+                      onClick={() => { setActiveTab(s.id); setAdding(false) }}
+                    >
+                      {dayAbbrev[s.day_of_week - 1]} — {s.name}
+                    </button>
+                  ))
+                )}
+              </div>
+              <div className={styles.topActions}>
+                <button className={styles.addSessionBtn} onClick={() => setAddingSession(true)}>
+                  {t('+ Add session')}
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </Reveal>
 
-        {!adding && (
-          <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
-        )}
-      </Reveal>
+          <Reveal key={activeTab}>
+            <div className={styles.dayBadgeRow}>
+              <div className={styles.dayBadge}>
+                <div className={styles.dot} />
+                <span className={styles.dayLabel}>
+                  {currentSession ? dayFull[currentSession.day_of_week - 1] : ''}
+                </span>
+              </div>
+              {currentSession && (
+                <button className={styles.editSessionIconBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>
+                  ✎
+                </button>
+              )}
+            </div>
+
+            <div className={styles.exerciseList}>
+              <div className={styles.exerciseHeader}>
+                <span></span>
+                <span>{t('Exercise')}</span>
+                <span className={`${styles.numCol}`}>kg</span>
+                <span className={`${styles.numCol}`}>lbs</span>
+                <span className={styles.numCol}>{t('Sets')}</span>
+                <span className={styles.numCol}>{t('Reps')}</span>
+              </div>
+
+              {exercisesLoading ? (
+                [0, 1, 2, 3].map(i => (
+                  <div key={i} className={styles.exerciseRow}>
+                    <span><Skeleton width={16} height={16} /></span>
+                    <span><Skeleton width="70%" height={14} /></span>
+                    <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
+                    <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
+                    <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
+                    <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
+                  </div>
+                ))
+              ) : (
+                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                    {currentExercises.map(ex => (
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+
+              {adding && (
+                <div className={styles.exerciseRow}>
+                  <div className={styles.addRow} style={{ gridColumn: '1 / -1' }}>
+                    <input
+                      className={styles.inlineInput}
+                      placeholder={t('Exercise name…')}
+                      value={newName}
+                      onChange={e => setNewName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                      autoFocus
+                    />
+                    <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
+                    <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!adding && (
+              <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
+            )}
+          </Reveal>
+        </>
+      )}
+
 
       {logging && (
         <LogModal

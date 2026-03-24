@@ -186,6 +186,17 @@ export function ProfileProvider({ children }) {
     return !error
   }
 
+  async function addSession(sessionData) {
+    const { data } = await supabase.from('training_sessions').insert(sessionData).select().single()
+    if (data) {
+      setState(prev => ({
+        ...prev,
+        sessions: [...prev.sessions, data].sort((a, b) => a.day_of_week - b.day_of_week),
+      }))
+    }
+    return data
+  }
+
   async function createProgram(name) {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: prog } = await supabase.from('training_programs').insert({ user_id: user.id, name }).select().single()
@@ -235,7 +246,7 @@ export function ProfileProvider({ children }) {
   }
 
   return (
-    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, createProgram, switchProgram, renameProgram, deleteProgram, load }}>
+    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load }}>
       {children}
     </ProfileContext.Provider>
   )
