@@ -73,8 +73,10 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
     const [searchResults, setSearchResults] = useState([])
     const [searchLoading, setSearchLoading] = useState(false)
     const [showDropdown, setShowDropdown] = useState(false)
-    const parsedGrams = initial?.food?.match(/^(\d+(?:\.\d+)?)g\s/)?.[1]
+    const parsedGrams = initial?.food?.match(/^(\d+(?:\.\d+)?)(g|ml)\s/)?.[1]
+    const parsedUnit = initial?.food?.match(/^(\d+(?:\.\d+)?)(g|ml)\s/)?.[2] ?? 'g'
     const [grams, setGrams] = useState(parsedGrams ?? '100')
+    const [unit, setUnit] = useState(parsedUnit)
     const [scannerOpen, setScannerOpen] = useState(false)
     const [scanError, setScanError] = useState('')
     const dropdownRef = useRef(null)
@@ -101,38 +103,56 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         const n = baseNutrients.current
         setForm(f => ({
             ...f,
-            food: f.food.replace(/^\d+(\.\d+)?g /, `${g}g `),
+            food: f.food.replace(/^\d+(\.\d+)?(g|ml) /, `${g}${unit} `),
             protein_g: String(r(n.proteins_100g * factor)),
             carbs_g: String(r(n.carbohydrates_100g * factor)),
             fat_g: String(r(n.fat_100g * factor)),
             kcal: String(r(n['energy-kcal_100g'] * factor)),
         }))
-    }, [grams])
+    }, [grams, unit])
 
     useEffect(() => {
         if (!searchQuery.trim()) { setSearchResults([]); setShowDropdown(false); return }
         const timer = setTimeout(async () => {
             setSearchLoading(true)
-            try {
-                const res = await fetch(
-                    `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchQuery)}&pageSize=8&api_key=${import.meta.env.VITE_USDA_API_KEY}`
-                )
-                const data = await res.json()
-                const products = (data.foods ?? []).map(f => ({
-                    product_name: f.description,
-                    brands: f.brandOwner ?? f.brandName ?? '',
+
+            // Search both sources independently so one failing doesn't block the other
+            const usdaPromise = fetch(
+                `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchQuery)}&pageSize=8&api_key=${import.meta.env.VITE_USDA_API_KEY}`
+            ).then(res => res.json()).then(data => (data.foods ?? []).map(f => ({
+                product_name: f.description,
+                brands: f.brandOwner ?? f.brandName ?? '',
+                nutriments: {
+                    proteins_100g: f.foodNutrients?.find(n => n.nutrientId === 1003)?.value ?? 0,
+                    carbohydrates_100g: f.foodNutrients?.find(n => n.nutrientId === 1005)?.value ?? 0,
+                    fat_100g: f.foodNutrients?.find(n => n.nutrientId === 1004)?.value ?? 0,
+                    'energy-kcal_100g': f.foodNutrients?.find(n => n.nutrientId === 1008)?.value ?? 0,
+                }
+            }))).catch(() => [])
+
+            const localPromise = supabase
+                .from('food_products')
+                .select('*')
+                .ilike('product_name', `%${searchQuery.trim()}%`)
+                .limit(5)
+                .then(({ data }) => (data ?? []).map(p => ({
+                    product_name: p.product_name,
+                    brands: p.brand ?? '',
+                    _fromCatalog: true,
+                    _catalogId: p.id,
                     nutriments: {
-                        proteins_100g: f.foodNutrients?.find(n => n.nutrientId === 1003)?.value ?? 0,
-                        carbohydrates_100g: f.foodNutrients?.find(n => n.nutrientId === 1005)?.value ?? 0,
-                        fat_100g: f.foodNutrients?.find(n => n.nutrientId === 1004)?.value ?? 0,
-                        'energy-kcal_100g': f.foodNutrients?.find(n => n.nutrientId === 1008)?.value ?? 0,
+                        proteins_100g: Number(p.protein_per_100g) || 0,
+                        carbohydrates_100g: Number(p.carbs_per_100g) || 0,
+                        fat_100g: Number(p.fat_per_100g) || 0,
+                        'energy-kcal_100g': Number(p.kcal_per_100g) || 0,
                     }
-                }))
-                setSearchResults(products)
-                setShowDropdown(products.length > 0)
-            } catch {
-                setSearchResults([])
-            }
+                }))).catch(() => [])
+
+            const [usdaProducts, localProducts] = await Promise.all([usdaPromise, localPromise])
+            // Local results first, then USDA
+            const combined = [...localProducts, ...usdaProducts]
+            setSearchResults(combined)
+            setShowDropdown(combined.length > 0)
             setSearchLoading(false)
         }, 300)
         return () => clearTimeout(timer)
@@ -158,8 +178,10 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         }
         baseNutrients.current = base
 
-        // Upsert into food_products (USDA source, no barcode)
-        if (!product._skipUpsert) {
+        // If selected from our own catalog, just use its id
+        if (product._fromCatalog && product._catalogId) {
+            setProductId(product._catalogId)
+        } else if (!product._skipUpsert) {
             try {
                 const { data: inserted } = await supabase.from('food_products').insert({
                     product_name: product.product_name,
@@ -176,7 +198,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
 
         setForm(f => ({
             ...f,
-            food: `${g}g ${product.product_name}`,
+            food: `${g}${unit} ${product.product_name}`,
             protein_g: String(r(base.proteins_100g * factor)),
             carbs_g: String(r(base.carbohydrates_100g * factor)),
             fat_g: String(r(base.fat_100g * factor)),
@@ -264,7 +286,10 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                                 <div className={styles.searchDropdown}>
                                     {searchResults.map((p, i) => (
                                         <button key={i} className={styles.searchItem} type="button" onClick={() => selectProduct(p)}>
-                                            <span className={styles.searchItemName}>{p.product_name}</span>
+                                            <span className={styles.searchItemName}>
+                                                {p._fromCatalog && <span className={styles.catalogBadge}>★</span>}
+                                                {p.product_name}
+                                            </span>
                                             {p.brands && <span className={styles.searchItemBrand}>{p.brands.split(',')[0]}</span>}
                                         </button>
                                     ))}
@@ -287,7 +312,14 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                                 value={grams}
                                 onChange={e => setGrams(e.target.value)}
                             />
-                            <span className={styles.gramsUnit}>g</span>
+                            <button
+                                type="button"
+                                className={styles.unitToggle}
+                                onClick={() => setUnit(u => u === 'g' ? 'ml' : 'g')}
+                                title={t('Toggle g/ml')}
+                            >
+                                {unit}
+                            </button>
                         </div>
                     </div>
                     {scanError && <div className={styles.scanError}>{scanError}</div>}

@@ -153,6 +153,12 @@
   color: var(--text);
 }
 
+.catalogBadge {
+  color: var(--accent, #e8197d);
+  margin-right: 4px;
+  font-size: 12px;
+}
+
 .searchItemBrand {
   font-family: 'DM Sans', sans-serif;
   font-size: 11px;
@@ -191,6 +197,24 @@
   font-weight: 600;
   color: var(--muted);
   pointer-events: none;
+}
+
+.unitToggle {
+  position: absolute;
+  right: 4px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent, #e8197d);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-transform: lowercase;
+
+  &:hover { background: var(--card2); }
 }
 
 .scanBtn {
