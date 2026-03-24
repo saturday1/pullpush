@@ -3,18 +3,19 @@ import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
+import Skeleton from '../../Skeleton/Skeleton'
 import { useProfile } from '../../../context/ProfileContext'
 import InfoModal from '../../InfoModal/InfoModal'
 import styles from './Vikt.module.scss'
 
 export default function Vikt() {
   const { t } = useTranslation()
-  const { loading, startWeight, currentWeight, goalWeight, height, age, firstName, lastName, birthDate, phone, macros, logWeight, updateProfile } = useProfile()
+  const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()
   const [weightInput,   setWeightInput]   = useState('')
   const [loggingWeight, setLoggingWeight] = useState(false)
-  const [goalInput,     setGoalInput]     = useState('')
-  const [savingGoal,    setSavingGoal]    = useState(false)
   const [barsVisible,   setBarsVisible]   = useState(false)
+
+  const loading = weightLoading || profileLoading
 
   useEffect(() => {
     if (!loading) {
@@ -31,23 +32,6 @@ export default function Vikt() {
     await logWeight(kg)
     setWeightInput('')
     setLoggingWeight(false)
-  }
-
-  async function handleSaveGoal(e) {
-    e.preventDefault()
-    const kg = parseFloat(goalInput.replace(',', '.'))
-    if (isNaN(kg)) return
-    setSavingGoal(true)
-    await updateProfile({
-      goal_weight: kg,
-      height_cm: height,
-      first_name: firstName,
-      last_name: lastName,
-      birth_date: birthDate,
-      phone,
-    })
-    setGoalInput('')
-    setSavingGoal(false)
   }
 
   const start = startWeight ?? currentWeight ?? 0
@@ -72,15 +56,15 @@ export default function Vikt() {
 
       <Reveal className={styles.section}>
         <CardGrid>
-          <CardGridItem label={t('Start weight')}   value={loading ? '…' : `${start} kg`} />
-          <CardGridItem label={t('Current weight')}  value={loading ? '…' : `${weight} kg`} valueStyle={{ color: 'var(--accent)' }} />
-          <CardGridItem label={t('Goal weight')}     value={loading ? '…' : `${goal} kg`}   valueStyle={{ color: 'var(--green)' }} />
+          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : `${start} kg`} />
+          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : `${weight} kg`} valueStyle={{ color: 'var(--accent)' }} />
+          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : `${goal} kg`}   valueStyle={{ color: 'var(--green)' }} />
           <CardGridItem
             label={t('Change')}
-            value={loading ? '…' : `${diff > 0 ? '+' : ''}${diff} kg`}
+            value={loading ? <Skeleton width={60} height={18} /> : `${diff > 0 ? '+' : ''}${diff} kg`}
             valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
           />
-          <CardGridItem label={t('Remaining')} value={loading ? '…' : `−${kvar} kg`} valueStyle={{ color: 'var(--orange)' }} />
+          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : `−${kvar} kg`} valueStyle={{ color: 'var(--orange)' }} />
         </CardGrid>
       </Reveal>
 
@@ -107,23 +91,23 @@ export default function Vikt() {
         <CardGrid className={styles.gridMargin}>
           <CardGridItem
             label={<span className={styles.labelInfo}>BMR<InfoModal title="BMR – Basalämnesomsättning" text="Antalet kalorier din kropp förbränner i total vila – utan någon aktivitet alls. Beräknas med Mifflin-St Jeor-formeln utifrån din vikt, längd och ålder. Det är grunden för alla övriga beräkningar." /></span>}
-            value={loading || !m ? '…' : `${m.bmr} kcal`}
+            value={loading || !m ? <Skeleton width={70} height={18} /> : `${m.bmr} kcal`}
             sub={t('Resting metabolism')}
           />
           <CardGridItem
             label={<span className={styles.labelInfo}>TDEE<InfoModal title="TDEE – Total daglig energiförbrukning" text="Total Daily Energy Expenditure. Ditt BMR multiplicerat med en aktivitetsfaktor. Faktor 1.55 används för måttlig träning (~3 gånger per vecka). Det här är ungefär hur många kalorier du förbränner totalt per dag och vad du behöver äta för att hålla vikten." /></span>}
-            value={loading || !m ? '…' : `${m.tdee} kcal`}
+            value={loading || !m ? <Skeleton width={70} height={18} /> : `${m.tdee} kcal`}
             sub={t('With training 3×/week')}
           />
           <CardGridItem
             label={<span className={styles.labelInfo}>Underskott<InfoModal title="Kaloriunderskott" text="Äter du färre kalorier än ditt TDEE skapar du ett underskott. Med 280 kcal under TDEE varje dag förväntas du gå ner ungefär 0.3 kg per vecka – ett lagom och hållbart tempo." /></span>}
-            value={loading || !m ? '…' : `−${m.deficit} kcal`}
+            value={loading || !m ? <Skeleton width={70} height={18} /> : `−${m.deficit} kcal`}
             sub={t('≈ 0.3 kg/week')}
             valueStyle={{ color: 'var(--red)' }}
           />
           <CardGridItem
             label={<span className={styles.labelInfo}>Mål per träningsdag<InfoModal title="Kalorier – träningsdag" text="Ditt faktiska dagliga kaloriintag på träningsdagar. Beräknas som TDEE minus underskottet. Det är kring det här värdet som ditt matschema är byggt." /></span>}
-            value={loading || !m ? '…' : `${m.targetKcal} kcal`}
+            value={loading || !m ? <Skeleton width={70} height={18} /> : `${m.targetKcal} kcal`}
             valueStyle={{ color: 'var(--accent)' }}
           />
         </CardGrid>
@@ -151,39 +135,19 @@ export default function Vikt() {
 
       <Reveal>
         <div className={styles.inputsCard}>
-          <div className={styles.inputsCardTitle}>{t('Update')}</div>
-          <div className={styles.inputSection}>
-            <div>
-              <div className={styles.inputLabel}>{t('Log new weight')}</div>
-              <form onSubmit={handleLogWeight} className={styles.logForm}>
-                <input
-                  type="number" step="0.1"
-                  placeholder={t('Current ({{weight}} kg)', { weight })}
-                  value={weightInput}
-                  onChange={e => setWeightInput(e.target.value)}
-                  className={styles.logInput}
-                />
-                <button type="submit" disabled={loggingWeight} className={styles.logBtn}>
-                  {loggingWeight ? '…' : t('Save')}
-                </button>
-              </form>
-            </div>
-            <div>
-              <div className={styles.inputLabel}>{t('Change goal weight')}</div>
-              <form onSubmit={handleSaveGoal} className={styles.logForm}>
-                <input
-                  type="number" step="0.1"
-                  placeholder={t('Current goal ({{goal}} kg)', { goal })}
-                  value={goalInput}
-                  onChange={e => setGoalInput(e.target.value)}
-                  className={styles.logInput}
-                />
-                <button type="submit" disabled={savingGoal} className={styles.logBtn}>
-                  {savingGoal ? '…' : t('Save')}
-                </button>
-              </form>
-            </div>
-          </div>
+          <div className={styles.inputsCardTitle}>{t('Log new weight')}</div>
+          <form onSubmit={handleLogWeight} className={styles.logForm}>
+            <input
+              type="number" step="0.1"
+              placeholder={t('Current ({{weight}} kg)', { weight })}
+              value={weightInput}
+              onChange={e => setWeightInput(e.target.value)}
+              className={styles.logInput}
+            />
+            <button type="submit" disabled={loggingWeight} className={styles.logBtn}>
+              {loggingWeight ? '…' : t('Save')}
+            </button>
+          </form>
         </div>
       </Reveal>
     </section>

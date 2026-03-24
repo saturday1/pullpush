@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DndContext, closestCenter } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
+import Skeleton from '../../Skeleton/Skeleton'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import styles from './Traning.module.scss'
@@ -80,6 +84,7 @@ function LogModal({ exercise, current, onSave, onClose }) {
   const { t } = useTranslation()
   const [kg,     setKg]     = useState(current?.kg?.toString() ?? '')
   const [lbs,    setLbs]    = useState(current?.kg ? toLbs(current.kg).toString() : '')
+  const [sets,   setSets]   = useState(current?.sets?.toString() ?? '')
   const [reps,   setReps]   = useState(current?.reps?.toString() ?? '')
   const [saving, setSaving] = useState(false)
 
@@ -95,10 +100,11 @@ function LogModal({ exercise, current, onSave, onClose }) {
   }
   async function handleSave() {
     const kgVal   = parseFloat(kg.replace(',', '.'))
+    const setsVal = parseInt(sets)
     const repsVal = parseInt(reps)
     if (isNaN(kgVal) || isNaN(repsVal)) return
     setSaving(true)
-    await onSave(exercise.id, kgVal, repsVal)
+    await onSave(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
     setSaving(false)
   }
 
@@ -114,6 +120,10 @@ function LogModal({ exercise, current, onSave, onClose }) {
           <label className={styles.modalField}>
             <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
             <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+          </label>
+          <label className={styles.modalField}>
+            <span className={styles.modalLabel}>{t('Sets')}</span>
+            <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
           </label>
           <label className={styles.modalField}>
             <span className={styles.modalLabel}>{t('Reps')}</span>
@@ -355,23 +365,43 @@ function CreateProgramModal({ onSave, onClose }) {
   )
 }
 
+function SortableRow({ ex, log, onName, onLog }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+  return (
+    <div ref={setNodeRef} style={style} className={styles.exerciseRow}>
+      <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>
+      <span><button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button></span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell} ${styles.weightStart}`} onClick={() => onLog(ex)}>{log?.kg ?? '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell} ${styles.weightEnd}`} onClick={() => onLog(ex)}>{log?.kg != null ? toLbs(log.kg) : '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.sets ?? '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => onLog(ex)}>{log?.reps ?? '–'}</span>
+    </div>
+  )
+}
+
 export default function Traning() {
   const { t } = useTranslation()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true })
   const dayFull   = t('dayFull',   { returnObjects: true })
-  const { sessions, programs, activeProgramId, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
-  const [activeTab,      setActiveTab]      = useState(null)
-  const [exercises,      setExercises]      = useState({})
-  const [logs,           setLogs]           = useState({})
-  const [logging,        setLogging]        = useState(null)
-  const [naming,         setNaming]         = useState(null)
-  const [adding,         setAdding]         = useState(false)
-  const [newName,        setNewName]        = useState('')
-  const [userId,         setUserId]         = useState(null)
-  const [addingSession,   setAddingSession]   = useState(false)
-  const [editingSession,  setEditingSession]  = useState(false)
-  const [creatingProgram, setCreatingProgram] = useState(false)
-  const [editingProgram,  setEditingProgram]  = useState(false)
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
+  const [activeTab,        setActiveTab]        = useState(null)
+  const [exercises,        setExercises]        = useState({})
+  const [logs,             setLogs]             = useState({})
+  const [exercisesLoading, setExercisesLoading] = useState(true)
+  const [logging,          setLogging]          = useState(null)
+  const [naming,           setNaming]           = useState(null)
+  const [adding,           setAdding]           = useState(false)
+  const [newName,          setNewName]          = useState('')
+  const [userId,           setUserId]           = useState(null)
+  const [addingSession,    setAddingSession]    = useState(false)
+  const [editingSession,   setEditingSession]   = useState(false)
+  const [creatingProgram,  setCreatingProgram]  = useState(false)
+  const [editingProgram,   setEditingProgram]   = useState(false)
 
   useEffect(() => { loadAll() }, [])
 
@@ -385,10 +415,11 @@ export default function Traning() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     setUserId(user.id)
+    setExercisesLoading(true)
 
     const [{ data: exData }, { data: logData }] = await Promise.all([
       supabase.from('exercises').select('*').eq('user_id', user.id).order('sort_order'),
-      supabase.from('exercise_log').select('exercise_id, weight_kg, reps, logged_at').eq('user_id', user.id).order('logged_at', { ascending: false }),
+      supabase.from('exercise_log').select('exercise_id, weight_kg, sets, reps, logged_at').eq('user_id', user.id).order('logged_at', { ascending: false }),
     ])
 
     const grouped = {}
@@ -405,15 +436,16 @@ export default function Traning() {
     if (logData) {
       const latest = {}
       for (const row of logData) {
-        if (!latest[row.exercise_id]) latest[row.exercise_id] = { kg: row.weight_kg, reps: row.reps }
+        if (!latest[row.exercise_id]) latest[row.exercise_id] = { kg: row.weight_kg, sets: row.sets, reps: row.reps }
       }
       setLogs(latest)
     }
+    setExercisesLoading(false)
   }
 
-  async function handleLogSave(exerciseId, kg, reps) {
-    await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, reps })
-    setLogs(prev => ({ ...prev, [exerciseId]: { kg, reps } }))
+  async function handleLogSave(exerciseId, kg, sets, reps) {
+    await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps })
+    setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps } }))
     setLogging(null)
   }
 
@@ -475,6 +507,27 @@ export default function Traning() {
     setEditingSession(false)
   }
 
+  async function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const sessionId = activeTab
+    const items = [...(exercises[sessionId] ?? [])]
+    const oldIndex = items.findIndex(e => e.id === active.id)
+    const newIndex = items.findIndex(e => e.id === over.id)
+    const reordered = arrayMove(items, oldIndex, newIndex)
+
+    setExercises(prev => ({ ...prev, [sessionId]: reordered }))
+
+    await Promise.all(
+      reordered.map((ex, i) =>
+        ex.sort_order !== i
+          ? supabase.from('exercises').update({ sort_order: i }).eq('id', ex.id)
+          : null
+      ).filter(Boolean)
+    )
+  }
+
   const currentSession   = sessions.find(s => s.id === activeTab)
   const currentExercises = exercises[activeTab] ?? []
 
@@ -508,15 +561,23 @@ export default function Traning() {
       <Reveal>
         <div className={styles.topRow}>
           <div className={styles.tabs}>
-            {sessions.map(s => (
-              <button
-                key={s.id}
-                className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
-                onClick={() => { setActiveTab(s.id); setAdding(false) }}
-              >
-                {dayAbbrev[s.day_of_week - 1]} — {s.name}
-              </button>
-            ))}
+            {sessionsLoading ? (
+              <>
+                <Skeleton width={110} height={36} borderRadius={20} />
+                <Skeleton width={110} height={36} borderRadius={20} />
+                <Skeleton width={110} height={36} borderRadius={20} />
+              </>
+            ) : (
+              sessions.map(s => (
+                <button
+                  key={s.id}
+                  className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
+                  onClick={() => { setActiveTab(s.id); setAdding(false) }}
+                >
+                  {dayAbbrev[s.day_of_week - 1]} — {s.name}
+                </button>
+              ))
+            )}
           </div>
           <div className={styles.topActions}>
             <button className={styles.addSessionBtn} onClick={() => setAddingSession(true)}>
@@ -541,59 +602,53 @@ export default function Traning() {
           )}
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>{t('Exercise')}</th>
-                <th className={styles.numCol}>kg</th>
-                <th className={styles.numCol}>lbs</th>
-                <th className={styles.numCol}>{t('Reps')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentExercises.map(ex => {
-                const log = logs[ex.id]
-                return (
-                  <tr key={ex.id}>
-                    <td>
-                      <button className={styles.exNameBtn} onClick={() => setNaming(ex)}>
-                        {ex.name}
-                      </button>
-                    </td>
-                    <td className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => setLogging(ex)}>
-                      {log?.kg ?? '–'}
-                    </td>
-                    <td className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => setLogging(ex)}>
-                      {log?.kg != null ? toLbs(log.kg) : '–'}
-                    </td>
-                    <td className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => setLogging(ex)}>
-                      {log?.reps ?? '–'}
-                    </td>
-                  </tr>
-                )
-              })}
+        <div className={styles.exerciseList}>
+          <div className={styles.exerciseHeader}>
+            <span></span>
+            <span className={`${styles.numCol}`}>kg</span>
+            <span>{t('Exercise')}</span>
+            <span className={`${styles.numCol}`}>lbs</span>
+            <span className={styles.numCol}>{t('Sets')}</span>
+            <span className={styles.numCol}>{t('Reps')}</span>
+          </div>
 
-              {adding && (
-                <tr>
-                  <td colSpan={4}>
-                    <div className={styles.addRow}>
-                      <input
-                        className={styles.inlineInput}
-                        placeholder={t('Exercise name…')}
-                        value={newName}
-                        onChange={e => setNewName(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-                        autoFocus
-                      />
-                      <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
-                      <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {exercisesLoading ? (
+            [0, 1, 2, 3].map(i => (
+              <div key={i} className={styles.exerciseRow}>
+                <span><Skeleton width={16} height={16} /></span>
+                <span><Skeleton width="70%" height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
+              </div>
+            ))
+          ) : (
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                {currentExercises.map(ex => (
+                  <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
+
+          {adding && (
+            <div className={styles.exerciseRow}>
+              <div className={styles.addRow} style={{ gridColumn: '1 / -1' }}>
+                <input
+                  className={styles.inlineInput}
+                  placeholder={t('Exercise name…')}
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                  autoFocus
+                />
+                <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
+                <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
+              </div>
+            </div>
+          )}
         </div>
 
         {!adding && (
