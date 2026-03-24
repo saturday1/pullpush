@@ -71,7 +71,7 @@ export function ProfileProvider({ children }) {
     // Fire all queries in parallel, but update state as each resolves
     const profilePromise = supabase
       .from('profile')
-      .select('goal_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id')
+      .select('goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id')
       .eq('user_id', user.id)
       .single()
 
@@ -100,8 +100,10 @@ export function ProfileProvider({ children }) {
     // Weight data resolves independently
     Promise.all([latestLogPromise, firstLogPromise]).then(([{ data: latestLog }, { data: firstLog }]) => {
       const currentWeight = latestLog?.weight_kg ?? null
-      const startWeight = firstLog?.weight_kg ?? null
+      const firstLogWeight = firstLog?.weight_kg ?? null
       setState(prev => {
+        // Prefer start_weight from profile, fall back to first weight_log entry
+        const startWeight = prev.startWeight ?? firstLogWeight
         const newState = { ...prev, currentWeight, startWeight, weightLoading: false }
         // Recalculate macros if profile data is already available
         if (!prev.profileLoading && currentWeight && prev.height && prev.age) {
@@ -125,6 +127,7 @@ export function ProfileProvider({ children }) {
     profilePromise.then(async ({ data: profile }) => {
       const activeProgramId = profile?.active_program_id ?? null
       const goalWeight = profile?.goal_weight ?? null
+      const startWeight = profile?.start_weight ?? null
       const height = profile?.height_cm ?? null
       const firstName = profile?.first_name ?? null
       const lastName = profile?.last_name ?? null
@@ -136,6 +139,7 @@ export function ProfileProvider({ children }) {
         const newState = {
           ...prev,
           firstName, lastName, birthDate, phone, goalWeight, height, age, activeProgramId,
+          startWeight: startWeight ?? prev.startWeight,
           profileLoading: false,
         }
         // Recalculate macros if weight data is already available
@@ -170,10 +174,12 @@ export function ProfileProvider({ children }) {
     return !error
   }
 
-  async function updateProfile({ goal_weight, height_cm, first_name, last_name, birth_date, phone }) {
+  async function updateProfile({ goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone }) {
     const { data: { user } } = await supabase.auth.getUser()
+    const row = { user_id: user.id, goal_weight, height_cm, first_name, last_name, birth_date, phone }
+    if (start_weight != null) row.start_weight = start_weight
     const { error } = await supabase.from('profile').upsert(
-      { user_id: user.id, goal_weight, height_cm, first_name, last_name, birth_date, phone },
+      row,
       { onConflict: 'user_id' }
     )
     if (!error) await load()

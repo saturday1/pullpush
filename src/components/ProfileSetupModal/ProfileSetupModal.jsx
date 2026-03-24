@@ -5,7 +5,7 @@ import styles from './ProfileSetupModal.module.scss'
 
 export default function ProfileSetupModal() {
   const { t } = useTranslation()
-  const { loading, goalWeight, logWeight, updateProfile } = useProfile()
+  const { profileLoading, goalWeight, logWeight, updateProfile } = useProfile()
   const [firstName,   setFirstName]   = useState('')
   const [lastName,    setLastName]    = useState('')
   const [birthDate,   setBirthDate]   = useState('')
@@ -16,7 +16,7 @@ export default function ProfileSetupModal() {
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState('')
 
-  if (loading || goalWeight !== null) return null
+  if (profileLoading || goalWeight !== null) return null
 
   async function handleSetup(e) {
     e.preventDefault()
@@ -36,6 +36,7 @@ export default function ProfileSetupModal() {
     await Promise.all([
       updateProfile({
         goal_weight,
+        start_weight: startKg,
         height_cm,
         first_name: firstName.trim(),
         last_name:  lastName.trim(),

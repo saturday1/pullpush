@@ -14,16 +14,18 @@ function formatDate(dateStr) {
 
 export default function Profil() {
   const { t, i18n } = useTranslation()
-  const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, updateProfile } = useProfile()
+  const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, startWeight, updateProfile } = useProfile()
   const [email, setEmail] = useState('')
 
-  const [editing,    setEditing]    = useState(false)
-  const [editFirst,  setEditFirst]  = useState('')
-  const [editLast,   setEditLast]   = useState('')
-  const [editBirth,  setEditBirth]  = useState('')
-  const [editPhone,  setEditPhone]  = useState('')
-  const [editHeight, setEditHeight] = useState('')
-  const [saving,     setSaving]     = useState(false)
+  const [editing,      setEditing]      = useState(false)
+  const [editFirst,    setEditFirst]    = useState('')
+  const [editLast,     setEditLast]     = useState('')
+  const [editBirth,    setEditBirth]    = useState('')
+  const [editPhone,    setEditPhone]    = useState('')
+  const [editHeight,   setEditHeight]   = useState('')
+  const [editGoal,     setEditGoal]     = useState('')
+  const [editStart,    setEditStart]    = useState('')
+  const [saving,       setSaving]       = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -37,6 +39,8 @@ export default function Profil() {
     setEditBirth(birthDate ?? '')
     setEditPhone(phone ?? '')
     setEditHeight(height?.toString() ?? '')
+    setEditGoal(goalWeight?.toString() ?? '')
+    setEditStart(startWeight?.toString() ?? '')
     setEditing(true)
   }
 
@@ -44,12 +48,13 @@ export default function Profil() {
     e.preventDefault()
     setSaving(true)
     await updateProfile({
-      goal_weight: goalWeight,
-      height_cm:   parseFloat(editHeight) || height,
-      first_name:  editFirst.trim(),
-      last_name:   editLast.trim(),
-      birth_date:  editBirth || null,
-      phone:       editPhone.trim() || null,
+      goal_weight:  parseFloat(editGoal) || goalWeight,
+      start_weight: parseFloat(editStart) || startWeight,
+      height_cm:    parseFloat(editHeight) || height,
+      first_name:   editFirst.trim(),
+      last_name:    editLast.trim(),
+      birth_date:   editBirth || null,
+      phone:        editPhone.trim() || null,
     })
     setSaving(false)
     setEditing(false)
@@ -100,6 +105,16 @@ export default function Profil() {
                   <input className={styles.fieldInput} type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder={t('Optional')} />
                 </label>
               </div>
+              <div className={styles.fieldRow}>
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>{t('Start weight (kg)')}</span>
+                  <input className={styles.fieldInput} type="number" step="0.1" value={editStart} onChange={e => setEditStart(e.target.value)} placeholder="kg" />
+                </label>
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>{t('Goal weight (kg)')}</span>
+                  <input className={styles.fieldInput} type="number" step="0.1" value={editGoal} onChange={e => setEditGoal(e.target.value)} placeholder="kg" />
+                </label>
+              </div>
               <div className={styles.editActions}>
                 <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>{t('Cancel')}</button>
                 <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? t('Saving…') : t('Save')}</button>
@@ -111,6 +126,8 @@ export default function Profil() {
               <div className={styles.infoRow}><span>{t('Age')}</span><span>{profileLoading ? <Skeleton width={140} height={14} /> : t('{{age}} years ({{date}})', { age: age ?? '–', date: formatDate(birthDate) })}</span></div>
               <div className={styles.infoRow}><span>{t('Height')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : t('{{height}} cm', { height: height ?? '–' })}</span></div>
               <div className={styles.infoRow}><span>{t('Phone')}</span><span>{profileLoading ? <Skeleton width={100} height={14} /> : (phone ?? '–')}</span></div>
+              <div className={styles.infoRow}><span>{t('Start weight')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : (startWeight ? `${startWeight} kg` : '–')}</span></div>
+              <div className={styles.infoRow}><span>{t('Goal weight')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : (goalWeight ? `${goalWeight} kg` : '–')}</span></div>
               <div className={styles.infoRow}><span>{t('Email')}</span><span>{email || '…'}</span></div>
             </div>
           )}

@@ -10,11 +10,9 @@ import styles from './Vikt.module.scss'
 
 export default function Vikt() {
   const { t } = useTranslation()
-  const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, firstName, lastName, birthDate, phone, macros, logWeight, updateProfile } = useProfile()
+  const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()
   const [weightInput,   setWeightInput]   = useState('')
   const [loggingWeight, setLoggingWeight] = useState(false)
-  const [goalInput,     setGoalInput]     = useState('')
-  const [savingGoal,    setSavingGoal]    = useState(false)
   const [barsVisible,   setBarsVisible]   = useState(false)
 
   const loading = weightLoading || profileLoading
@@ -34,23 +32,6 @@ export default function Vikt() {
     await logWeight(kg)
     setWeightInput('')
     setLoggingWeight(false)
-  }
-
-  async function handleSaveGoal(e) {
-    e.preventDefault()
-    const kg = parseFloat(goalInput.replace(',', '.'))
-    if (isNaN(kg)) return
-    setSavingGoal(true)
-    await updateProfile({
-      goal_weight: kg,
-      height_cm: height,
-      first_name: firstName,
-      last_name: lastName,
-      birth_date: birthDate,
-      phone,
-    })
-    setGoalInput('')
-    setSavingGoal(false)
   }
 
   const start = startWeight ?? currentWeight ?? 0
@@ -154,39 +135,19 @@ export default function Vikt() {
 
       <Reveal>
         <div className={styles.inputsCard}>
-          <div className={styles.inputsCardTitle}>{t('Update')}</div>
-          <div className={styles.inputSection}>
-            <div>
-              <div className={styles.inputLabel}>{t('Log new weight')}</div>
-              <form onSubmit={handleLogWeight} className={styles.logForm}>
-                <input
-                  type="number" step="0.1"
-                  placeholder={t('Current ({{weight}} kg)', { weight })}
-                  value={weightInput}
-                  onChange={e => setWeightInput(e.target.value)}
-                  className={styles.logInput}
-                />
-                <button type="submit" disabled={loggingWeight} className={styles.logBtn}>
-                  {loggingWeight ? '…' : t('Save')}
-                </button>
-              </form>
-            </div>
-            <div>
-              <div className={styles.inputLabel}>{t('Change goal weight')}</div>
-              <form onSubmit={handleSaveGoal} className={styles.logForm}>
-                <input
-                  type="number" step="0.1"
-                  placeholder={t('Current goal ({{goal}} kg)', { goal })}
-                  value={goalInput}
-                  onChange={e => setGoalInput(e.target.value)}
-                  className={styles.logInput}
-                />
-                <button type="submit" disabled={savingGoal} className={styles.logBtn}>
-                  {savingGoal ? '…' : t('Save')}
-                </button>
-              </form>
-            </div>
-          </div>
+          <div className={styles.inputsCardTitle}>{t('Log new weight')}</div>
+          <form onSubmit={handleLogWeight} className={styles.logForm}>
+            <input
+              type="number" step="0.1"
+              placeholder={t('Current ({{weight}} kg)', { weight })}
+              value={weightInput}
+              onChange={e => setWeightInput(e.target.value)}
+              className={styles.logInput}
+            />
+            <button type="submit" disabled={loggingWeight} className={styles.logBtn}>
+              {loggingWeight ? '…' : t('Save')}
+            </button>
+          </form>
         </div>
       </Reveal>
     </section>
