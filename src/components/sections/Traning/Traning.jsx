@@ -5,6 +5,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
+import Skeleton from '../../Skeleton/Skeleton'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import styles from './Traning.module.scss'
@@ -375,8 +376,8 @@ function SortableRow({ ex, log, onName, onLog }) {
     <div ref={setNodeRef} style={style} className={styles.exerciseRow}>
       <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>
       <span><button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button></span>
-      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell}`} onClick={() => onLog(ex)}>{log?.kg ?? '–'}</span>
-      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell}`} onClick={() => onLog(ex)}>{log?.kg != null ? toLbs(log.kg) : '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell} ${styles.weightStart}`} onClick={() => onLog(ex)}>{log?.kg ?? '–'}</span>
+      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell} ${styles.weightEnd}`} onClick={() => onLog(ex)}>{log?.kg != null ? toLbs(log.kg) : '–'}</span>
       <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.sets ?? '–'}</span>
       <span className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => onLog(ex)}>{log?.reps ?? '–'}</span>
     </div>
@@ -387,19 +388,20 @@ export default function Traning() {
   const { t } = useTranslation()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true })
   const dayFull   = t('dayFull',   { returnObjects: true })
-  const { sessions, programs, activeProgramId, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
-  const [activeTab,      setActiveTab]      = useState(null)
-  const [exercises,      setExercises]      = useState({})
-  const [logs,           setLogs]           = useState({})
-  const [logging,        setLogging]        = useState(null)
-  const [naming,         setNaming]         = useState(null)
-  const [adding,         setAdding]         = useState(false)
-  const [newName,        setNewName]        = useState('')
-  const [userId,         setUserId]         = useState(null)
-  const [addingSession,   setAddingSession]   = useState(false)
-  const [editingSession,  setEditingSession]  = useState(false)
-  const [creatingProgram, setCreatingProgram] = useState(false)
-  const [editingProgram,  setEditingProgram]  = useState(false)
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
+  const [activeTab,        setActiveTab]        = useState(null)
+  const [exercises,        setExercises]        = useState({})
+  const [logs,             setLogs]             = useState({})
+  const [exercisesLoading, setExercisesLoading] = useState(true)
+  const [logging,          setLogging]          = useState(null)
+  const [naming,           setNaming]           = useState(null)
+  const [adding,           setAdding]           = useState(false)
+  const [newName,          setNewName]          = useState('')
+  const [userId,           setUserId]           = useState(null)
+  const [addingSession,    setAddingSession]    = useState(false)
+  const [editingSession,   setEditingSession]   = useState(false)
+  const [creatingProgram,  setCreatingProgram]  = useState(false)
+  const [editingProgram,   setEditingProgram]   = useState(false)
 
   useEffect(() => { loadAll() }, [])
 
@@ -413,6 +415,7 @@ export default function Traning() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     setUserId(user.id)
+    setExercisesLoading(true)
 
     const [{ data: exData }, { data: logData }] = await Promise.all([
       supabase.from('exercises').select('*').eq('user_id', user.id).order('sort_order'),
@@ -437,6 +440,7 @@ export default function Traning() {
       }
       setLogs(latest)
     }
+    setExercisesLoading(false)
   }
 
   async function handleLogSave(exerciseId, kg, sets, reps) {
@@ -529,7 +533,6 @@ export default function Traning() {
 
   return (
     <section id="traning">
-      <div className={styles.gradientBar} />
       <SectionHeader number="04" title={t('Training sessions')} />
 
       {programs.length > 0 && (
@@ -558,15 +561,23 @@ export default function Traning() {
       <Reveal>
         <div className={styles.topRow}>
           <div className={styles.tabs}>
-            {sessions.map(s => (
-              <button
-                key={s.id}
-                className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
-                onClick={() => { setActiveTab(s.id); setAdding(false) }}
-              >
-                {dayAbbrev[s.day_of_week - 1]} — {s.name}
-              </button>
-            ))}
+            {sessionsLoading ? (
+              <>
+                <Skeleton width={110} height={36} borderRadius={20} />
+                <Skeleton width={110} height={36} borderRadius={20} />
+                <Skeleton width={110} height={36} borderRadius={20} />
+              </>
+            ) : (
+              sessions.map(s => (
+                <button
+                  key={s.id}
+                  className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
+                  onClick={() => { setActiveTab(s.id); setAdding(false) }}
+                >
+                  {dayAbbrev[s.day_of_week - 1]} — {s.name}
+                </button>
+              ))
+            )}
           </div>
           <div className={styles.topActions}>
             <button className={styles.addSessionBtn} onClick={() => setAddingSession(true)}>
@@ -594,20 +605,33 @@ export default function Traning() {
         <div className={styles.exerciseList}>
           <div className={styles.exerciseHeader}>
             <span></span>
+            <span className={`${styles.numCol}`}>kg</span>
             <span>{t('Exercise')}</span>
-            <span className={`${styles.numCol} ${styles.weightCol}`}>kg</span>
-            <span className={`${styles.numCol} ${styles.weightCol}`}>lbs</span>
+            <span className={`${styles.numCol}`}>lbs</span>
             <span className={styles.numCol}>{t('Sets')}</span>
             <span className={styles.numCol}>{t('Reps')}</span>
           </div>
 
-          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
-              {currentExercises.map(ex => (
-                <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} />
-              ))}
-            </SortableContext>
-          </DndContext>
+          {exercisesLoading ? (
+            [0, 1, 2, 3].map(i => (
+              <div key={i} className={styles.exerciseRow}>
+                <span><Skeleton width={16} height={16} /></span>
+                <span><Skeleton width="70%" height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
+                <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
+              </div>
+            ))
+          ) : (
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                {currentExercises.map(ex => (
+                  <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
 
           {adding && (
             <div className={styles.exerciseRow}>

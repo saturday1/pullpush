@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useProfile } from '../../../context/ProfileContext'
 import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
+import Skeleton from '../../Skeleton/Skeleton'
 import InfoModal from '../../InfoModal/InfoModal'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
@@ -9,7 +10,8 @@ import styles from './Kalorier.module.scss'
 
 export default function Kalorier() {
     const { t } = useTranslation()
-    const { loading, macros, currentWeight } = useProfile()
+    const { weightLoading, profileLoading, macros, currentWeight } = useProfile()
+    const loading = weightLoading || profileLoading
     const [barsVisible, setBarsVisible] = useState(false)
 
     useEffect(() => {
@@ -35,23 +37,23 @@ export default function Kalorier() {
                 <CardGrid className={styles.gridMargin}>
                     <CardGridItem
                         label={<span className={styles.labelInfo}>BMR (Mifflin-St Jeor)<InfoModal title="BMR – Basalämnesomsättning" text="Antalet kalorier din kropp förbränner i total vila – utan någon aktivitet alls. Beräknas med Mifflin-St Jeor-formeln utifrån din vikt, längd och ålder. Det är grunden för alla övriga beräkningar." /></span>}
-                        value={loading || !m ? '…' : `${m.bmr} kcal`}
+                        value={loading || !m ? <Skeleton width={70} height={18} /> : `${m.bmr} kcal`}
                         sub={t('Resting metabolism')}
                     />
                     <CardGridItem
                         label={<span className={styles.labelInfo}>TDEE (faktor 1.55)<InfoModal title="TDEE – Total daglig energiförbrukning" text="Total Daily Energy Expenditure. Ditt BMR multiplicerat med en aktivitetsfaktor. Faktor 1.55 används för måttlig träning (~3 gånger per vecka). Det här är ungefär hur många kalorier du förbränner totalt per dag och vad du behöver äta för att hålla vikten." /></span>}
-                        value={loading || !m ? '…' : `${m.tdee} kcal`}
+                        value={loading || !m ? <Skeleton width={70} height={18} /> : `${m.tdee} kcal`}
                         sub={t('With training 3×/week')}
                     />
                     <CardGridItem
                         label={<span className={styles.labelInfo}>Underskott<InfoModal title="Kaloriunderskott" text="Äter du färre kalorier än ditt TDEE skapar du ett underskott. Med 280 kcal under TDEE varje dag förväntas du gå ner ungefär 0.3 kg per vecka – ett lagom och hållbart tempo." /></span>}
-                        value={loading || !m ? '…' : `−${m.deficit} kcal`}
+                        value={loading || !m ? <Skeleton width={70} height={18} /> : `−${m.deficit} kcal`}
                         sub={t('≈ 0.3 kg/week')}
                         valueStyle={{ color: 'var(--red)' }}
                     />
                     <CardGridItem
                         label={<span className={styles.labelInfo}>Träningsdag totalt<InfoModal title="Kalorier – träningsdag" text="Ditt faktiska dagliga kaloriintag på träningsdagar. Beräknas som TDEE minus underskottet. Det är kring det här värdet som ditt matschema är byggt." /></span>}
-                        value={loading || !m ? '…' : `${m.targetKcal} kcal`}
+                        value={loading || !m ? <Skeleton width={70} height={18} /> : `${m.targetKcal} kcal`}
                         sub={t('Actual meal plan')}
                         valueStyle={{ color: 'var(--accent)' }}
                     />

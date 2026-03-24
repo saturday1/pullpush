@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../../supabase'
+import Skeleton from '../../Skeleton/Skeleton'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Mat.module.scss'
@@ -198,7 +199,18 @@ export default function Mat() {
 
             <Reveal>
                 {loading ? (
-                    <div className={styles.loadingText}>{t('Loading…')}</div>
+                    <div className={styles.loadingText}>
+                        {[0, 1, 2].map(i => (
+                            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                                <Skeleton width={50} height={14} />
+                                <Skeleton width="60%" height={14} />
+                                <Skeleton width={30} height={14} />
+                                <Skeleton width={30} height={14} />
+                                <Skeleton width={30} height={14} />
+                                <Skeleton width={40} height={14} />
+                            </div>
+                        ))}
+                    </div>
                 ) : (
                     <>
                         <div className={styles.totals}>

@@ -35,6 +35,10 @@ const ProfileContext = createContext(null)
 export function ProfileProvider({ children }) {
   const [state, setState] = useState({
     loading: true,
+    profileLoading: true,
+    weightLoading: true,
+    sessionsLoading: true,
+    programsLoading: true,
     firstName: null,
     lastName: null,
     birthDate: null,
@@ -54,35 +58,106 @@ export function ProfileProvider({ children }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const [{ data: profile }, { data: latestLog }, { data: firstLog }, { data: programsData }] = await Promise.all([
-      supabase.from('profile').select('goal_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id').eq('user_id', user.id).single(),
-      supabase.from('weight_log').select('weight_kg').eq('user_id', user.id).order('id', { ascending: false }).limit(1).single(),
-      supabase.from('weight_log').select('weight_kg').eq('user_id', user.id).order('id', { ascending: true }).limit(1).single(),
-      supabase.from('training_programs').select('*').eq('user_id', user.id).order('created_at'),
-    ])
+    // Reset loading flags
+    setState(prev => ({
+      ...prev,
+      loading: true,
+      profileLoading: true,
+      weightLoading: true,
+      sessionsLoading: true,
+      programsLoading: true,
+    }))
 
-    const activeProgramId = profile?.active_program_id ?? null
-    const programs = programsData ?? []
+    // Fire all queries in parallel, but update state as each resolves
+    const profilePromise = supabase
+      .from('profile')
+      .select('goal_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id')
+      .eq('user_id', user.id)
+      .single()
 
-    const { data: sessionsData } = activeProgramId
-      ? await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', activeProgramId).order('day_of_week')
-      : { data: [] }
+    const latestLogPromise = supabase
+      .from('weight_log')
+      .select('weight_kg')
+      .eq('user_id', user.id)
+      .order('id', { ascending: false })
+      .limit(1)
+      .single()
 
-    const currentWeight = latestLog?.weight_kg ?? null
-    const startWeight = firstLog?.weight_kg ?? null
-    const goalWeight = profile?.goal_weight ?? null
-    const height = profile?.height_cm ?? null
-    const firstName = profile?.first_name ?? null
-    const lastName = profile?.last_name ?? null
-    const birthDate = profile?.birth_date ?? null
-    const phone = profile?.phone ?? null
-    const age = calcAge(birthDate)
-    const macros = currentWeight && height && age
-      ? calcMacros(currentWeight, height, age)
-      : null
-    const sessions = sessionsData ?? []
+    const firstLogPromise = supabase
+      .from('weight_log')
+      .select('weight_kg')
+      .eq('user_id', user.id)
+      .order('id', { ascending: true })
+      .limit(1)
+      .single()
 
-    setState({ loading: false, firstName, lastName, birthDate, phone, startWeight, currentWeight, goalWeight, height, age, macros, sessions, programs, activeProgramId })
+    const programsPromise = supabase
+      .from('training_programs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at')
+
+    // Weight data resolves independently
+    Promise.all([latestLogPromise, firstLogPromise]).then(([{ data: latestLog }, { data: firstLog }]) => {
+      const currentWeight = latestLog?.weight_kg ?? null
+      const startWeight = firstLog?.weight_kg ?? null
+      setState(prev => {
+        const newState = { ...prev, currentWeight, startWeight, weightLoading: false }
+        // Recalculate macros if profile data is already available
+        if (!prev.profileLoading && currentWeight && prev.height && prev.age) {
+          newState.macros = calcMacros(currentWeight, prev.height, prev.age)
+        }
+        newState.loading = !prev.profileLoading && !prev.sessionsLoading && !prev.programsLoading ? false : prev.loading
+        return newState
+      })
+    })
+
+    // Programs resolve independently
+    programsPromise.then(({ data: programsData }) => {
+      setState(prev => {
+        const newState = { ...prev, programs: programsData ?? [], programsLoading: false }
+        newState.loading = !prev.profileLoading && !prev.weightLoading && !prev.sessionsLoading ? false : prev.loading
+        return newState
+      })
+    })
+
+    // Profile + sessions: sessions depend on activeProgramId from profile
+    profilePromise.then(async ({ data: profile }) => {
+      const activeProgramId = profile?.active_program_id ?? null
+      const goalWeight = profile?.goal_weight ?? null
+      const height = profile?.height_cm ?? null
+      const firstName = profile?.first_name ?? null
+      const lastName = profile?.last_name ?? null
+      const birthDate = profile?.birth_date ?? null
+      const phone = profile?.phone ?? null
+      const age = calcAge(birthDate)
+
+      setState(prev => {
+        const newState = {
+          ...prev,
+          firstName, lastName, birthDate, phone, goalWeight, height, age, activeProgramId,
+          profileLoading: false,
+        }
+        // Recalculate macros if weight data is already available
+        if (!prev.weightLoading && prev.currentWeight && height && age) {
+          newState.macros = calcMacros(prev.currentWeight, height, age)
+        }
+        newState.loading = !prev.weightLoading && !prev.sessionsLoading && !prev.programsLoading ? false : prev.loading
+        return newState
+      })
+
+      // Now fetch sessions based on activeProgramId
+      const { data: sessionsData } = activeProgramId
+        ? await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', activeProgramId).order('day_of_week')
+        : { data: [] }
+
+      setState(prev => {
+        const sessions = sessionsData ?? []
+        const newState = { ...prev, sessions, sessionsLoading: false }
+        newState.loading = !prev.profileLoading && !prev.weightLoading && !prev.programsLoading ? false : prev.loading
+        return newState
+      })
+    })
   }
 
   useEffect(() => { load() }, [])

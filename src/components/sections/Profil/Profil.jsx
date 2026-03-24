@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
+import Skeleton from '../../Skeleton/Skeleton'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import styles from './Profil.module.scss'
@@ -13,7 +14,7 @@ function formatDate(dateStr) {
 
 export default function Profil() {
   const { t, i18n } = useTranslation()
-  const { loading, firstName, lastName, birthDate, phone, age, height, goalWeight, updateProfile } = useProfile()
+  const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, updateProfile } = useProfile()
   const [email, setEmail] = useState('')
 
   const [editing,    setEditing]    = useState(false)
@@ -106,10 +107,10 @@ export default function Profil() {
             </form>
           ) : (
             <div className={styles.infoRows}>
-              <div className={styles.infoRow}><span>{t('Name')}</span><span>{loading ? '…' : `${firstName ?? '–'} ${lastName ?? ''}`}</span></div>
-              <div className={styles.infoRow}><span>{t('Age')}</span><span>{loading ? '…' : t('{{age}} years ({{date}})', { age: age ?? '–', date: formatDate(birthDate) })}</span></div>
-              <div className={styles.infoRow}><span>{t('Height')}</span><span>{loading ? '…' : t('{{height}} cm', { height: height ?? '–' })}</span></div>
-              <div className={styles.infoRow}><span>{t('Phone')}</span><span>{loading ? '…' : (phone ?? '–')}</span></div>
+              <div className={styles.infoRow}><span>{t('Name')}</span><span>{profileLoading ? <Skeleton width={120} height={14} /> : `${firstName ?? '–'} ${lastName ?? ''}`}</span></div>
+              <div className={styles.infoRow}><span>{t('Age')}</span><span>{profileLoading ? <Skeleton width={140} height={14} /> : t('{{age}} years ({{date}})', { age: age ?? '–', date: formatDate(birthDate) })}</span></div>
+              <div className={styles.infoRow}><span>{t('Height')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : t('{{height}} cm', { height: height ?? '–' })}</span></div>
+              <div className={styles.infoRow}><span>{t('Phone')}</span><span>{profileLoading ? <Skeleton width={100} height={14} /> : (phone ?? '–')}</span></div>
               <div className={styles.infoRow}><span>{t('Email')}</span><span>{email || '…'}</span></div>
             </div>
           )}
