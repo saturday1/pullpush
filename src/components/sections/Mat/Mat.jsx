@@ -7,7 +7,7 @@ import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Mat.module.scss'
 
-const EMPTY_FORM = { time_label: '', label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '' }
+const EMPTY_FORM = { time_label: '', label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '' }
 
 function BarcodeScanner({ onResult, onClose, t }) {
     const videoRef = useRef(null)
@@ -68,6 +68,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
     const valid = form.label.trim() && form.food.trim()
 
+    const [productId, setProductId] = useState(initial?.product_id ?? null)
     const [searchQuery, setSearchQuery] = useState('')
     const [searchResults, setSearchResults] = useState([])
     const [searchLoading, setSearchLoading] = useState(false)
@@ -145,7 +146,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    function selectProduct(product) {
+    async function selectProduct(product) {
         const g = parseFloat(grams) || 100
         const factor = g / 100
         const n = product.nutriments ?? {}
@@ -156,6 +157,23 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
             'energy-kcal_100g': n['energy-kcal_100g'] ?? (n['energy_100g'] ?? 0) / 4.184,
         }
         baseNutrients.current = base
+
+        // Upsert into food_products (USDA source, no barcode)
+        if (!product._skipUpsert) {
+            try {
+                const { data: inserted } = await supabase.from('food_products').insert({
+                    product_name: product.product_name,
+                    brand: product.brands || null,
+                    protein_per_100g: base.proteins_100g,
+                    carbs_per_100g: base.carbohydrates_100g,
+                    fat_per_100g: base.fat_100g,
+                    kcal_per_100g: base['energy-kcal_100g'],
+                    source: 'usda',
+                }).select().single()
+                if (inserted) setProductId(inserted.id)
+            } catch { /* ignore – manual entry still works */ }
+        }
+
         setForm(f => ({
             ...f,
             food: `${g}g ${product.product_name}`,
@@ -178,14 +196,42 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
             if (data.status === 1 && data.product?.product_name) {
                 const p = data.product
                 const n = p.nutriments ?? {}
+                const nutrients = {
+                    proteins_100g: n.proteins_100g ?? 0,
+                    carbohydrates_100g: n.carbohydrates_100g ?? 0,
+                    fat_100g: n.fat_100g ?? 0,
+                    'energy-kcal_100g': n['energy-kcal_100g'] ?? 0,
+                }
+
+                // Check if barcode already exists in food_products
+                try {
+                    const { data: existing } = await supabase
+                        .from('food_products')
+                        .select('*')
+                        .eq('barcode', barcode)
+                        .maybeSingle()
+
+                    if (existing) {
+                        setProductId(existing.id)
+                    } else {
+                        const { data: inserted } = await supabase.from('food_products').insert({
+                            barcode,
+                            product_name: p.product_name,
+                            brand: p.brands || null,
+                            protein_per_100g: nutrients.proteins_100g,
+                            carbs_per_100g: nutrients.carbohydrates_100g,
+                            fat_per_100g: nutrients.fat_100g,
+                            kcal_per_100g: nutrients['energy-kcal_100g'],
+                            source: 'barcode',
+                        }).select().single()
+                        if (inserted) setProductId(inserted.id)
+                    }
+                } catch { /* ignore – scanning still works without food_products */ }
+
                 selectProduct({
                     product_name: p.product_name,
-                    nutriments: {
-                        proteins_100g: n.proteins_100g ?? 0,
-                        carbohydrates_100g: n.carbohydrates_100g ?? 0,
-                        fat_100g: n.fat_100g ?? 0,
-                        'energy-kcal_100g': n['energy-kcal_100g'] ?? 0,
-                    }
+                    nutriments: nutrients,
+                    _skipUpsert: true,
                 })
                 setScannerOpen(false)
             } else {
@@ -294,7 +340,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                 {saveError && <div className={styles.saveError}>{saveError}</div>}
                 <div className={styles.modalActions}>
                     <button className={styles.cancelBtn} onClick={onClose} type="button">{t('Cancel')}</button>
-                    <button className={styles.saveBtn} onClick={() => onSave(form)} disabled={saving || !valid} type="button">
+                    <button className={styles.saveBtn} onClick={() => onSave({ ...form, product_id: productId, grams })} disabled={saving || !valid} type="button">
                         {saving ? '…' : t('Save')}
                     </button>
                 </div>
@@ -378,6 +424,8 @@ export default function Mat() {
             carbs_g: Math.round(parseFloat(form.carbs_g)) || 0,
             fat_g: Math.round(parseFloat(form.fat_g)) || 0,
             kcal: Math.round(parseFloat(form.kcal)) || 0,
+            product_id: form.product_id ?? null,
+            grams: parseFloat(form.grams) || null,
         }
         const { data, error } = await supabase.from('meals').insert(row).select().single()
         if (error) { setSaveError(error.message); setSaving(false); return }
@@ -398,6 +446,8 @@ export default function Mat() {
             carbs_g: Math.round(parseFloat(form.carbs_g)) || 0,
             fat_g: Math.round(parseFloat(form.fat_g)) || 0,
             kcal: Math.round(parseFloat(form.kcal)) || 0,
+            product_id: form.product_id ?? null,
+            grams: parseFloat(form.grams) || null,
         }).eq('id', editMeal.id).select().single()
         if (error) { setSaveError(error.message); setSaving(false); return }
         setMeals(prev => prev.map(m => m.id === data.id ? data : m))
@@ -496,7 +546,7 @@ export default function Mat() {
             )}
             {editMeal && (
                 <MealModal
-                    initial={{ ...editMeal, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '' }}
+                    initial={{ ...editMeal, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '', product_id: editMeal.product_id ?? null }}
                     onSave={handleEdit}
                     onClose={() => { setEditMeal(null); setSaveError('') }}
                     saving={saving}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DndContext, closestCenter } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -427,6 +427,10 @@ export default function Traning() {
   const [naming,           setNaming]           = useState(null)
   const [adding,           setAdding]           = useState(false)
   const [newName,          setNewName]          = useState('')
+  const [catalogResults,   setCatalogResults]   = useState([])
+  const [showCatalogDrop,  setShowCatalogDrop]  = useState(false)
+  const [selectedCatalogId, setSelectedCatalogId] = useState(null)
+  const catalogDropRef = useRef(null)
   const [userId,           setUserId]           = useState(null)
   const [addingSession,    setAddingSession]    = useState(false)
   const [editingSession,   setEditingSession]   = useState(false)
@@ -497,16 +501,69 @@ export default function Traning() {
     }))
   }
 
+  useEffect(() => {
+    const trimmed = newName.trim()
+    if (!trimmed || selectedCatalogId) { setCatalogResults([]); setShowCatalogDrop(false); return }
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('exercise_catalog')
+        .select('id, name, muscle_group')
+        .ilike('name', `%${trimmed}%`)
+        .limit(8)
+      setCatalogResults(data ?? [])
+      setShowCatalogDrop((data ?? []).length > 0)
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [newName, selectedCatalogId])
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (catalogDropRef.current && !catalogDropRef.current.contains(e.target)) setShowCatalogDrop(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function selectCatalogItem(item) {
+    setNewName(item.name)
+    setSelectedCatalogId(item.id)
+    setCatalogResults([])
+    setShowCatalogDrop(false)
+  }
+
   async function handleAdd() {
     const trimmed = newName.trim()
     if (!trimmed) return
     const sortOrder = (exercises[activeTab] ?? []).length
+
+    let catalogId = selectedCatalogId
+    if (!catalogId) {
+      // Check if exact name exists in catalog
+      const { data: existing } = await supabase
+        .from('exercise_catalog')
+        .select('id')
+        .ilike('name', trimmed)
+        .maybeSingle()
+
+      if (existing) {
+        catalogId = existing.id
+      } else {
+        const { data: inserted } = await supabase
+          .from('exercise_catalog')
+          .insert({ name: trimmed })
+          .select()
+          .single()
+        if (inserted) catalogId = inserted.id
+      }
+    }
+
     const { data, error } = await supabase.from('exercises')
-      .insert({ user_id: userId, session_id: activeTab, name: trimmed, sort_order: sortOrder, tab: 'custom' })
+      .insert({ user_id: userId, session_id: activeTab, name: trimmed, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId ?? null })
       .select().single()
     if (error) { console.error('handleAdd error:', error); return }
     if (data) setExercises(prev => ({ ...prev, [activeTab]: [...(prev[activeTab] ?? []), data] }))
     setNewName('')
+    setSelectedCatalogId(null)
     setAdding(false)
   }
 
@@ -702,17 +759,30 @@ export default function Traning() {
 
               {adding && (
                 <div className={styles.exerciseRow}>
-                  <div className={styles.addRow} style={{ gridColumn: '1 / -1' }}>
-                    <input
-                      className={styles.inlineInput}
-                      placeholder={t('Exercise name…')}
-                      value={newName}
-                      onChange={e => setNewName(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-                      autoFocus
-                    />
+                  <div className={styles.addRow} style={{ gridColumn: '1 / -1' }} ref={catalogDropRef}>
+                    <div className={styles.catalogSearchWrap}>
+                      <input
+                        className={styles.inlineInput}
+                        placeholder={t('Exercise name…')}
+                        value={newName}
+                        onChange={e => { setNewName(e.target.value); setSelectedCatalogId(null) }}
+                        onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                        onFocus={() => { if (catalogResults.length > 0) setShowCatalogDrop(true) }}
+                        autoFocus
+                      />
+                      {showCatalogDrop && (
+                        <div className={styles.catalogDropdown}>
+                          {catalogResults.map(item => (
+                            <button key={item.id} className={styles.catalogItem} type="button" onClick={() => selectCatalogItem(item)}>
+                              <span className={styles.catalogItemName}>{item.name}</span>
+                              {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button className={styles.addConfirmBtn} onClick={handleAdd}>{t('Add')}</button>
-                    <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName('') }}>✕</button>
+                    <button className={styles.cancelSmallBtn} onClick={() => { setAdding(false); setNewName(''); setSelectedCatalogId(null) }}>✕</button>
                   </div>
                 </div>
               )}
