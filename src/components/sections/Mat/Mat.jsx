@@ -130,10 +130,11 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                 }
             }))).catch(() => [])
 
+            const q = searchQuery.trim()
             const localPromise = supabase
                 .from('food_products')
                 .select('*')
-                .ilike('product_name', `%${searchQuery.trim()}%`)
+                .or(`product_name.ilike.%${q}%,brand.ilike.%${q}%`)
                 .limit(5)
                 .then(({ data }) => (data ?? []).map(p => ({
                     product_name: p.product_name,
