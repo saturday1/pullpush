@@ -1,10 +1,12 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
+import { useProfile } from '../../../context/ProfileContext'
 import styles from './Tips.module.scss'
 
-const tipKeys = [
+const generalTipKeys = [
   'Recovery takes longer. <strong>7–9 hours of sleep</strong> is just as important as training.',
   '<strong>5–10 min light cardio</strong> + dynamic stretching before the session. Always warm up properly.',
   '<strong>Technique over weight.</strong> Risk of injury increases with age, and injuries halt all progress.',
@@ -12,11 +14,65 @@ const tipKeys = [
   '<strong>Vitamin D + magnesium</strong> can improve sleep and muscle function — ask your doctor.',
   'Weigh yourself <strong>max once a week</strong>, in the morning after the bathroom, not after training.',
   'Photos and how your clothes fit are <strong>better metrics</strong> than just the number on the scale.',
-  'With 17 kg to lose you can expect <strong>6–12 months</strong> at 0.3–0.5 kg/week — realistic and sustainable.',
 ]
+
+const goalTips = {
+  bulk: [
+    'Eat <strong>250–500 kcal above TDEE</strong> — enough surplus for muscle growth without excessive fat gain.',
+    'Keep protein at <strong>1.6–2.2 g/kg</strong> even in a bulk — muscles need building blocks to grow.',
+    '<strong>Progressive overload is essential</strong> when bulking — track every session and aim to beat your last.',
+    'Don\'t skip cardio — <strong>2×20 min light cardio/week</strong> supports heart health and speeds up recovery.',
+  ],
+  cut: [
+    'Keep protein <strong>high (2–2.5 g/kg)</strong> to preserve muscle mass while in a calorie deficit.',
+    '<strong>0.3–0.5 kg/week</strong> is the sweet spot — faster and you risk losing muscle, not just fat.',
+    'Keep carbs higher around workouts and lower on rest days — <strong>fuel your training, not your couch time</strong>.',
+    'Strength may dip slightly during a cut — that\'s normal. <strong>Avoid chasing new PRs</strong> when in deficit.',
+  ],
+  maintain: [
+    'Body recomposition is possible at maintenance — <strong>slow muscle gain and fat loss simultaneously</strong>.',
+    'Shift focus to <strong>performance goals</strong> — strength, reps, endurance — rather than the scale.',
+    'Protein still matters at maintenance — <strong>1.6–2.0 g/kg</strong> keeps you in an anabolic state.',
+    'Track food occasionally to make sure you\'re truly at maintenance — <strong>not accidentally cutting or bulking</strong>.',
+  ],
+}
+
+const GOALS = ['bulk', 'cut', 'maintain']
 
 export default function Tips() {
   const { t } = useTranslation()
+  const { currentWeight, goalWeight } = useProfile()
+
+  const [goal, setGoal] = useState(() => localStorage.getItem('tips_goal') ?? null)
+  const [displayGoal, setDisplayGoal] = useState(() => localStorage.getItem('tips_goal') ?? 'cut')
+  const [tipsFading, setTipsFading] = useState(false)
+
+  // Auto-detect goal from profile data if user hasn't chosen manually
+  useEffect(() => {
+    if (localStorage.getItem('tips_goal')) return
+    if (!currentWeight || !goalWeight) return
+    const detected = currentWeight > goalWeight + 1 ? 'cut' : goalWeight > currentWeight + 1 ? 'bulk' : 'maintain'
+    setGoal(detected)
+    setDisplayGoal(detected)
+  }, [currentWeight, goalWeight])
+
+  // Fade out → swap content → fade in
+  useEffect(() => {
+    if (!goal || goal === displayGoal) return
+    setTipsFading(true)
+    const t = setTimeout(() => {
+      setDisplayGoal(goal)
+      setTipsFading(false)
+    }, 180)
+    return () => clearTimeout(t)
+  }, [goal])
+
+  const activeGoal = displayGoal
+
+  function selectGoal(g) {
+    setGoal(g)
+    localStorage.setItem('tips_goal', g)
+  }
 
   const periodiseringBoxes = [
     { title: t('Progressive overload'), text: t('If you can do more reps than the upper range with good form → increase the weight next time. Add 1.25–2.5 kg for upper body, 2.5–5 kg for legs. Always log your weights.') },
@@ -28,9 +84,38 @@ export default function Tips() {
     <section id="tips">
       <SectionHeader number="07" title={t('Tips & periodization')} />
 
+      {/* Goal selector */}
       <Reveal>
+        <div className={styles.goalBar}>
+          {GOALS.map(g => (
+            <button
+              key={g}
+              className={[styles.goalChip, activeGoal === g ? styles.goalChipActive : ''].filter(Boolean).join(' ')}
+              onClick={() => selectGoal(g)}
+            >
+              {t(`goal_${g}`)}
+            </button>
+          ))}
+        </div>
+      </Reveal>
+
+      {/* Personalized tips */}
+      <Reveal>
+        <div className={[styles.goalSectionLabel, tipsFading ? styles.goalFading : ''].filter(Boolean).join(' ')}>
+          {t('Personalized for')} <strong>{t(`goal_${activeGoal}`)}</strong>
+        </div>
+        <ul className={[styles.tipsList, styles.tipsListGoal, tipsFading ? styles.goalFading : ''].filter(Boolean).join(' ')}>
+          {goalTips[activeGoal].map(key => (
+            <li key={key} dangerouslySetInnerHTML={{ __html: t(key) }} />
+          ))}
+        </ul>
+      </Reveal>
+
+      {/* General tips */}
+      <Reveal>
+        <div className={styles.generalTipsLabel}>{t('General tips')}</div>
         <ul className={styles.tipsList}>
-          {tipKeys.map((key) => (
+          {generalTipKeys.map(key => (
             <li key={key} dangerouslySetInnerHTML={{ __html: t(key) }} />
           ))}
         </ul>

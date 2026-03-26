@@ -20,6 +20,12 @@
     { "time": "19:00", "label": "Dinner", "food": "200g salmon/cod/beef + 75g quinoa/rice + broccoli/zucchini", "p": "45g", "k": "23g", "f": "21g", "kcal": 462, "note": "(half portion rice)" },
     { "time": "21:00", "label": "Evening snack", "food": "200g quark + 100g berries + 30g whey (in the quark)", "p": "44g", "k": "16g", "f": "2g", "kcal": 260 }
   ],
+  "goal_bulk": "Bulk",
+  "goal_cut": "Cut",
+  "goal_maintain": "Maintain",
+  "Personalized for": "Personalized for",
+  "General tips": "General tips",
+
   "exerciseCount_one": "{{count}} exercise",
   "exerciseCount_other": "{{count}} exercises",
   "trainingDaysCount_one": "{{count}} training day",

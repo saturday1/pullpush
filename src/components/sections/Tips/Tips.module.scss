@@ -1,8 +1,88 @@
+@property --go {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+/* Goal selector */
+.goalBar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.goalChip {
+  --go: 0;
+  flex: 1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(135deg,
+      rgba(255, 92, 53,  var(--go)) 0%,
+      rgba(232, 25, 125, var(--go)) 55%,
+      rgba(124, 58, 237, var(--go)) 100%
+    ),
+    var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition: --go 0.25s ease, color 0.25s ease, border-color 0.2s ease;
+
+  &:hover {
+    --go: 0.18;
+    color: var(--text);
+    border-color: transparent;
+  }
+}
+
+.goalChipActive {
+  --go: 1;
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Section labels */
+.goalSectionLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  margin-bottom: 10px;
+
+  strong {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+  }
+}
+
+.generalTipsLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  margin-top: 32px;
+  margin-bottom: 10px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+/* Tips list */
 .tipsList {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 0;
 
   li {
     display: flex;
@@ -16,12 +96,9 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 10px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: box-shadow 0.2s;
 
-    &:hover {
-      transform: translateX(4px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-    }
+    &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 
     strong { font-weight: 700; }
 
@@ -38,10 +115,33 @@
   }
 }
 
+.goalFading {
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.goalSectionLabel,
+.tipsListGoal {
+  transition: opacity 0.18s ease;
+}
+
+/* Personalized tips get a subtle left accent */
+.tipsListGoal {
+  li {
+    border-left: 2px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      var(--gradient) border-box;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+  }
+}
+
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
+  margin-top: 32px;
   margin-bottom: 24px;
 }
 
@@ -51,9 +151,9 @@
   border-radius: 12px;
   padding: 22px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: box-shadow 0.2s;
 
-  &:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.08); }
+  &:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.08); }
 
   h4 {
     font-family: 'Bebas Neue', sans-serif;

@@ -192,6 +192,27 @@
   "Maintenance": "Underhåll",
   "Eating a bit more supports recovery": "Äta lite mer stödjer återhämtning",
 
+  "goal_bulk": "Bulk",
+  "goal_cut": "Cutta",
+  "goal_maintain": "Underhåll",
+  "Personalized for": "Anpassat för",
+  "General tips": "Generella tips",
+
+  "Eat <strong>250–500 kcal above TDEE</strong> — enough surplus for muscle growth without excessive fat gain.": "Ät <strong>250–500 kcal över TDEE</strong> — tillräckligt överskott för muskeluppbyggnad utan för mycket fettökning.",
+  "Keep protein at <strong>1.6–2.2 g/kg</strong> even in a bulk — muscles need building blocks to grow.": "Håll proteinet på <strong>1.6–2.2 g/kg</strong> även vid bulk — muskler behöver byggstenar för att växa.",
+  "<strong>Progressive overload is essential</strong> when bulking — track every session and aim to beat your last.": "<strong>Progressiv överlastning är avgörande</strong> vid bulk — logga varje pass och försök slå ditt senaste.",
+  "Don't skip cardio — <strong>2×20 min light cardio/week</strong> supports heart health and speeds up recovery.": "Hoppa inte över kardio — <strong>2×20 min lätt kardio/vecka</strong> stödjer hjärthälsa och påskyndar återhämtningen.",
+
+  "Keep protein <strong>high (2–2.5 g/kg)</strong> to preserve muscle mass while in a calorie deficit.": "Håll proteinet <strong>högt (2–2.5 g/kg)</strong> för att bevara muskelmassa vid kaloriunderskott.",
+  "<strong>0.3–0.5 kg/week</strong> is the sweet spot — faster and you risk losing muscle, not just fat.": "<strong>0.3–0.5 kg/vecka</strong> är rätt takt — snabbare och du riskerar att förlora muskler, inte bara fett.",
+  "Keep carbs higher around workouts and lower on rest days — <strong>fuel your training, not your couch time</strong>.": "Håll kolhydraterna höga kring träning och lägre på vilodagar — <strong>bränsle till passen, inte soffan</strong>.",
+  "Strength may dip slightly during a cut — that's normal. <strong>Avoid chasing new PRs</strong> when in deficit.": "Styrkan kan sjunka lite vid cuttning — det är normalt. <strong>Jaga inte nya PR:s</strong> vid kaloriunderskott.",
+
+  "Body recomposition is possible at maintenance — <strong>slow muscle gain and fat loss simultaneously</strong>.": "Body recomposition är möjligt vid underhåll — <strong>gradvis muskelökning och fettminskning samtidigt</strong>.",
+  "Shift focus to <strong>performance goals</strong> — strength, reps, endurance — rather than the scale.": "Flytta fokus till <strong>prestationsmål</strong> — styrka, reps, uthållighet — istället för vågen.",
+  "Protein still matters at maintenance — <strong>1.6–2.0 g/kg</strong> keeps you in an anabolic state.": "Protein är fortfarande viktigt vid underhåll — <strong>1.6–2.0 g/kg</strong> håller dig i ett anabolt tillstånd.",
+  "Track food occasionally to make sure you're truly at maintenance — <strong>not accidentally cutting or bulking</strong>.": "Logga maten ibland för att kontrollera att du verkligen är på underhållsnivå — <strong>inte omedvetet cutting eller bulking</strong>.",
+
   "Tips & periodization": "Tips & periodisering",
   "Recovery takes longer. <strong>7–9 hours of sleep</strong> is just as important as training.": "Återhämtning tar längre tid. <strong>7–9 timmars sömn</strong> är lika viktigt som träningen.",
   "<strong>5–10 min light cardio</strong> + dynamic stretching before the session. Always warm up properly.": "<strong>5–10 min lätt kardio</strong> + dynamisk stretch före passet. Värm alltid upp ordentligt.",
