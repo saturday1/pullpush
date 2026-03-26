@@ -174,21 +174,21 @@
 .weekNavArrow {
   font-size: 20px;
   line-height: 1;
-  color: var(--muted);
-  background: none;
   border: none;
   cursor: pointer;
   padding: 2px 8px;
   border-radius: 99px;
-  transition: color 0.15s, background 0.15s;
+  background: none;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: var(--gradient);
+  transition: opacity 0.15s;
 
-  &:hover:not(:disabled) {
-    color: var(--text);
-    background: var(--border);
-  }
+  &:hover:not(:disabled) { opacity: 0.7; }
 
   &:disabled {
-    opacity: 0.35;
+    opacity: 0.25;
     cursor: default;
   }
 }
