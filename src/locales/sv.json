@@ -205,5 +205,12 @@
 
   "Hi": "Hej",
   "Training & Diet Plan": "Tränings- & Kostplan",
-  "{{diff}} kg since start": "{{diff}} kg sedan start"
+  "{{diff}} kg since start": "{{diff}} kg sedan start",
+
+  "exerciseCount_one": "{{count}} övning",
+  "exerciseCount_other": "{{count}} övningar",
+  "trainingDaysCount_one": "{{count}} träningsdag",
+  "trainingDaysCount_other": "{{count}} träningsdagar",
+  "totalExercisesCount_one": "{{count}} övning totalt",
+  "totalExercisesCount_other": "{{count}} övningar totalt"
 }

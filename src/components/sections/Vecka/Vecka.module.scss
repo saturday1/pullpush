@@ -1,31 +1,69 @@
+@keyframes slideOutLeft {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(-48px); opacity: 0; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0);   opacity: 1; }
+  to   { transform: translateX(48px); opacity: 0; }
+}
+
+@keyframes slideInFromRight {
+  from { transform: translateX(48px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-48px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.gridOuter {
+  overflow: hidden;
+  padding: 10px;
+  margin: -10px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 10px;
 
-  @media (max-width: 768px) { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(7, minmax(72px, 1fr));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
 }
+
+.exitLeft       { animation: slideOutLeft      0.22s cubic-bezier(0.4, 0, 1, 1)    forwards; }
+.exitRight      { animation: slideOutRight     0.22s cubic-bezier(0.4, 0, 1, 1)    forwards; }
+.enterFromRight { animation: slideInFromRight  0.26s cubic-bezier(0, 0, 0.2, 1)    forwards; }
+.enterFromLeft  { animation: slideInFromLeft   0.26s cubic-bezier(0, 0, 0.2, 1)    forwards; }
 
 .day {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 18px 12px 16px;
+  padding: 14px 10px 12px;
   text-align: center;
-  min-height: 110px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
   justify-content: flex-start;
   transition: transform 0.2s, box-shadow 0.2s;
 
-  &:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.07); }
+  &:hover { transform: scale(1.06); box-shadow: 0 8px 24px rgba(0,0,0,0.16); z-index: 1; }
 }
 
 .train {
-  border-top: 3px solid transparent;
-  border-image: var(--gradient-h) 1;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg, rgba(255,92,53,0.55) 0%, rgba(232,25,125,0.55) 55%, rgba(124,58,237,0.55) 100%) border-box;
 }
 
 .rest { opacity: 0.55; }
@@ -50,6 +88,10 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dayFocus {
@@ -57,4 +99,104 @@
   font-size: 11px;
   color: var(--muted);
   line-height: 1.4;
+}
+
+.today {
+  border: 2px solid transparent;
+  border-image: none;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    var(--gradient) border-box;
+  box-shadow:
+    0 6px 28px rgba(255, 92, 53, 0.22),
+    0 2px 10px rgba(232, 25, 125, 0.14),
+    0 0 0 1px rgba(255, 92, 53, 0.08);
+  position: relative;
+  &.rest { opacity: 1; }
+}
+
+@keyframes todayPulse {
+  0%, 100% { transform: scale(1);   opacity: 1;    box-shadow: 0 0 0 0   rgba(255,92,53,0.5); }
+  50%       { transform: scale(1.2); opacity: 0.85; box-shadow: 0 0 0 4px rgba(255,92,53,0);   }
+}
+
+.todayDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gradient);
+  animation: todayPulse 2.2s ease-in-out infinite;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.exerciseCount {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--faint);
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+}
+
+.statsBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.statsDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--faint);
+  flex-shrink: 0;
+}
+
+/* Week navigator */
+.weekNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 6px 10px;
+  margin-bottom: 20px;
+  background: var(--card);
+  user-select: none;
+}
+
+.weekNavArrow {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 99px;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover:not(:disabled) {
+    color: var(--text);
+    background: var(--border);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+.weekNavLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.2px;
 }
