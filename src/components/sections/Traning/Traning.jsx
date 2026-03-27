@@ -395,7 +395,7 @@ function SetupGuide({ step, onCreateProgram, onAddSession }) {
   )
 }
 
-function SortableRow({ ex, log, onName, onLog }) {
+function SortableRow({ ex, log, onName, onLog, hideSets }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -403,12 +403,14 @@ function SortableRow({ ex, log, onName, onLog }) {
     opacity: isDragging ? 0.5 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style} className={styles.exerciseRow}>
+    <div ref={setNodeRef} style={style} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''}`}>
       <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>
       <span><button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button></span>
-      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell} ${styles.weightStart}`} onClick={() => onLog(ex)}>{log?.kg ?? '–'}</span>
-      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.weightCell} ${styles.weightEnd}`} onClick={() => onLog(ex)}>{log?.kg != null ? toLbs(log.kg) : '–'}</span>
-      <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.sets ?? '–'}</span>
+      <span className={`${styles.weightCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>
+        <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
+        <span className={styles.lbsVal}>{log?.kg != null ? toLbs(log.kg) : ''}</span>
+      </span>
+      {!hideSets && <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.sets ?? '–'}</span>}
       <span className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => onLog(ex)}>{log?.reps ?? '–'}</span>
     </div>
   )
@@ -423,6 +425,7 @@ export default function Traning() {
   const [exercises,        setExercises]        = useState({})
   const [logs,             setLogs]             = useState({})
   const [exercisesLoading, setExercisesLoading] = useState(true)
+  const [hideSets,         setHideSets]         = useState(false)
   const [logging,          setLogging]          = useState(null)
   const [naming,           setNaming]           = useState(null)
   const [adding,           setAdding]           = useState(false)
@@ -735,34 +738,34 @@ export default function Traning() {
                   ✎
                 </button>
               )}
+              <button className={styles.toggleSetsBtn} onClick={() => setHideSets(h => !h)} type="button">
+                {hideSets ? t('Show sets') : t('Hide sets')}
+              </button>
             </div>
-
             <div className={styles.exerciseList}>
-              <div className={styles.exerciseHeader}>
+              <div className={`${styles.exerciseHeader} ${hideSets ? styles.hideSets : ''}`}>
                 <span></span>
                 <span>{t('Exercise')}</span>
-                <span className={`${styles.numCol}`}>kg</span>
-                <span className={`${styles.numCol}`}>lbs</span>
-                <span className={styles.numCol}>{t('Sets')}</span>
-                <span className={styles.numCol}>{t('Reps')}</span>
+                <span><span className={styles.kgLabel}>kg</span><br/><span className={styles.lbsLabel}>lbs</span></span>
+                {!hideSets && <span>{t('Sets')}</span>}
+                <span>{t('Reps')}</span>
               </div>
 
               {exercisesLoading ? (
                 [0, 1, 2, 3].map(i => (
-                  <div key={i} className={styles.exerciseRow}>
+                  <div key={i} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''}`}>
                     <span><Skeleton width={16} height={16} /></span>
                     <span><Skeleton width="70%" height={14} /></span>
-                    <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
-                    <span className={styles.numCell}><Skeleton width={32} height={14} /></span>
-                    <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
-                    <span className={styles.numCell}><Skeleton width={24} height={14} /></span>
+                    <Skeleton width={40} height={14} />
+                    {!hideSets && <Skeleton width={24} height={14} />}
+                    <Skeleton width={24} height={14} />
                   </div>
                 ))
               ) : (
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map(ex => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} hideSets={hideSets} />
                     ))}
                   </SortableContext>
                 </DndContext>

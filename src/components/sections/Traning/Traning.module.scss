@@ -248,10 +248,14 @@
 
 .exerciseHeader {
   display: grid;
-  grid-template-columns: 32px 1fr 60px 60px 60px 60px;
+  grid-template-columns: 24px 1fr 48px 40px 40px;
+  align-items: center;
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
   padding: 11px 16px;
+  gap: 4px;
+
+  &.hideSets { grid-template-columns: 24px 1fr 48px 40px; }
 
   span {
     font-family: 'DM Sans', sans-serif;
@@ -259,15 +263,35 @@
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--text);
+    line-height: 1.2;
   }
+}
+
+.toggleSetsBtn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: var(--text); border-color: var(--text); }
 }
 
 .exerciseRow {
   display: grid;
-  grid-template-columns: 32px 1fr 60px 60px 60px 60px;
+  grid-template-columns: 24px 1fr 48px 40px 40px;
   align-items: center;
+  gap: 4px;
   padding: 12px 16px;
+
+  &.hideSets { grid-template-columns: 24px 1fr 48px 40px; }
   border-bottom: 1px solid var(--border);
   background: var(--card);
   font-family: 'DM Sans', sans-serif;
@@ -275,6 +299,23 @@
   color: var(--text);
 
   &:last-child { border-bottom: none; }
+}
+
+.numGroup {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-left: 12px;
+
+  > span, > .numCell {
+    width: 48px;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    > span, > .numCell { width: 40px; }
+  }
 }
 
 .dragHandle {
@@ -306,14 +347,33 @@
 }
 
 .numCol {
-  width: 60px;
   text-align: left;
 }
 
-.weightSecondary {
-  color: var(--muted) !important;
-  font-size: 13px !important;
-  font-weight: 400 !important;
+.weightCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  line-height: 1.1;
+}
+
+.kgVal {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lbsVal {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.kgLabel {
+  color: var(--text) !important;
+}
+
+.lbsLabel {
+  color: #9a9189 !important;
 }
 
 .numCell {
