@@ -11,13 +11,14 @@ const EMPTY_FORM = { time_label: '', label: '', food: '', note: '', protein_g: '
 
 function BarcodeScanner({ onResult, onClose, t }) {
     const videoRef = useRef(null)
-    const streamRef = useRef(null)
     const [camError, setCamError] = useState(null)
+    const [manualCode, setManualCode] = useState('')
 
     function stopCamera() {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop())
-            streamRef.current = null
+        const video = videoRef.current
+        if (video && video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop())
+            video.srcObject = null
         }
     }
 
@@ -27,23 +28,41 @@ function BarcodeScanner({ onResult, onClose, t }) {
     }
 
     useEffect(() => {
-        let handled = false
+        let active = true
+        const video = videoRef.current
+        const reader = new BrowserMultiFormatReader()
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        let interval
+
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             .then(stream => {
-                streamRef.current = stream
-                videoRef.current.srcObject = stream
-                videoRef.current.play()
-                const reader = new BrowserMultiFormatReader()
-                return reader.decodeFromStream(stream, videoRef.current, (result) => {
-                    if (result && !handled) {
-                        handled = true
-                        stopCamera()
-                        onResult(result.getText())
-                    }
-                })
+                if (!active) { stream.getTracks().forEach(t => t.stop()); return }
+                video.srcObject = stream
+                video.play()
+                interval = setInterval(() => {
+                    if (!active || !video.videoWidth) return
+                    canvas.width = video.videoWidth
+                    canvas.height = video.videoHeight
+                    ctx.drawImage(video, 0, 0)
+                    try {
+                        const result = reader.decodeFromCanvas(canvas)
+                        if (result) {
+                            active = false
+                            clearInterval(interval)
+                            stopCamera()
+                            onResult(result.getText())
+                        }
+                    } catch { /* no barcode in frame */ }
+                }, 200)
             })
             .catch(() => setCamError(t('Could not open camera')))
-        return () => { stopCamera() }
+
+        return () => {
+            active = false
+            clearInterval(interval)
+            stopCamera()
+        }
     }, [])
 
     return (
@@ -57,7 +76,80 @@ function BarcodeScanner({ onResult, onClose, t }) {
                         <div className={styles.scannerTarget} />
                     </div>
                 }
+                <div className={styles.scannerManualRow}>
+                    <input
+                        className={styles.scannerManualInput}
+                        type="text"
+                        inputMode="numeric"
+                        value={manualCode}
+                        onChange={e => setManualCode(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && manualCode.trim()) { stopCamera(); onResult(manualCode.trim()) } }}
+                        placeholder={t('Enter barcode manually…')}
+                    />
+                    <button
+                        className={styles.scannerManualBtn}
+                        type="button"
+                        disabled={!manualCode.trim()}
+                        onClick={() => { stopCamera(); onResult(manualCode.trim()) }}
+                    >{t('Search')}</button>
+                </div>
                 <button className={styles.scannerCancelBtn} onClick={handleClose} type="button">{t('Cancel')}</button>
+            </div>
+        </div>
+    )
+}
+
+function ManualProductForm({ barcode, onSave, onCancel, t }) {
+    const [form, setForm] = useState({ product_name: '', brand: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '', kcal_per_100g: '' })
+    const [saving, setSaving] = useState(false)
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+    const valid = form.product_name.trim()
+
+    async function handleSave() {
+        setSaving(true)
+        await onSave(form)
+        setSaving(false)
+    }
+
+    return (
+        <div className={styles.overlay} onClick={onCancel}>
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                <div className={styles.modalTitle}>{t('New product')}</div>
+                <div className={styles.scanBarcodeLabel}>{t('Barcode')}: {barcode}</div>
+                <div className={styles.modalFields}>
+                    <label className={styles.modalField}>
+                        <span className={styles.modalLabel}>{t('Product name')} *</span>
+                        <input className={styles.modalInput} value={form.product_name} onChange={e => set('product_name', e.target.value)} autoFocus />
+                    </label>
+                    <label className={styles.modalField}>
+                        <span className={styles.modalLabel}>{t('Brand')}</span>
+                        <input className={styles.modalInput} value={form.brand} onChange={e => set('brand', e.target.value)} />
+                    </label>
+                    <div className={styles.macroInputRow}>
+                        <label className={styles.modalField}>
+                            <span className={styles.modalLabel} style={{ color: '#f97316' }}>{t('Protein / 100g')}</span>
+                            <input className={styles.modalInput} type="number" min="0" step="0.1" value={form.protein_per_100g} onChange={e => set('protein_per_100g', e.target.value)} />
+                        </label>
+                        <label className={styles.modalField}>
+                            <span className={styles.modalLabel} style={{ color: '#60a5fa' }}>{t('Carbs / 100g')}</span>
+                            <input className={styles.modalInput} type="number" min="0" step="0.1" value={form.carbs_per_100g} onChange={e => set('carbs_per_100g', e.target.value)} />
+                        </label>
+                        <label className={styles.modalField}>
+                            <span className={styles.modalLabel} style={{ color: '#22c55e' }}>{t('Fat / 100g')}</span>
+                            <input className={styles.modalInput} type="number" min="0" step="0.1" value={form.fat_per_100g} onChange={e => set('fat_per_100g', e.target.value)} />
+                        </label>
+                        <label className={styles.modalField}>
+                            <span className={styles.modalLabel}>Kcal / 100g</span>
+                            <input className={styles.modalInput} type="number" min="0" step="0.1" value={form.kcal_per_100g} onChange={e => set('kcal_per_100g', e.target.value)} />
+                        </label>
+                    </div>
+                </div>
+                <div className={styles.modalActions}>
+                    <button className={styles.cancelBtn} onClick={onCancel} type="button">{t('Cancel')}</button>
+                    <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !valid} type="button">
+                        {saving ? '…' : t('Save')}
+                    </button>
+                </div>
             </div>
         </div>
     )
@@ -79,6 +171,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
     const [unit, setUnit] = useState(parsedUnit)
     const [scannerOpen, setScannerOpen] = useState(false)
     const [scanError, setScanError] = useState('')
+    const [manualBarcode, setManualBarcode] = useState(null)
     const dropdownRef = useRef(null)
     const baseNutrients = useRef(null)
 
@@ -115,45 +208,53 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         if (!searchQuery.trim()) { setSearchResults([]); setShowDropdown(false); return }
         const timer = setTimeout(async () => {
             setSearchLoading(true)
-
-            // Search both sources independently so one failing doesn't block the other
-            const usdaPromise = fetch(
-                `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchQuery)}&pageSize=8&api_key=${import.meta.env.VITE_USDA_API_KEY}`
-            ).then(res => res.json()).then(data => (data.foods ?? []).map(f => ({
-                product_name: f.description,
-                brands: f.brandOwner ?? f.brandName ?? '',
-                nutriments: {
-                    proteins_100g: f.foodNutrients?.find(n => n.nutrientId === 1003)?.value ?? 0,
-                    carbohydrates_100g: f.foodNutrients?.find(n => n.nutrientId === 1005)?.value ?? 0,
-                    fat_100g: f.foodNutrients?.find(n => n.nutrientId === 1004)?.value ?? 0,
-                    'energy-kcal_100g': f.foodNutrients?.find(n => n.nutrientId === 1008)?.value ?? 0,
-                }
-            }))).catch(() => [])
-
             const q = searchQuery.trim()
-            const localPromise = supabase
-                .from('food_products')
-                .select('*')
-                .or(`product_name.ilike.%${q}%,brand.ilike.%${q}%`)
-                .limit(5)
-                .then(({ data }) => (data ?? []).map(p => ({
-                    product_name: p.product_name,
-                    brands: p.brand ?? '',
-                    _fromCatalog: true,
-                    _catalogId: p.id,
-                    nutriments: {
-                        proteins_100g: Number(p.protein_per_100g) || 0,
-                        carbohydrates_100g: Number(p.carbs_per_100g) || 0,
-                        fat_100g: Number(p.fat_per_100g) || 0,
-                        'energy-kcal_100g': Number(p.kcal_per_100g) || 0,
-                    }
-                }))).catch(() => [])
 
-            const [usdaProducts, localProducts] = await Promise.all([usdaPromise, localPromise])
-            // Local results first, then USDA
-            const combined = [...localProducts, ...usdaProducts]
-            setSearchResults(combined)
-            setShowDropdown(combined.length > 0)
+            // 1. Search USDA API first
+            let results = []
+            try {
+                const res = await fetch(
+                    `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=8&api_key=${import.meta.env.VITE_USDA_API_KEY}`
+                )
+                const data = await res.json()
+                results = (data.foods ?? []).map(f => ({
+                    product_name: f.description,
+                    brands: f.brandOwner ?? f.brandName ?? '',
+                    nutriments: {
+                        proteins_100g: f.foodNutrients?.find(n => n.nutrientId === 1003)?.value ?? 0,
+                        carbohydrates_100g: f.foodNutrients?.find(n => n.nutrientId === 1005)?.value ?? 0,
+                        fat_100g: f.foodNutrients?.find(n => n.nutrientId === 1004)?.value ?? 0,
+                        'energy-kcal_100g': f.foodNutrients?.find(n => n.nutrientId === 1008)?.value ?? 0,
+                    }
+                }))
+            } catch { /* API failed, fall through to local */ }
+
+            // 2. If no API results, search our local food_products database
+            if (results.length === 0) {
+                try {
+                    const { data } = await supabase
+                        .from('food_products')
+                        .select('*')
+                        .or(`product_name.ilike.%${q}%,brand.ilike.%${q}%`)
+                        .limit(8)
+                    results = (data ?? []).map(p => ({
+                        product_name: p.product_name,
+                        brands: p.brand ?? '',
+                        _fromCatalog: true,
+                        _catalogId: p.id,
+                        nutriments: {
+                            proteins_100g: Number(p.protein_per_100g) || 0,
+                            carbohydrates_100g: Number(p.carbs_per_100g) || 0,
+                            fat_100g: Number(p.fat_per_100g) || 0,
+                            'energy-kcal_100g': Number(p.kcal_per_100g) || 0,
+                        }
+                    }))
+                } catch { /* ignore */ }
+            }
+
+            // 3. If still nothing, user can type freely (manual input)
+            setSearchResults(results)
+            setShowDropdown(results.length > 0)
             setSearchLoading(false)
         }, 300)
         return () => clearTimeout(timer)
@@ -214,8 +315,10 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         setScanError('')
         setSearchLoading(true)
         try {
+            // 1. Search OpenFoodFacts API first
             const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`)
             const data = await res.json()
+
             if (data.status === 1 && data.product?.product_name) {
                 const p = data.product
                 const n = p.nutriments ?? {}
@@ -226,14 +329,10 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                     'energy-kcal_100g': n['energy-kcal_100g'] ?? 0,
                 }
 
-                // Check if barcode already exists in food_products
+                // Save to our DB (upsert by barcode)
                 try {
                     const { data: existing } = await supabase
-                        .from('food_products')
-                        .select('*')
-                        .eq('barcode', barcode)
-                        .maybeSingle()
-
+                        .from('food_products').select('id').eq('barcode', barcode).maybeSingle()
                     if (existing) {
                         setProductId(existing.id)
                     } else {
@@ -245,30 +344,87 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                             carbs_per_100g: nutrients.carbohydrates_100g,
                             fat_per_100g: nutrients.fat_100g,
                             kcal_per_100g: nutrients['energy-kcal_100g'],
-                            source: 'barcode',
+                            source: 'openfoodfacts',
                         }).select().single()
                         if (inserted) setProductId(inserted.id)
                     }
-                } catch { /* ignore – scanning still works without food_products */ }
+                } catch { /* ignore */ }
 
+                selectProduct({ product_name: p.product_name, nutriments: nutrients, _skipUpsert: true })
+                setScannerOpen(false)
+                setSearchLoading(false)
+                return
+            }
+
+            // 2. If not in API, check our local food_products database
+            const { data: localProduct } = await supabase
+                .from('food_products').select('*').eq('barcode', barcode).maybeSingle()
+
+            if (localProduct) {
+                setProductId(localProduct.id)
                 selectProduct({
-                    product_name: p.product_name,
-                    nutriments: nutrients,
+                    product_name: localProduct.product_name,
+                    brands: localProduct.brand ?? '',
+                    _fromCatalog: true,
+                    _catalogId: localProduct.id,
                     _skipUpsert: true,
+                    nutriments: {
+                        proteins_100g: Number(localProduct.protein_per_100g) || 0,
+                        carbohydrates_100g: Number(localProduct.carbs_per_100g) || 0,
+                        fat_100g: Number(localProduct.fat_per_100g) || 0,
+                        'energy-kcal_100g': Number(localProduct.kcal_per_100g) || 0,
+                    },
                 })
                 setScannerOpen(false)
-            } else {
-                setScanError(t('Product not found') + ' (' + barcode + ')')
+                setSearchLoading(false)
+                return
             }
+
+            // 3. Not found anywhere — let user enter values manually
+            setManualBarcode(barcode)
+            setScannerOpen(false)
         } catch {
             setScanError(t('Could not fetch product'))
         }
         setSearchLoading(false)
     }
 
+    async function handleManualProduct(manualForm) {
+        try {
+            const { data: inserted } = await supabase.from('food_products').insert({
+                barcode: manualBarcode,
+                product_name: manualForm.product_name.trim(),
+                brand: manualForm.brand.trim() || null,
+                protein_per_100g: parseFloat(manualForm.protein_per_100g) || 0,
+                carbs_per_100g: parseFloat(manualForm.carbs_per_100g) || 0,
+                fat_per_100g: parseFloat(manualForm.fat_per_100g) || 0,
+                kcal_per_100g: parseFloat(manualForm.kcal_per_100g) || 0,
+                source: 'user',
+            }).select().single()
+            if (inserted) {
+                setProductId(inserted.id)
+                selectProduct({
+                    product_name: inserted.product_name,
+                    _skipUpsert: true,
+                    nutriments: {
+                        proteins_100g: Number(inserted.protein_per_100g),
+                        carbohydrates_100g: Number(inserted.carbs_per_100g),
+                        fat_100g: Number(inserted.fat_per_100g),
+                        'energy-kcal_100g': Number(inserted.kcal_per_100g),
+                    },
+                })
+            }
+        } catch { /* ignore */ }
+        setManualBarcode(null)
+    }
+
+    if (manualBarcode) {
+        return <ManualProductForm barcode={manualBarcode} onSave={handleManualProduct} onCancel={() => setManualBarcode(null)} t={t} />
+    }
+
     return (
-        <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.overlay}>
+            <div className={styles.modal}>
                 <div className={styles.modalTitle}>{initial ? t('Edit meal') : t('New meal')}</div>
 
                 <div className={styles.searchSection}>

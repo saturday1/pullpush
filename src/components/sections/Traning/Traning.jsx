@@ -452,8 +452,8 @@ export default function Traning() {
     setExercisesLoading(true)
 
     const [{ data: exData }, { data: logData }] = await Promise.all([
-      supabase.from('exercises').select('*').eq('user_id', user.id).order('sort_order'),
-      supabase.from('exercise_log').select('exercise_id, weight_kg, sets, reps, logged_at').eq('user_id', user.id).order('logged_at', { ascending: false }),
+      supabase.from('exercises').select('*, exercise_catalog(name)').eq('user_id', user.id).order('sort_order'),
+      supabase.rpc('get_latest_exercise_logs', { p_user_id: user.id }),
     ])
 
     const grouped = {}
@@ -461,7 +461,8 @@ export default function Traning() {
       for (const ex of exData) {
         if (ex.session_id) {
           if (!grouped[ex.session_id]) grouped[ex.session_id] = []
-          grouped[ex.session_id].push(ex)
+          const resolvedName = ex.exercise_catalog?.name ?? ex.name
+          grouped[ex.session_id].push({ ...ex, name: resolvedName })
         }
       }
     }
@@ -470,7 +471,7 @@ export default function Traning() {
     if (logData) {
       const latest = {}
       for (const row of logData) {
-        if (!latest[row.exercise_id]) latest[row.exercise_id] = { kg: row.weight_kg, sets: row.sets, reps: row.reps }
+        latest[row.exercise_id] = { kg: row.weight_kg, sets: row.sets, reps: row.reps }
       }
       setLogs(latest)
     }
@@ -486,10 +487,20 @@ export default function Traning() {
   async function handleRename(exercise, name) {
     const trimmed = name.trim()
     if (!trimmed || trimmed === exercise.name) return
-    await supabase.from('exercises').update({ name: trimmed }).eq('id', exercise.id)
+    let catalogId = null
+    const { data: existing } = await supabase.from('exercise_catalog')
+      .select('id').ilike('name', trimmed).limit(1).single()
+    if (existing) {
+      catalogId = existing.id
+    } else {
+      const { data: created } = await supabase.from('exercise_catalog')
+        .insert({ name: trimmed }).select('id').single()
+      if (created) catalogId = created.id
+    }
+    await supabase.from('exercises').update({ name: trimmed, catalog_id: catalogId }).eq('id', exercise.id)
     setExercises(prev => ({
       ...prev,
-      [exercise.session_id]: prev[exercise.session_id].map(e => e.id === exercise.id ? { ...e, name: trimmed } : e),
+      [exercise.session_id]: prev[exercise.session_id].map(e => e.id === exercise.id ? { ...e, name: trimmed, catalog_id: catalogId } : e),
     }))
   }
 

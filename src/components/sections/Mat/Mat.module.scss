@@ -233,6 +233,54 @@
   &:hover { border-color: var(--accent); background: var(--card); }
 }
 
+.barcodeInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.barcodeInput {
+  width: 90px;
+  padding: 10px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px 0 0 8px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &::placeholder { color: var(--faint); font-size: 11px; }
+  &:focus { border-color: var(--accent); }
+}
+
+.barcodeGoBtn {
+  padding: 10px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) { background: var(--card); }
+  &:disabled { opacity: 0.3; cursor: default; }
+}
+
+.scanBarcodeLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
 .scanError, .saveError {
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
@@ -302,6 +350,46 @@
   color: #f87171;
   text-align: center;
   padding: 20px 0;
+}
+
+.scannerManualRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.scannerManualInput {
+  flex: 1;
+  padding: 10px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &::placeholder { color: var(--faint); }
+  &:focus { border-color: var(--accent); }
+}
+
+.scannerManualBtn {
+  padding: 10px 16px;
+  background: var(--gradient);
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+
+  &:hover:not(:disabled) { opacity: 0.85; }
+  &:disabled { opacity: 0.4; cursor: default; }
 }
 
 .scannerCancelBtn {
