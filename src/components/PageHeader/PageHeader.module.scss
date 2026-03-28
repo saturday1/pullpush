@@ -1,7 +1,7 @@
 .header {
   position: relative;
   padding: 56px 40px 48px;
-  background: var(--card);
+  background: #3b1a6e;
   border-bottom: 1px solid var(--border);
   overflow: hidden;
 
@@ -36,23 +36,23 @@
   @extend %blob;
   width: 55%; height: 140%;
   top: -20%; left: -10%;
-  background: rgba(255, 92, 53, 0.5);
+  background: rgb(255, 120, 50);
   animation: blobA 20s ease-in-out infinite alternate;
 }
 
 .blobPink {
   @extend %blob;
-  width: 55%; height: 130%;
+  width: 60%; height: 140%;
   top: -15%; right: -8%;
-  background: rgba(232, 25, 125, 0.45);
+  background: rgb(230, 0, 150);
   animation: blobB 26s ease-in-out infinite alternate;
 }
 
 .blobPurple {
   @extend %blob;
-  width: 40%; height: 110%;
+  width: 50%; height: 130%;
   bottom: -20%; left: 35%;
-  background: rgba(124, 58, 237, 0.4);
+  background: rgb(60, 10, 160);
   animation: blobC 18s ease-in-out infinite alternate;
 }
 
@@ -101,14 +101,12 @@
   line-height: 0.92;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--text);
+  color: #fff;
   margin-bottom: 10px;
 
   span {
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #fff;
+    -webkit-text-fill-color: #fff;
     padding-right: 0.3em;
   }
 }
@@ -117,7 +115,7 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 16px;
   font-weight: 500;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.75);
   margin-bottom: 20px;
   letter-spacing: 0.5px;
 }
