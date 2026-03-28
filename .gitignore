@@ -6,3 +6,5 @@ dist/
 yarn.lock
 .yarn/
 package-lock.json
+ios/
+android/

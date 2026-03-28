@@ -1,17 +1,59 @@
-.nav {
-    position: sticky;
+// Layer 1: Fixed shadow over safe-area (always visible)
+.safeShadow {
+    position: fixed;
     top: 0;
-    z-index: 100;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0px);
+    background: linear-gradient(to top,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.12) 100%
+    );
+    z-index: 102;
+    pointer-events: none;
+}
+
+// Background — fixed, moves with y, clips at bottom edge
+.navBg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99;
     background: var(--nav-bg);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
-    padding: 0 40px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    // Clip overflow so it doesn't cover content below when translateY is negative
+    clip-path: inset(0 0 0 0);
+}
+
+// Layer 3: Mask wrapper with fade, contains the scrolling nav content
+.navMask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 101;
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    pointer-events: none;
+}
+
+.nav {
+    padding: env(safe-area-inset-top, 0px) 40px 0;
     display: flex;
     align-items: center;
+    pointer-events: auto;
 
     @media (max-width: 768px) {
-        padding: 0 16px;
+        padding: env(safe-area-inset-top, 0px) 16px 0;
     }
+}
+
+.spacer {
+    height: calc(var(--topbar-height, 50px) + env(safe-area-inset-top, 0px));
 }
 
 .navLinks {

@@ -34,8 +34,8 @@ export default function App() {
       <ThemeProvider>
       <ProfileProvider>
         <ProfileSetupModal />
-        <PageHeader />
         <Nav />
+        <PageHeader />
         <main className={styles.main}>
           <Routes>
             <Route path="/" element={<Navigate to="/traning" replace />} />
