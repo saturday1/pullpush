@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run build
         env:
           VITE_USDA_API_KEY: ${{ secrets.VITE_USDA_API_KEY }}
