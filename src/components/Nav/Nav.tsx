@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, useMotionValue, animate } from 'framer-motion'
+import Logo from '../Logo/Logo'
 import styles from './Nav.module.scss'
 
 interface NavLinkItem {
@@ -121,6 +122,7 @@ export default function Nav(): React.ReactElement {
         <div className={styles.navMask}>
             <motion.div style={{ y }}>
                 <nav ref={navRef} className={styles.nav}>
+                    <Logo color="#000" className={styles.logo} />
                     <div className={styles.navLinks}>
                         {links.map(({ to, label }: NavLinkItem) => (
                             <NavLink

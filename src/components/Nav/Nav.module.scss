@@ -56,6 +56,18 @@
     height: calc(var(--topbar-height, 50px) + env(safe-area-inset-top, 0px));
 }
 
+.logo {
+    width: 42px;
+    height: auto;
+    flex-shrink: 0;
+    margin: 8px 16px 8px 0;
+
+    @media (max-width: 768px) {
+        width: 36px;
+        margin: 6px 12px 6px 0;
+    }
+}
+
 .navLinks {
     display: flex;
     flex: 1;
