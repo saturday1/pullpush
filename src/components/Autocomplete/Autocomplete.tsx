@@ -2,6 +2,28 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './Autocomplete.module.scss'
 
+interface AutocompleteItem {
+  id?: string | number
+  [key: string]: unknown
+}
+
+interface DropdownPosition {
+  top: number
+  left: number
+  width: number
+}
+
+interface AutocompleteProps {
+  searchFn: (query: string) => Promise<AutocompleteItem[]>
+  displayKey?: string
+  secondaryKey?: string
+  onSelect: (item: AutocompleteItem) => void
+  onCreate?: (value: string) => void
+  placeholder?: string
+  value?: string
+  createLabel?: string
+}
+
 export default function Autocomplete({
   searchFn,
   displayKey = 'name',
@@ -11,20 +33,20 @@ export default function Autocomplete({
   placeholder = '',
   value = '',
   createLabel,
-}) {
-  const [query, setQuery] = useState(value)
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [highlight, setHighlight] = useState(-1)
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
-  const inputRef = useRef(null)
-  const dropdownRef = useRef(null)
-  const timerRef = useRef(null)
+}: AutocompleteProps): React.JSX.Element {
+  const [query, setQuery] = useState<string>(value)
+  const [results, setResults] = useState<AutocompleteItem[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [open, setOpen] = useState<boolean>(false)
+  const [highlight, setHighlight] = useState<number>(-1)
+  const [pos, setPos] = useState<DropdownPosition>({ top: 0, left: 0, width: 0 })
+  const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => { setQuery(value) }, [value])
 
-  const updatePos = useCallback(() => {
+  const updatePos = useCallback((): void => {
     if (!inputRef.current) return
     const rect = inputRef.current.getBoundingClientRect()
     const dropdownHeight = dropdownRef.current?.offsetHeight ?? 200
@@ -51,10 +73,10 @@ export default function Autocomplete({
   }, [open, results, updatePos])
 
   useEffect(() => {
-    function handleClickOutside(e) {
+    function handleClickOutside(e: MouseEvent): void {
       if (
-        inputRef.current && !inputRef.current.contains(e.target) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target)
+        inputRef.current && !inputRef.current.contains(e.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
       ) {
         setOpen(false)
       }
@@ -63,7 +85,7 @@ export default function Autocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  function handleChange(val) {
+  function handleChange(val: string): void {
     setQuery(val)
     setHighlight(-1)
 
@@ -87,18 +109,18 @@ export default function Autocomplete({
     }, 300)
   }
 
-  function handleSelect(item) {
-    setQuery(item[displayKey] || '')
+  function handleSelect(item: AutocompleteItem): void {
+    setQuery((item[displayKey] as string) || '')
     setOpen(false)
     onSelect(item)
   }
 
-  function handleCreate() {
+  function handleCreate(): void {
     setOpen(false)
     if (onCreate) onCreate(query.trim())
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
     if (!open) return
     const total = results.length + (onCreate ? 1 : 0)
 
@@ -134,10 +156,10 @@ export default function Autocomplete({
           onClick={() => handleSelect(item)}
           type="button"
         >
-          <span className={styles.optionMain}>{item[displayKey]}</span>
-          {secondaryKey && item[secondaryKey] && (
-            <span className={styles.optionSub}>{item[secondaryKey]}</span>
-          )}
+          <span className={styles.optionMain}>{String(item[displayKey] ?? '')}</span>
+          {secondaryKey && item[secondaryKey] ? (
+            <span className={styles.optionSub}>{String(item[secondaryKey])}</span>
+          ) : null}
         </button>
       ))}
 

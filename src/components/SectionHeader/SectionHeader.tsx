@@ -1,9 +1,13 @@
 import styles from './SectionHeader.module.scss'
 
-export default function SectionHeader({ number, title }) {
+interface SectionHeaderProps {
+  title: string
+  number?: string
+}
+
+export default function SectionHeader({ title }: SectionHeaderProps): React.JSX.Element {
   return (
     <div className={styles.header}>
-      <span className={styles.number}>{number}</span>
       <h2 className={styles.title}>{title}</h2>
     </div>
   )

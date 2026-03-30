@@ -95,7 +95,7 @@
 
 .tab {
   --go: 0;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Barlow Condensed', sans-serif;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 1px;
@@ -282,6 +282,53 @@
   transition: color 0.15s, border-color 0.15s;
 
   &:hover { color: var(--text); border-color: var(--text); }
+}
+
+.restBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  &:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+}
+
+.restTimerBar {
+  position: relative;
+  height: 28px;
+  background: var(--bg3);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.restTimerFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--gradient);
+  border-radius: 8px;
+  transition: width 1s linear;
+}
+
+.restTimerText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--text);
+  z-index: 1;
 }
 
 .exerciseRow {
@@ -594,16 +641,16 @@
 
 .setupNum     { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
                 display: flex; align-items: center; justify-content: center;
-                font-family: 'Bebas Neue'; font-size: 14px; flex-shrink: 0; }
+                font-family: 'Barlow Condensed'; font-size: 14px; flex-shrink: 0; }
 .setupActive .setupNum { background: var(--accent); color: #fff; border-color: var(--accent); }
 .setupDone .setupNum   { background: #2a2a2a; color: var(--accent); border-color: var(--accent); }
 
 .setupContent { display: flex; flex-direction: column; gap: 6px; }
-.setupTitle   { font-family: 'Bebas Neue'; font-size: 16px; letter-spacing: .5px; }
+.setupTitle   { font-family: 'Barlow Condensed'; font-size: 16px; letter-spacing: .5px; }
 .setupDesc    { font-size: 13px; color: var(--text-muted); }
 .setupCta     { align-self: flex-start; margin-top: 4px; padding: 9px 20px; border-radius: 8px;
                 background: var(--accent-gradient, var(--accent)); color: #fff;
-                font-family: 'Bebas Neue'; font-size: 16px; letter-spacing: .5px; border: none; cursor: pointer; }
+                font-family: 'Barlow Condensed'; font-size: 16px; letter-spacing: .5px; border: none; cursor: pointer; }
 
 // ── Log modal ─────────────────────────────────────────────
 
@@ -643,7 +690,7 @@
 }
 
 .modalTitle {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Barlow Condensed', sans-serif;
   font-style: italic;
   font-size: 22px;
   letter-spacing: 1px;
@@ -707,7 +754,7 @@
   background: var(--red, #dc2626);
   border: none;
   padding: 11px;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Barlow Condensed', sans-serif;
   font-size: 18px;
   letter-spacing: 1.5px;
   color: #fff;
@@ -745,7 +792,7 @@
   background: var(--gradient);
   border: none;
   padding: 11px;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Barlow Condensed', sans-serif;
   font-size: 18px;
   letter-spacing: 1.5px;
   color: #fff;

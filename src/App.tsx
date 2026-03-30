@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { ProfileProvider } from './context/ProfileContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -15,12 +16,12 @@ import Tips from './components/sections/Tips/Tips'
 import Vikt from './components/sections/Vikt/Vikt'
 import styles from './App.module.scss'
 
-export default function App() {
-  const [session, setSession] = useState(undefined)
+export default function App(): React.ReactElement | null {
+  const [session, setSession] = useState<Session | null | undefined>(undefined)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+  useEffect((): (() => void) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }): void => setSession(data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null): void => {
       setSession(session)
     })
     return () => subscription.unsubscribe()

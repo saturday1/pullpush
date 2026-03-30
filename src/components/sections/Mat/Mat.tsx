@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { supabase } from '../../../supabase'
 import Skeleton from '../../Skeleton/Skeleton'
@@ -7,33 +8,133 @@ import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Mat.module.scss'
 
-const EMPTY_FORM = { time_label: '', label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '' }
+// --- Data interfaces ---
 
-function BarcodeScanner({ onResult, onClose, t }) {
-    const videoRef = useRef(null)
-    const [camError, setCamError] = useState(null)
-    const [manualCode, setManualCode] = useState('')
+interface MealFormData {
+    time_label: string
+    label: string
+    food: string
+    note: string
+    protein_g: string
+    carbs_g: string
+    fat_g: string
+    kcal: string
+    product_id: number | null
+    grams: string
+}
 
-    function stopCamera() {
+interface Meal {
+    id: number
+    user_id: string
+    day_type: string
+    sort_order: number
+    time_label: string
+    label: string
+    food: string
+    note: string | null
+    protein_g: number
+    carbs_g: number
+    fat_g: number
+    kcal: number
+    product_id: number | null
+    grams: number | null
+}
+
+interface Nutriments {
+    proteins_100g: number
+    carbohydrates_100g: number
+    fat_100g: number
+    'energy-kcal_100g': number
+}
+
+interface BaseNutrients {
+    proteins_100g: number
+    carbohydrates_100g: number
+    fat_100g: number
+    'energy-kcal_100g': number
+}
+
+interface SearchProduct {
+    product_name: string
+    brands?: string
+    nutriments?: Partial<Nutriments & { energy_100g: number }>
+    _fromCatalog?: boolean
+    _catalogId?: number
+    _skipUpsert?: boolean
+}
+
+interface ManualProductFormData {
+    product_name: string
+    brand: string
+    protein_per_100g: string
+    carbs_per_100g: string
+    fat_per_100g: string
+    kcal_per_100g: string
+}
+
+interface FoodProduct {
+    id: number
+    barcode: string | null
+    product_name: string
+    brand: string | null
+    protein_per_100g: number
+    carbs_per_100g: number
+    fat_per_100g: number
+    kcal_per_100g: number
+    source: string
+}
+
+interface Supplement {
+    name: string
+    dose: string
+    info: string
+    blue?: boolean
+}
+
+interface MealTotals {
+    kcal: number
+    protein_g: number
+    carbs_g: number
+    fat_g: number
+}
+
+// --- Constants ---
+
+const EMPTY_FORM: MealFormData = { time_label: '', label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '' }
+
+// --- Sub-components ---
+
+interface BarcodeScannerProps {
+    onResult: (barcode: string) => void
+    onClose: () => void
+    t: TFunction
+}
+
+function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JSX.Element {
+    const videoRef = useRef<HTMLVideoElement | null>(null)
+    const [camError, setCamError] = useState<string | null>(null)
+    const [manualCode, setManualCode] = useState<string>('')
+
+    function stopCamera(): void {
         const video = videoRef.current
         if (video && video.srcObject) {
-            video.srcObject.getTracks().forEach(track => track.stop())
+            (video.srcObject as MediaStream).getTracks().forEach(track => track.stop())
             video.srcObject = null
         }
     }
 
-    function handleClose() {
+    function handleClose(): void {
         stopCamera()
         onClose()
     }
 
     useEffect(() => {
         let active = true
-        const video = videoRef.current
+        const video = videoRef.current!
         const reader = new BrowserMultiFormatReader()
         const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        let interval
+        const ctx = canvas.getContext('2d')!
+        let interval: ReturnType<typeof setInterval> | undefined
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             .then(stream => {
@@ -99,13 +200,20 @@ function BarcodeScanner({ onResult, onClose, t }) {
     )
 }
 
-function ManualProductForm({ barcode, onSave, onCancel, t }) {
-    const [form, setForm] = useState({ product_name: '', brand: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '', kcal_per_100g: '' })
-    const [saving, setSaving] = useState(false)
-    const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-    const valid = form.product_name.trim()
+interface ManualProductFormProps {
+    barcode: string
+    onSave: (form: ManualProductFormData) => Promise<void>
+    onCancel: () => void
+    t: TFunction
+}
 
-    async function handleSave() {
+function ManualProductForm({ barcode, onSave, onCancel, t }: ManualProductFormProps): React.JSX.Element {
+    const [form, setForm] = useState<ManualProductFormData>({ product_name: '', brand: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '', kcal_per_100g: '' })
+    const [saving, setSaving] = useState<boolean>(false)
+    const set = (k: keyof ManualProductFormData, v: string): void => setForm(f => ({ ...f, [k]: v }))
+    const valid: boolean = !!form.product_name.trim()
+
+    async function handleSave(): Promise<void> {
         setSaving(true)
         await onSave(form)
         setSaving(false)
@@ -155,30 +263,39 @@ function ManualProductForm({ barcode, onSave, onCancel, t }) {
     )
 }
 
-function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
-    const [form, setForm] = useState(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
-    const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-    const valid = form.label.trim() && form.food.trim()
+interface MealModalProps {
+    initial?: MealFormData
+    onSave: (form: MealFormData) => void
+    onClose: () => void
+    saving: boolean
+    saveError: string
+    t: TFunction
+}
 
-    const [productId, setProductId] = useState(initial?.product_id ?? null)
-    const [searchQuery, setSearchQuery] = useState('')
-    const [searchResults, setSearchResults] = useState([])
-    const [searchLoading, setSearchLoading] = useState(false)
-    const [showDropdown, setShowDropdown] = useState(false)
-    const parsedGrams = initial?.food?.match(/^(\d+(?:\.\d+)?)(g|ml)\s/)?.[1]
-    const parsedUnit = initial?.food?.match(/^(\d+(?:\.\d+)?)(g|ml)\s/)?.[2] ?? 'g'
-    const [grams, setGrams] = useState(parsedGrams ?? '100')
-    const [unit, setUnit] = useState(parsedUnit)
-    const [scannerOpen, setScannerOpen] = useState(false)
-    const [scanError, setScanError] = useState('')
-    const [manualBarcode, setManualBarcode] = useState(null)
-    const dropdownRef = useRef(null)
-    const baseNutrients = useRef(null)
+function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModalProps): React.JSX.Element {
+    const [form, setForm] = useState<MealFormData>(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
+    const set = (k: keyof MealFormData, v: string | number | null): void => setForm(f => ({ ...f, [k]: v }))
+    const valid: boolean = !!(form.label.trim() && form.food.trim())
+
+    const [productId, setProductId] = useState<number | null>(initial?.product_id ?? null)
+    const [searchQuery, setSearchQuery] = useState<string>('')
+    const [searchResults, setSearchResults] = useState<SearchProduct[]>([])
+    const [searchLoading, setSearchLoading] = useState<boolean>(false)
+    const [showDropdown, setShowDropdown] = useState<boolean>(false)
+    const parsedGrams: string | undefined = initial?.food?.match(/^(\d+(?:\.\d+)?)(g|ml)\s/)?.[1]
+    const parsedUnit: string = initial?.food?.match(/^(\d+(?:\.\d+)?)(g|ml)\s/)?.[2] ?? 'g'
+    const [grams, setGrams] = useState<string>(parsedGrams ?? '100')
+    const [unit, setUnit] = useState<string>(parsedUnit)
+    const [scannerOpen, setScannerOpen] = useState<boolean>(false)
+    const [scanError, setScanError] = useState<string>('')
+    const [manualBarcode, setManualBarcode] = useState<string | null>(null)
+    const dropdownRef = useRef<HTMLDivElement | null>(null)
+    const baseNutrients = useRef<BaseNutrients | null>(null)
 
     useEffect(() => {
         if (!initial || !parsedGrams) return
-        const g = parseFloat(parsedGrams)
-        const factor = g / 100
+        const g: number = parseFloat(parsedGrams)
+        const factor: number = g / 100
         baseNutrients.current = {
             proteins_100g: (parseFloat(initial.protein_g) || 0) / factor,
             carbohydrates_100g: (parseFloat(initial.carbs_g) || 0) / factor,
@@ -187,12 +304,12 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         }
     }, [])
 
-    const r = v => Math.round(v * 10) / 10
+    const r = (v: number): number => Math.round(v * 10) / 10
 
     useEffect(() => {
         if (!baseNutrients.current) return
-        const g = parseFloat(grams) || 100
-        const factor = g / 100
+        const g: number = parseFloat(grams) || 100
+        const factor: number = g / 100
         const n = baseNutrients.current
         setForm(f => ({
             ...f,
@@ -208,16 +325,16 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         if (!searchQuery.trim()) { setSearchResults([]); setShowDropdown(false); return }
         const timer = setTimeout(async () => {
             setSearchLoading(true)
-            const q = searchQuery.trim()
+            const q: string = searchQuery.trim()
 
             // 1. Search USDA API first
-            let results = []
+            let results: SearchProduct[] = []
             try {
                 const res = await fetch(
                     `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(q)}&pageSize=8&api_key=${import.meta.env.VITE_USDA_API_KEY}`
                 )
                 const data = await res.json()
-                results = (data.foods ?? []).map(f => ({
+                results = (data.foods ?? []).map((f: { description: string; brandOwner?: string; brandName?: string; foodNutrients?: Array<{ nutrientId: number; value: number }> }) => ({
                     product_name: f.description,
                     brands: f.brandOwner ?? f.brandName ?? '',
                     nutriments: {
@@ -237,7 +354,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                         .select('*')
                         .or(`product_name.ilike.%${q}%,brand.ilike.%${q}%`)
                         .limit(8)
-                    results = (data ?? []).map(p => ({
+                    results = ((data as FoodProduct[]) ?? []).map((p: FoodProduct) => ({
                         product_name: p.product_name,
                         brands: p.brand ?? '',
                         _fromCatalog: true,
@@ -261,22 +378,22 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
     }, [searchQuery])
 
     useEffect(() => {
-        function handleClickOutside(e) {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false)
+        function handleClickOutside(e: MouseEvent): void {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setShowDropdown(false)
         }
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    async function selectProduct(product) {
-        const g = parseFloat(grams) || 100
-        const factor = g / 100
+    async function selectProduct(product: SearchProduct): Promise<void> {
+        const g: number = parseFloat(grams) || 100
+        const factor: number = g / 100
         const n = product.nutriments ?? {}
-        const base = {
+        const base: BaseNutrients = {
             proteins_100g: n['proteins_100g'] ?? 0,
             carbohydrates_100g: n['carbohydrates_100g'] ?? 0,
             fat_100g: n['fat_100g'] ?? 0,
-            'energy-kcal_100g': n['energy-kcal_100g'] ?? (n['energy_100g'] ?? 0) / 4.184,
+            'energy-kcal_100g': n['energy-kcal_100g'] ?? ((n as Record<string, number>)['energy_100g'] ?? 0) / 4.184,
         }
         baseNutrients.current = base
 
@@ -294,7 +411,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                     kcal_per_100g: base['energy-kcal_100g'],
                     source: 'usda',
                 }).select().single()
-                if (inserted) setProductId(inserted.id)
+                if (inserted) setProductId((inserted as FoodProduct).id)
             } catch { /* ignore – manual entry still works */ }
         }
 
@@ -311,7 +428,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         setShowDropdown(false)
     }
 
-    async function handleBarcode(barcode) {
+    async function handleBarcode(barcode: string): Promise<void> {
         setScanError('')
         setSearchLoading(true)
         try {
@@ -322,7 +439,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
             if (data.status === 1 && data.product?.product_name) {
                 const p = data.product
                 const n = p.nutriments ?? {}
-                const nutrients = {
+                const nutrients: BaseNutrients = {
                     proteins_100g: n.proteins_100g ?? 0,
                     carbohydrates_100g: n.carbohydrates_100g ?? 0,
                     fat_100g: n.fat_100g ?? 0,
@@ -334,7 +451,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                     const { data: existing } = await supabase
                         .from('food_products').select('id').eq('barcode', barcode).maybeSingle()
                     if (existing) {
-                        setProductId(existing.id)
+                        setProductId((existing as { id: number }).id)
                     } else {
                         const { data: inserted } = await supabase.from('food_products').insert({
                             barcode,
@@ -346,7 +463,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                             kcal_per_100g: nutrients['energy-kcal_100g'],
                             source: 'openfoodfacts',
                         }).select().single()
-                        if (inserted) setProductId(inserted.id)
+                        if (inserted) setProductId((inserted as FoodProduct).id)
                     }
                 } catch { /* ignore */ }
 
@@ -361,18 +478,19 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                 .from('food_products').select('*').eq('barcode', barcode).maybeSingle()
 
             if (localProduct) {
-                setProductId(localProduct.id)
+                const lp = localProduct as FoodProduct
+                setProductId(lp.id)
                 selectProduct({
-                    product_name: localProduct.product_name,
-                    brands: localProduct.brand ?? '',
+                    product_name: lp.product_name,
+                    brands: lp.brand ?? '',
                     _fromCatalog: true,
-                    _catalogId: localProduct.id,
+                    _catalogId: lp.id,
                     _skipUpsert: true,
                     nutriments: {
-                        proteins_100g: Number(localProduct.protein_per_100g) || 0,
-                        carbohydrates_100g: Number(localProduct.carbs_per_100g) || 0,
-                        fat_100g: Number(localProduct.fat_per_100g) || 0,
-                        'energy-kcal_100g': Number(localProduct.kcal_per_100g) || 0,
+                        proteins_100g: Number(lp.protein_per_100g) || 0,
+                        carbohydrates_100g: Number(lp.carbs_per_100g) || 0,
+                        fat_100g: Number(lp.fat_per_100g) || 0,
+                        'energy-kcal_100g': Number(lp.kcal_per_100g) || 0,
                     },
                 })
                 setScannerOpen(false)
@@ -389,7 +507,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
         setSearchLoading(false)
     }
 
-    async function handleManualProduct(manualForm) {
+    async function handleManualProduct(manualForm: ManualProductFormData): Promise<void> {
         try {
             const { data: inserted } = await supabase.from('food_products').insert({
                 barcode: manualBarcode,
@@ -402,15 +520,16 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                 source: 'user',
             }).select().single()
             if (inserted) {
-                setProductId(inserted.id)
+                const ins = inserted as FoodProduct
+                setProductId(ins.id)
                 selectProduct({
-                    product_name: inserted.product_name,
+                    product_name: ins.product_name,
                     _skipUpsert: true,
                     nutriments: {
-                        proteins_100g: Number(inserted.protein_per_100g),
-                        carbohydrates_100g: Number(inserted.carbs_per_100g),
-                        fat_100g: Number(inserted.fat_per_100g),
-                        'energy-kcal_100g': Number(inserted.kcal_per_100g),
+                        proteins_100g: Number(ins.protein_per_100g),
+                        carbohydrates_100g: Number(ins.carbs_per_100g),
+                        fat_100g: Number(ins.fat_per_100g),
+                        'energy-kcal_100g': Number(ins.kcal_per_100g),
                     },
                 })
             }
@@ -441,7 +560,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
                             {searchLoading && <span className={styles.searchSpinner} />}
                             {showDropdown && (
                                 <div className={styles.searchDropdown}>
-                                    {searchResults.map((p, i) => (
+                                    {searchResults.map((p: SearchProduct, i: number) => (
                                         <button key={i} className={styles.searchItem} type="button" onClick={() => selectProduct(p)}>
                                             <span className={styles.searchItemName}>
                                                 {p._fromCatalog && <span className={styles.catalogBadge}>★</span>}
@@ -538,7 +657,14 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }) {
     )
 }
 
-function MealTable({ meals, onEdit, onDelete, t }) {
+interface MealTableProps {
+    meals: Meal[]
+    onEdit: (meal: Meal) => void
+    onDelete: (id: number) => void
+    t: TFunction
+}
+
+function MealTable({ meals, onEdit, onDelete, t }: MealTableProps): React.JSX.Element {
     return (
         <div style={{ overflowX: 'auto' }}>
             <table className={styles.table}>
@@ -554,7 +680,7 @@ function MealTable({ meals, onEdit, onDelete, t }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {meals.map(meal => (
+                    {meals.map((meal: Meal) => (
                         <tr key={meal.id}>
                             <td>
                                 <div className={styles.mealTime}>{meal.time_label}</div>
@@ -577,32 +703,34 @@ function MealTable({ meals, onEdit, onDelete, t }) {
     )
 }
 
-export default function Mat() {
+// --- Main component ---
+
+export default function Mat(): React.JSX.Element {
     const { t } = useTranslation()
-    const [tab, setTab] = useState('train')
-    const [meals, setMeals] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [addOpen, setAddOpen] = useState(false)
-    const [editMeal, setEditMeal] = useState(null)
-    const [saving, setSaving] = useState(false)
-    const [saveError, setSaveError] = useState('')
+    const [tab, setTab] = useState<string>('train')
+    const [meals, setMeals] = useState<Meal[]>([])
+    const [loading, setLoading] = useState<boolean>(true)
+    const [addOpen, setAddOpen] = useState<boolean>(false)
+    const [editMeal, setEditMeal] = useState<Meal | null>(null)
+    const [saving, setSaving] = useState<boolean>(false)
+    const [saveError, setSaveError] = useState<string>('')
 
     useEffect(() => { loadMeals() }, [])
 
-    async function loadMeals() {
+    async function loadMeals(): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser()
-        const { data } = await supabase.from('meals').select('*').eq('user_id', user.id).order('day_type').order('sort_order')
-        setMeals(data ?? [])
+        const { data } = await supabase.from('meals').select('*').eq('user_id', user!.id).order('day_type').order('sort_order')
+        setMeals((data as Meal[]) ?? [])
         setLoading(false)
     }
 
-    async function handleAdd(form) {
+    async function handleAdd(form: MealFormData): Promise<void> {
         setSaving(true)
         setSaveError('')
         const { data: { user } } = await supabase.auth.getUser()
-        const currentMax = meals.filter(m => m.day_type === tab).reduce((acc, m) => Math.max(acc, m.sort_order), -1)
+        const currentMax: number = meals.filter((m: Meal) => m.day_type === tab).reduce((acc: number, m: Meal) => Math.max(acc, m.sort_order), -1)
         const row = {
-            user_id: user.id,
+            user_id: user!.id,
             day_type: tab,
             sort_order: currentMax + 1,
             time_label: form.time_label.trim(),
@@ -618,12 +746,12 @@ export default function Mat() {
         }
         const { data, error } = await supabase.from('meals').insert(row).select().single()
         if (error) { setSaveError(error.message); setSaving(false); return }
-        setMeals(prev => [...prev, data])
+        setMeals(prev => [...prev, data as Meal])
         setSaving(false)
         setAddOpen(false)
     }
 
-    async function handleEdit(form) {
+    async function handleEdit(form: MealFormData): Promise<void> {
         setSaving(true)
         setSaveError('')
         const { data, error } = await supabase.from('meals').update({
@@ -637,27 +765,27 @@ export default function Mat() {
             kcal: Math.round(parseFloat(form.kcal)) || 0,
             product_id: form.product_id ?? null,
             grams: parseFloat(form.grams) || null,
-        }).eq('id', editMeal.id).select().single()
+        }).eq('id', editMeal!.id).select().single()
         if (error) { setSaveError(error.message); setSaving(false); return }
-        setMeals(prev => prev.map(m => m.id === data.id ? data : m))
+        setMeals(prev => prev.map((m: Meal) => m.id === (data as Meal).id ? (data as Meal) : m))
         setSaving(false)
         setEditMeal(null)
     }
 
-    async function handleDelete(id) {
+    async function handleDelete(id: number): Promise<void> {
         await supabase.from('meals').delete().eq('id', id)
-        setMeals(prev => prev.filter(m => m.id !== id))
+        setMeals(prev => prev.filter((m: Meal) => m.id !== id))
     }
 
-    const shown = meals.filter(m => m.day_type === tab)
-    const totals = shown.reduce((acc, m) => ({
+    const shown: Meal[] = meals.filter((m: Meal) => m.day_type === tab)
+    const totals: MealTotals = shown.reduce((acc: MealTotals, m: Meal) => ({
         kcal: acc.kcal + m.kcal,
         protein_g: acc.protein_g + m.protein_g,
         carbs_g: acc.carbs_g + m.carbs_g,
         fat_g: acc.fat_g + m.fat_g,
     }), { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
 
-    const supplements = t('supplements', { returnObjects: true })
+    const supplements = t('supplements', { returnObjects: true }) as Supplement[]
 
     return (
         <section id="mat">
@@ -676,7 +804,7 @@ export default function Mat() {
             <Reveal>
                 {loading ? (
                     <div className={styles.loadingText}>
-                        {[0, 1, 2].map(i => (
+                        {[0, 1, 2].map((i: number) => (
                             <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                                 <Skeleton width={50} height={14} />
                                 <Skeleton width="60%" height={14} />
@@ -712,7 +840,7 @@ export default function Mat() {
                             </tr>
                         </thead>
                         <tbody>
-                            {Array.isArray(supplements) && supplements.map(({ name, dose, info, blue }, i) => (
+                            {Array.isArray(supplements) && supplements.map(({ name, dose, info, blue }: Supplement, i: number) => (
                                 <tr key={i}>
                                     <td><div className={styles.suppName}>{name}</div></td>
                                     <td><span className={styles.suppDose} style={blue ? { color: 'var(--blue)' } : {}}>{dose}</span></td>
@@ -735,7 +863,7 @@ export default function Mat() {
             )}
             {editMeal && (
                 <MealModal
-                    initial={{ ...editMeal, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '', product_id: editMeal.product_id ?? null }}
+                    initial={{ ...editMeal, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '', product_id: editMeal.product_id ?? null, grams: editMeal.grams != null ? String(editMeal.grams) : '' }}
                     onSave={handleEdit}
                     onClose={() => { setEditMeal(null); setSaveError('') }}
                     saving={saving}

@@ -1,32 +1,34 @@
-import { useState } from 'react'
+import { useState, FormEvent, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useProfile } from '../../context/ProfileContext'
 import styles from './ProfileSetupModal.module.scss'
 
-export default function ProfileSetupModal() {
+export default function ProfileSetupModal(): React.ReactElement | null {
   const { t } = useTranslation()
-  const { profileLoading, goalWeight, logWeight, updateProfile } = useProfile()
-  const [firstName,   setFirstName]   = useState('')
-  const [lastName,    setLastName]    = useState('')
-  const [birthDate,   setBirthDate]   = useState('')
-  const [phone,       setPhone]       = useState('')
-  const [setupWeight, setSetupWeight] = useState('')
-  const [setupGoal,   setSetupGoal]   = useState('')
-  const [setupHeight, setSetupHeight] = useState('')
-  const [saving,      setSaving]      = useState(false)
-  const [error,       setError]       = useState('')
+  const profile = useProfile()
+  if (!profile) return null
+  const { profileLoading, goalWeight, logWeight, updateProfile } = profile
+  const [firstName,   setFirstName]   = useState<string>('')
+  const [lastName,    setLastName]    = useState<string>('')
+  const [birthDate,   setBirthDate]   = useState<string>('')
+  const [phone,       setPhone]       = useState<string>('')
+  const [setupWeight, setSetupWeight] = useState<string>('')
+  const [setupGoal,   setSetupGoal]   = useState<string>('')
+  const [setupHeight, setSetupHeight] = useState<string>('')
+  const [saving,      setSaving]      = useState<boolean>(false)
+  const [error,       setError]       = useState<string>('')
 
   if (profileLoading || goalWeight !== null) return null
 
-  async function handleSetup(e) {
+  async function handleSetup(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault()
     if (!firstName.trim() || !lastName.trim() || !birthDate) {
       setError(t('Please fill in first name, last name and birthday.'))
       return
     }
-    const goal_weight = parseFloat(setupGoal.replace(',', '.'))
-    const height_cm   = parseFloat(setupHeight.replace(',', '.'))
-    const startKg     = parseFloat(setupWeight.replace(',', '.'))
+    const goal_weight: number = parseFloat(setupGoal.replace(',', '.'))
+    const height_cm: number   = parseFloat(setupHeight.replace(',', '.'))
+    const startKg: number     = parseFloat(setupWeight.replace(',', '.'))
     if (isNaN(goal_weight) || isNaN(height_cm) || isNaN(startKg)) {
       setError(t('Please fill in current weight, goal weight and height.'))
       return
@@ -59,37 +61,37 @@ export default function ProfileSetupModal() {
           <div className={styles.row2}>
             <label className={styles.field}>
               <span className={styles.label}>{t('First name *')}</span>
-              <input className={styles.input} type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder={t('First name')} />
+              <input className={styles.input} type="text" value={firstName} onChange={(e: ChangeEvent<HTMLInputElement>): void => setFirstName(e.target.value)} placeholder={t('First name')} />
             </label>
             <label className={styles.field}>
               <span className={styles.label}>{t('Last name *')}</span>
-              <input className={styles.input} type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder={t('Last name')} />
+              <input className={styles.input} type="text" value={lastName} onChange={(e: ChangeEvent<HTMLInputElement>): void => setLastName(e.target.value)} placeholder={t('Last name')} />
             </label>
           </div>
 
           <div className={styles.row2}>
             <label className={styles.field}>
               <span className={styles.label}>{t('Birthday *')}</span>
-              <input className={styles.input} type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
+              <input className={styles.input} type="date" value={birthDate} onChange={(e: ChangeEvent<HTMLInputElement>): void => setBirthDate(e.target.value)} />
             </label>
             <label className={styles.field}>
               <span className={styles.label}>{t('Phone')}</span>
-              <input className={styles.input} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder={t('Optional')} />
+              <input className={styles.input} type="tel" value={phone} onChange={(e: ChangeEvent<HTMLInputElement>): void => setPhone(e.target.value)} placeholder={t('Optional')} />
             </label>
           </div>
 
           <div className={styles.row3}>
             <label className={styles.field}>
               <span className={styles.label}>{t('Weight (kg) *')}</span>
-              <input className={styles.input} type="number" step="0.1" value={setupWeight} onChange={e => setSetupWeight(e.target.value)} placeholder="kg" />
+              <input className={styles.input} type="number" step="0.1" value={setupWeight} onChange={(e: ChangeEvent<HTMLInputElement>): void => setSetupWeight(e.target.value)} placeholder="kg" />
             </label>
             <label className={styles.field}>
               <span className={styles.label}>{t('Goal weight *')}</span>
-              <input className={styles.input} type="number" step="0.1" value={setupGoal} onChange={e => setSetupGoal(e.target.value)} placeholder="kg" />
+              <input className={styles.input} type="number" step="0.1" value={setupGoal} onChange={(e: ChangeEvent<HTMLInputElement>): void => setSetupGoal(e.target.value)} placeholder="kg" />
             </label>
             <label className={styles.field}>
               <span className={styles.label}>{t('Height *')}</span>
-              <input className={styles.input} type="number" value={setupHeight} onChange={e => setSetupHeight(e.target.value)} placeholder="cm" />
+              <input className={styles.input} type="number" value={setupHeight} onChange={(e: ChangeEvent<HTMLInputElement>): void => setSetupHeight(e.target.value)} placeholder="cm" />
             </label>
           </div>
 

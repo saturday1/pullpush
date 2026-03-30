@@ -1,33 +1,104 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DndContext, closestCenter } from '@dnd-kit/core'
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { LocalNotifications } from '@capacitor/local-notifications'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import SectionHeader from '../../SectionHeader/SectionHeader'
+
+interface RestTimerPlugin {
+  start(options: { seconds: number }): Promise<void>
+  stop(): Promise<void>
+}
+
+const RestTimer: RestTimerPlugin | null = Capacitor.isNativePlatform() ? registerPlugin<RestTimerPlugin>('RestTimer') : null
 import Reveal from '../../Reveal/Reveal'
 import Skeleton from '../../Skeleton/Skeleton'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import styles from './Traning.module.scss'
 
-const KG_TO_LBS = 2.20462
-const toKg  = lbs => +(lbs / KG_TO_LBS).toFixed(2)
-const toLbs = kg  => +(kg  * KG_TO_LBS).toFixed(1)
+// --- Data interfaces ---
 
-function NameModal({ exercise, onRename, onDelete, onClose }) {
+interface Exercise {
+  id: number
+  name: string
+  session_id: number
+  user_id: string
+  sort_order: number
+  tab: string
+  catalog_id: number | null
+  exercise_catalog?: { name: string } | null
+}
+
+interface ExerciseLog {
+  kg: number
+  sets: number | null
+  reps: number
+}
+
+interface TrainingSession {
+  id: number
+  name: string
+  day_of_week: number
+  user_id: string
+  program_id: number
+  sort_order: number
+  [key: string]: unknown
+}
+
+interface TrainingProgram {
+  id: number
+  name: string
+  user_id: string
+  created_at: string
+  [key: string]: unknown
+}
+
+interface CatalogItem {
+  id: number
+  name: string
+  muscle_group: string | null
+}
+
+interface SessionData {
+  user_id: string
+  day_of_week: number
+  name: string
+  sort_order: number
+  program_id: number
+}
+
+// --- Constants ---
+
+const KG_TO_LBS: number = 2.20462
+const toKg  = (lbs: number): number => +(lbs / KG_TO_LBS).toFixed(2)
+const toLbs = (kg: number): number  => +(kg  * KG_TO_LBS).toFixed(1)
+
+// --- Sub-components ---
+
+interface NameModalProps {
+  exercise: Exercise
+  onRename: (exercise: Exercise, name: string) => Promise<void>
+  onDelete: (exercise: Exercise) => Promise<void>
+  onClose: () => void
+}
+
+function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): React.JSX.Element {
   const { t } = useTranslation()
-  const [name,       setName]       = useState(exercise.name)
-  const [saving,     setSaving]     = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [deleting,   setDeleting]   = useState(false)
+  const [name,       setName]       = useState<string>(exercise.name)
+  const [saving,     setSaving]     = useState<boolean>(false)
+  const [confirming, setConfirming] = useState<boolean>(false)
+  const [deleting,   setDeleting]   = useState<boolean>(false)
 
-  async function handleSave() {
+  async function handleSave(): Promise<void> {
     setSaving(true)
     await onRename(exercise, name)
     setSaving(false)
     onClose()
   }
-  async function handleDelete() {
+  async function handleDelete(): Promise<void> {
     setDeleting(true)
     await onDelete(exercise)
     setDeleting(false)
@@ -80,25 +151,32 @@ function NameModal({ exercise, onRename, onDelete, onClose }) {
   )
 }
 
-function LogModal({ exercise, current, onSave, onClose }) {
-  const { t } = useTranslation()
-  const [kg,     setKg]     = useState(current?.kg?.toString() ?? '')
-  const [lbs,    setLbs]    = useState(current?.kg ? toLbs(current.kg).toString() : '')
-  const [sets,   setSets]   = useState(current?.sets?.toString() ?? '')
-  const [reps,   setReps]   = useState(current?.reps?.toString() ?? '')
-  const [saving, setSaving] = useState(false)
+interface LogModalProps {
+  exercise: Exercise
+  current: ExerciseLog | undefined
+  onSave: (exerciseId: number, kg: number, sets: number | null, reps: number) => Promise<void>
+  onClose: () => void
+}
 
-  function handleKgChange(val) {
+function LogModal({ exercise, current, onSave, onClose }: LogModalProps): React.JSX.Element {
+  const { t } = useTranslation()
+  const [kg,     setKg]     = useState<string>(current?.kg?.toString() ?? '')
+  const [lbs,    setLbs]    = useState<string>(current?.kg ? toLbs(current.kg).toString() : '')
+  const [sets,   setSets]   = useState<string>(current?.sets?.toString() ?? '')
+  const [reps,   setReps]   = useState<string>(current?.reps?.toString() ?? '')
+  const [saving, setSaving] = useState<boolean>(false)
+
+  function handleKgChange(val: string): void {
     setKg(val)
     const n = parseFloat(val.replace(',', '.'))
     if (!isNaN(n)) setLbs(toLbs(n).toString())
   }
-  function handleLbsChange(val) {
+  function handleLbsChange(val: string): void {
     setLbs(val)
     const n = parseFloat(val.replace(',', '.'))
     if (!isNaN(n)) setKg(toKg(n).toString())
   }
-  async function handleSave() {
+  async function handleSave(): Promise<void> {
     const kgVal   = parseFloat(kg.replace(',', '.'))
     const setsVal = parseInt(sets)
     const repsVal = parseInt(reps)
@@ -141,18 +219,25 @@ function LogModal({ exercise, current, onSave, onClose }) {
   )
 }
 
-function AddSessionModal({ userId, sortOrder, onSave, onClose }) {
-  const { t } = useTranslation()
-  const dayFull = t('dayFull', { returnObjects: true })
-  const [name, setName] = useState('')
-  const [day,  setDay]  = useState(1)
-  const [saving, setSaving] = useState(false)
+interface AddSessionModalProps {
+  userId: string | null
+  sortOrder: number
+  onSave: (data: SessionData) => Promise<void>
+  onClose: () => void
+}
 
-  async function handleSave() {
+function AddSessionModal({ userId, sortOrder, onSave, onClose }: AddSessionModalProps): React.JSX.Element {
+  const { t } = useTranslation()
+  const dayFull = t('dayFull', { returnObjects: true }) as string[]
+  const [name, setName] = useState<string>('')
+  const [day,  setDay]  = useState<number>(1)
+  const [saving, setSaving] = useState<boolean>(false)
+
+  async function handleSave(): Promise<void> {
     const trimmed = name.trim()
     if (!trimmed) return
     setSaving(true)
-    await onSave({ user_id: userId, day_of_week: day, name: trimmed, sort_order: sortOrder })
+    await onSave({ user_id: userId!, day_of_week: day, name: trimmed, sort_order: sortOrder } as SessionData)
     setSaving(false)
   }
 
@@ -176,7 +261,7 @@ function AddSessionModal({ userId, sortOrder, onSave, onClose }) {
           <label className={styles.modalField}>
             <span className={styles.modalLabel}>{t('Day')}</span>
             <select className={styles.modalInput} value={day} onChange={e => setDay(Number(e.target.value))}>
-              {dayFull.map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
+              {dayFull.map((d: string, i: number) => <option key={i + 1} value={i + 1}>{d}</option>)}
             </select>
           </label>
         </div>
@@ -191,23 +276,30 @@ function AddSessionModal({ userId, sortOrder, onSave, onClose }) {
   )
 }
 
-function EditSessionModal({ session, onSave, onDelete, onClose }) {
-  const { t } = useTranslation()
-  const dayFull = t('dayFull', { returnObjects: true })
-  const [name,       setName]       = useState(session.name)
-  const [day,        setDay]        = useState(session.day_of_week)
-  const [saving,     setSaving]     = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [deleting,   setDeleting]   = useState(false)
+interface EditSessionModalProps {
+  session: TrainingSession
+  onSave: (id: number, name: string, dayOfWeek: number) => Promise<void>
+  onDelete: (id: number) => Promise<void>
+  onClose: () => void
+}
 
-  async function handleSave() {
+function EditSessionModal({ session, onSave, onDelete, onClose }: EditSessionModalProps): React.JSX.Element {
+  const { t } = useTranslation()
+  const dayFull = t('dayFull', { returnObjects: true }) as string[]
+  const [name,       setName]       = useState<string>(session.name)
+  const [day,        setDay]        = useState<number>(session.day_of_week)
+  const [saving,     setSaving]     = useState<boolean>(false)
+  const [confirming, setConfirming] = useState<boolean>(false)
+  const [deleting,   setDeleting]   = useState<boolean>(false)
+
+  async function handleSave(): Promise<void> {
     const trimmed = name.trim()
     if (!trimmed) return
     setSaving(true)
     await onSave(session.id, trimmed, day)
     setSaving(false)
   }
-  async function handleDelete() {
+  async function handleDelete(): Promise<void> {
     setDeleting(true)
     await onDelete(session.id)
     setDeleting(false)
@@ -238,7 +330,7 @@ function EditSessionModal({ session, onSave, onDelete, onClose }) {
               <label className={styles.modalField}>
                 <span className={styles.modalLabel}>{t('Day')}</span>
                 <select className={styles.modalInput} value={day} onChange={e => setDay(Number(e.target.value))}>
-                  {dayFull.map((d, i) => <option key={i + 1} value={i + 1}>{d}</option>)}
+                  {dayFull.map((d: string, i: number) => <option key={i + 1} value={i + 1}>{d}</option>)}
                 </select>
               </label>
             </div>
@@ -258,14 +350,21 @@ function EditSessionModal({ session, onSave, onDelete, onClose }) {
   )
 }
 
-function EditProgramModal({ program, onRename, onDelete, onClose }) {
-  const { t } = useTranslation()
-  const [name,       setName]       = useState(program.name)
-  const [saving,     setSaving]     = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [deleting,   setDeleting]   = useState(false)
+interface EditProgramModalProps {
+  program: TrainingProgram
+  onRename: (id: number, name: string) => Promise<void>
+  onDelete: (id: number) => Promise<void>
+  onClose: () => void
+}
 
-  async function handleSave() {
+function EditProgramModal({ program, onRename, onDelete, onClose }: EditProgramModalProps): React.JSX.Element {
+  const { t } = useTranslation()
+  const [name,       setName]       = useState<string>(program.name)
+  const [saving,     setSaving]     = useState<boolean>(false)
+  const [confirming, setConfirming] = useState<boolean>(false)
+  const [deleting,   setDeleting]   = useState<boolean>(false)
+
+  async function handleSave(): Promise<void> {
     const trimmed = name.trim()
     if (!trimmed) return
     setSaving(true)
@@ -273,7 +372,7 @@ function EditProgramModal({ program, onRename, onDelete, onClose }) {
     setSaving(false)
     onClose()
   }
-  async function handleDelete() {
+  async function handleDelete(): Promise<void> {
     setDeleting(true)
     await onDelete(program.id)
     setDeleting(false)
@@ -323,12 +422,17 @@ function EditProgramModal({ program, onRename, onDelete, onClose }) {
   )
 }
 
-function CreateProgramModal({ onSave, onClose }) {
-  const { t } = useTranslation()
-  const [name,    setName]    = useState('')
-  const [saving,  setSaving]  = useState(false)
+interface CreateProgramModalProps {
+  onSave: (name: string) => Promise<void>
+  onClose: () => void
+}
 
-  async function handleSave() {
+function CreateProgramModal({ onSave, onClose }: CreateProgramModalProps): React.JSX.Element {
+  const { t } = useTranslation()
+  const [name,    setName]    = useState<string>('')
+  const [saving,  setSaving]  = useState<boolean>(false)
+
+  async function handleSave(): Promise<void> {
     const trimmed = name.trim()
     if (!trimmed) return
     setSaving(true)
@@ -365,19 +469,33 @@ function CreateProgramModal({ onSave, onClose }) {
   )
 }
 
-function SetupGuide({ step, onCreateProgram, onAddSession }) {
+interface SetupGuideProps {
+  step: number
+  onCreateProgram?: () => void
+  onAddSession?: () => void
+}
+
+interface SetupStep {
+  num: number
+  title: string
+  desc: string
+  action: (() => void) | undefined
+  label: string | null
+}
+
+function SetupGuide({ step, onCreateProgram, onAddSession }: SetupGuideProps): React.JSX.Element {
   const { t } = useTranslation()
-  const steps = [
+  const steps: SetupStep[] = [
     { num: 1, title: t('Create a training program'), desc: t('Start by naming your program, e.g. Bulking, Deload or Summer.'), action: onCreateProgram, label: t('Create program') },
     { num: 2, title: t('Add training sessions'), desc: t('Add sessions for each training day, e.g. Push, Legs, Full body.'), action: onAddSession, label: t('Add session') },
-    { num: 3, title: t('Add exercises'), desc: t('Add exercises to each session and log your weights.'), action: null, label: null },
+    { num: 3, title: t('Add exercises'), desc: t('Add exercises to each session and log your weights.'), action: undefined, label: null },
   ]
   return (
     <div className={styles.setupGuide}>
-      {steps.map(s => {
-        const done   = s.num < step
-        const active = s.num === step
-        const locked = s.num > step
+      {steps.map((s: SetupStep) => {
+        const done: boolean   = s.num < step
+        const active: boolean = s.num === step
+        const locked: boolean = s.num > step
         return (
           <div key={s.num} className={`${styles.setupStep} ${done ? styles.setupDone : ''} ${active ? styles.setupActive : ''} ${locked ? styles.setupLocked : ''}`}>
             <div className={styles.setupNum}>{done ? '✓' : s.num}</div>
@@ -395,7 +513,15 @@ function SetupGuide({ step, onCreateProgram, onAddSession }) {
   )
 }
 
-function SortableRow({ ex, log, onName, onLog, hideSets }) {
+interface SortableRowProps {
+  ex: Exercise
+  log: ExerciseLog | undefined
+  onName: (ex: Exercise) => void
+  onLog: (ex: Exercise) => void
+  hideSets: boolean
+}
+
+function SortableRow({ ex, log, onName, onLog, hideSets }: SortableRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -416,39 +542,98 @@ function SortableRow({ ex, log, onName, onLog, hideSets }) {
   )
 }
 
-export default function Traning() {
+// --- Main component ---
+
+export default function Traning(): React.JSX.Element {
   const { t } = useTranslation()
-  const dayAbbrev = t('dayAbbrev', { returnObjects: true })
-  const dayFull   = t('dayFull',   { returnObjects: true })
-  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()
-  const [activeTab,        setActiveTab]        = useState(null)
-  const [exercises,        setExercises]        = useState({})
-  const [logs,             setLogs]             = useState({})
-  const [exercisesLoading, setExercisesLoading] = useState(true)
-  const [hideSets,         setHideSets]         = useState(false)
-  const [logging,          setLogging]          = useState(null)
-  const [naming,           setNaming]           = useState(null)
-  const [adding,           setAdding]           = useState(false)
-  const [newName,          setNewName]          = useState('')
-  const [catalogResults,   setCatalogResults]   = useState([])
-  const [showCatalogDrop,  setShowCatalogDrop]  = useState(false)
-  const [selectedCatalogId, setSelectedCatalogId] = useState(null)
-  const catalogDropRef = useRef(null)
-  const [userId,           setUserId]           = useState(null)
-  const [addingSession,    setAddingSession]    = useState(false)
-  const [editingSession,   setEditingSession]   = useState(false)
-  const [creatingProgram,  setCreatingProgram]  = useState(false)
-  const [editingProgram,   setEditingProgram]   = useState(false)
+  const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
+  const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
+  const [activeTab,        setActiveTab]        = useState<number | null>(null)
+  const [exercises,        setExercises]        = useState<Record<number, Exercise[]>>({})
+  const [logs,             setLogs]             = useState<Record<number, ExerciseLog>>({})
+  const [exercisesLoading, setExercisesLoading] = useState<boolean>(true)
+  const [hideSets,         setHideSets]         = useState<boolean>(false)
+  const [restTimer,        setRestTimer]        = useState<number | null>(null)
+  const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const restEndTimeRef = useRef<number | null>(null)
+  const [logging,          setLogging]          = useState<Exercise | null>(null)
+  const [naming,           setNaming]           = useState<Exercise | null>(null)
+  const [adding,           setAdding]           = useState<boolean>(false)
+  const [newName,          setNewName]          = useState<string>('')
+  const [catalogResults,   setCatalogResults]   = useState<CatalogItem[]>([])
+  const [showCatalogDrop,  setShowCatalogDrop]  = useState<boolean>(false)
+  const [selectedCatalogId, setSelectedCatalogId] = useState<number | null>(null)
+  const catalogDropRef = useRef<HTMLDivElement | null>(null)
+  const [userId,           setUserId]           = useState<string | null>(null)
+  const [addingSession,    setAddingSession]    = useState<boolean>(false)
+  const [editingSession,   setEditingSession]   = useState<boolean>(false)
+  const [creatingProgram,  setCreatingProgram]  = useState<boolean>(false)
+  const [editingProgram,   setEditingProgram]   = useState<boolean>(false)
 
   useEffect(() => { loadAll() }, [])
 
   useEffect(() => {
-    if (sessions.length > 0 && (activeTab === null || !sessions.find(s => s.id === activeTab))) {
+    return () => { if (restIntervalRef.current) clearInterval(restIntervalRef.current) }
+  }, [])
+
+  async function startRest(): Promise<void> {
+    if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+    const endTime: number = Date.now() + restSeconds * 1000
+    restEndTimeRef.current = endTime
+    setRestTimer(restSeconds)
+
+    // Schedule notification
+    try {
+      await LocalNotifications.requestPermissions()
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: 1,
+          title: t('Rest over'),
+          body: t('Time to lift!'),
+          schedule: { at: new Date(endTime) },
+          sound: 'default',
+        }],
+      })
+    } catch { /* web fallback — no notifications */ }
+
+    // Start Live Activity (iOS lock screen countdown)
+    try {
+      if (RestTimer) {
+        await RestTimer.start({ seconds: restSeconds })
+      }
+    } catch {}
+
+    restIntervalRef.current = setInterval(() => {
+      const remaining: number = Math.ceil((restEndTimeRef.current! - Date.now()) / 1000)
+      if (remaining <= 0) {
+        clearInterval(restIntervalRef.current!)
+        restIntervalRef.current = null
+        restEndTimeRef.current = null
+        RestTimer?.stop().catch(() => {})
+        setRestTimer(null)
+      } else {
+        setRestTimer(remaining)
+      }
+    }, 250)
+  }
+
+  async function stopRest(): Promise<void> {
+    if (restIntervalRef.current) clearInterval(restIntervalRef.current)
+    restIntervalRef.current = null
+    restEndTimeRef.current = null
+    setRestTimer(null)
+    try { await LocalNotifications.cancel({ notifications: [{ id: 1 }] }) } catch {}
+    try { await RestTimer?.stop() } catch {}
+  }
+
+  useEffect(() => {
+    if (sessions.length > 0 && (activeTab === null || !sessions.find((s: TrainingSession) => s.id === activeTab))) {
       setActiveTab(sessions[0].id)
     }
   }, [sessions])
 
-  async function loadAll() {
+  async function loadAll(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     setUserId(user.id)
@@ -459,12 +644,12 @@ export default function Traning() {
       supabase.rpc('get_latest_exercise_logs', { p_user_id: user.id }),
     ])
 
-    const grouped = {}
+    const grouped: Record<string, Exercise[]> = {}
     if (exData) {
-      for (const ex of exData) {
+      for (const ex of exData as Exercise[]) {
         if (ex.session_id) {
           if (!grouped[ex.session_id]) grouped[ex.session_id] = []
-          const resolvedName = ex.exercise_catalog?.name ?? ex.name
+          const resolvedName: string = ex.exercise_catalog?.name ?? ex.name
           grouped[ex.session_id].push({ ...ex, name: resolvedName })
         }
       }
@@ -472,8 +657,8 @@ export default function Traning() {
     setExercises(grouped)
 
     if (logData) {
-      const latest = {}
-      for (const row of logData) {
+      const latest: Record<string, ExerciseLog> = {}
+      for (const row of logData as Array<{ exercise_id: string; weight_kg: number; sets: number | null; reps: number }>) {
         latest[row.exercise_id] = { kg: row.weight_kg, sets: row.sets, reps: row.reps }
       }
       setLogs(latest)
@@ -481,24 +666,24 @@ export default function Traning() {
     setExercisesLoading(false)
   }
 
-  async function handleLogSave(exerciseId, kg, sets, reps) {
+  async function handleLogSave(exerciseId: number, kg: number, sets: number | null, reps: number): Promise<void> {
     await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps })
     setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps } }))
     setLogging(null)
   }
 
-  async function handleRename(exercise, name) {
+  async function handleRename(exercise: Exercise, name: string): Promise<void> {
     const trimmed = name.trim()
     if (!trimmed || trimmed === exercise.name) return
-    let catalogId = null
+    let catalogId: number | null = null
     const { data: existing } = await supabase.from('exercise_catalog')
       .select('id').ilike('name', trimmed).limit(1).single()
     if (existing) {
-      catalogId = existing.id
+      catalogId = (existing as { id: number }).id
     } else {
       const { data: created } = await supabase.from('exercise_catalog')
         .insert({ name: trimmed }).select('id').single()
-      if (created) catalogId = created.id
+      if (created) catalogId = (created as { id: number }).id
     }
     await supabase.from('exercises').update({ name: trimmed, catalog_id: catalogId }).eq('id', exercise.id)
     setExercises(prev => ({
@@ -507,7 +692,7 @@ export default function Traning() {
     }))
   }
 
-  async function handleDelete(exercise) {
+  async function handleDelete(exercise: Exercise): Promise<void> {
     await supabase.from('exercises').delete().eq('id', exercise.id)
     setExercises(prev => ({
       ...prev,
@@ -524,33 +709,33 @@ export default function Traning() {
         .select('id, name, muscle_group')
         .ilike('name', `%${trimmed}%`)
         .limit(8)
-      setCatalogResults(data ?? [])
-      setShowCatalogDrop((data ?? []).length > 0)
+      setCatalogResults((data as CatalogItem[]) ?? [])
+      setShowCatalogDrop(((data as CatalogItem[]) ?? []).length > 0)
     }, 200)
     return () => clearTimeout(timer)
   }, [newName, selectedCatalogId])
 
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (catalogDropRef.current && !catalogDropRef.current.contains(e.target)) setShowCatalogDrop(false)
+    function handleClickOutside(e: MouseEvent): void {
+      if (catalogDropRef.current && !catalogDropRef.current.contains(e.target as Node)) setShowCatalogDrop(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  function selectCatalogItem(item) {
+  function selectCatalogItem(item: CatalogItem): void {
     setNewName(item.name)
     setSelectedCatalogId(item.id)
     setCatalogResults([])
     setShowCatalogDrop(false)
   }
 
-  async function handleAdd() {
+  async function handleAdd(): Promise<void> {
     const trimmed = newName.trim()
     if (!trimmed) return
-    const sortOrder = (exercises[activeTab] ?? []).length
+    const sortOrder: number = (exercises[activeTab!] ?? []).length
 
-    let catalogId = selectedCatalogId
+    let catalogId: number | null = selectedCatalogId
     if (!catalogId) {
       // Check if exact name exists in catalog
       const { data: existing } = await supabase
@@ -560,14 +745,14 @@ export default function Traning() {
         .maybeSingle()
 
       if (existing) {
-        catalogId = existing.id
+        catalogId = (existing as { id: number }).id
       } else {
         const { data: inserted } = await supabase
           .from('exercise_catalog')
           .insert({ name: trimmed })
           .select()
           .single()
-        if (inserted) catalogId = inserted.id
+        if (inserted) catalogId = (inserted as { id: number }).id
       }
     }
 
@@ -575,50 +760,50 @@ export default function Traning() {
       .insert({ user_id: userId, session_id: activeTab, name: trimmed, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId ?? null })
       .select().single()
     if (error) { console.error('handleAdd error:', error); return }
-    if (data) setExercises(prev => ({ ...prev, [activeTab]: [...(prev[activeTab] ?? []), data] }))
+    if (data) setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), data as Exercise] }))
     setNewName('')
     setSelectedCatalogId(null)
     setAdding(false)
   }
 
-  async function handleCreateProgram(name) {
+  async function handleCreateProgram(name: string): Promise<void> {
     await createProgram(name)
     setCreatingProgram(false)
     setActiveTab(null)
   }
 
-  async function handleAddSession(sessionData) {
-    const data = await addSession({ ...sessionData, program_id: activeProgramId })
+  async function handleAddSession(sessionData: SessionData): Promise<void> {
+    const data = await addSession({ ...sessionData, program_id: activeProgramId! })
     if (data) setActiveTab(data.id)
     setAddingSession(false)
   }
 
-  async function handleSessionSave(id, name, day_of_week) {
+  async function handleSessionSave(id: number, name: string, day_of_week: number): Promise<void> {
     await supabase.from('training_sessions').update({ name, day_of_week }).eq('id', id)
     await loadProfile()
     setEditingSession(false)
   }
 
-  async function handleSessionDelete(id) {
+  async function handleSessionDelete(id: number): Promise<void> {
     await supabase.from('training_sessions').delete().eq('id', id)
     await loadProfile()
     setEditingSession(false)
   }
 
-  async function handleDragEnd(event) {
+  async function handleDragEnd(event: DragEndEvent): Promise<void> {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const sessionId = activeTab
+    const sessionId = activeTab!
     const items = [...(exercises[sessionId] ?? [])]
-    const oldIndex = items.findIndex(e => e.id === active.id)
-    const newIndex = items.findIndex(e => e.id === over.id)
-    const reordered = arrayMove(items, oldIndex, newIndex)
+    const oldIndex: number = items.findIndex(e => e.id === active.id)
+    const newIndex: number = items.findIndex(e => e.id === over.id)
+    const reordered: Exercise[] = arrayMove(items, oldIndex, newIndex)
 
     setExercises(prev => ({ ...prev, [sessionId]: reordered }))
 
     await Promise.all(
-      reordered.map((ex, i) =>
+      reordered.map((ex: Exercise, i: number) =>
         ex.sort_order !== i
           ? supabase.from('exercises').update({ sort_order: i }).eq('id', ex.id)
           : null
@@ -626,10 +811,10 @@ export default function Traning() {
     )
   }
 
-  const currentSession   = sessions.find(s => s.id === activeTab)
-  const currentExercises = exercises[activeTab] ?? []
+  const currentSession: TrainingSession | undefined   = sessions.find((s: TrainingSession) => s.id === activeTab)
+  const currentExercises: Exercise[] = exercises[activeTab!] ?? []
 
-  const setupStep = (!programsLoading && programs.length === 0) ? 1
+  const setupStep: number | null = (!programsLoading && programs.length === 0) ? 1
     : (!programsLoading && !sessionsLoading && programs.length > 0 && sessions.length === 0) ? 2
     : null
 
@@ -647,7 +832,7 @@ export default function Traning() {
         <>
           <Reveal>
             <div className={styles.programBar}>
-              {programs.map(p => (
+              {programs.map((p: TrainingProgram) => (
                 <span key={p.id} className={styles.programChipWrap}>
                   <button
                     className={`${styles.programChip} ${p.id === activeProgramId ? styles.programChipActive : ''}`}
@@ -676,7 +861,7 @@ export default function Traning() {
           {programs.length > 0 && (
             <Reveal>
               <div className={styles.programBar}>
-                {programs.map(p => (
+                {programs.map((p: TrainingProgram) => (
                   <span key={p.id} className={styles.programChipWrap}>
                     <button
                       className={`${styles.programChip} ${p.id === activeProgramId ? styles.programChipActive : ''}`}
@@ -706,7 +891,7 @@ export default function Traning() {
                     <Skeleton width={110} height={36} borderRadius={20} />
                   </>
                 ) : (
-                  sessions.map(s => (
+                  sessions.map((s: TrainingSession) => (
                     <button
                       key={s.id}
                       className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
@@ -741,7 +926,20 @@ export default function Traning() {
               <button className={styles.toggleSetsBtn} onClick={() => setHideSets(h => !h)} type="button">
                 {hideSets ? t('Show sets') : t('Hide sets')}
               </button>
+              <button className={styles.restBtn} onClick={restTimer ? stopRest : startRest} type="button">
+                {restTimer ? t('Stop') : t('Rest')}
+              </button>
             </div>
+
+            {restTimer !== null && (
+              <div className={styles.restTimerBar}>
+                <div className={styles.restTimerFill} style={{ width: `${(restTimer / restSeconds) * 100}%` }} />
+                <span className={styles.restTimerText}>
+                  {Math.floor(restTimer / 60)}:{String(restTimer % 60).padStart(2, '0')}
+                </span>
+              </div>
+            )}
+
             <div className={styles.exerciseList}>
               <div className={`${styles.exerciseHeader} ${hideSets ? styles.hideSets : ''}`}>
                 <span></span>
@@ -752,7 +950,7 @@ export default function Traning() {
               </div>
 
               {exercisesLoading ? (
-                [0, 1, 2, 3].map(i => (
+                [0, 1, 2, 3].map((i: number) => (
                   <div key={i} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''}`}>
                     <span><Skeleton width={16} height={16} /></span>
                     <span><Skeleton width="70%" height={14} /></span>
@@ -763,8 +961,8 @@ export default function Traning() {
                 ))
               ) : (
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={currentExercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
-                    {currentExercises.map(ex => (
+                  <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
+                    {currentExercises.map((ex: Exercise) => (
                       <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} hideSets={hideSets} />
                     ))}
                   </SortableContext>
@@ -786,7 +984,7 @@ export default function Traning() {
                       />
                       {showCatalogDrop && (
                         <div className={styles.catalogDropdown}>
-                          {catalogResults.map(item => (
+                          {catalogResults.map((item: CatalogItem) => (
                             <button key={item.id} className={styles.catalogItem} type="button" onClick={() => selectCatalogItem(item)}>
                               <span className={styles.catalogItemName}>{item.name}</span>
                               {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
@@ -839,7 +1037,7 @@ export default function Traning() {
 
       {editingProgram && activeProgramId && (
         <EditProgramModal
-          program={programs.find(p => p.id === activeProgramId)}
+          program={programs.find((p: TrainingProgram) => p.id === activeProgramId)!}
           onRename={renameProgram}
           onDelete={deleteProgram}
           onClose={() => setEditingProgram(false)}

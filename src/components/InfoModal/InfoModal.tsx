@@ -1,8 +1,13 @@
 import { useState } from 'react'
 import styles from './InfoModal.module.scss'
 
-export default function InfoModal({ title, text }) {
-  const [open, setOpen] = useState(false)
+interface InfoModalProps {
+  title: string
+  text: string
+}
+
+export default function InfoModal({ title, text }: InfoModalProps): React.JSX.Element {
+  const [open, setOpen] = useState<boolean>(false)
 
   return (
     <>

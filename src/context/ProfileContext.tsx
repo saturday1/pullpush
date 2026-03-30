@@ -1,7 +1,97 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../supabase'
 
-function calcMacros(weight, height, age) {
+interface Macros {
+  bmr: number
+  tdee: number
+  deficit: number
+  targetKcal: number
+  protein: number
+  fat: number
+  carbs: number
+  proteinPct: number
+  fatPct: number
+  carbPct: number
+}
+
+interface TrainingSession {
+  id: number
+  user_id: string
+  program_id: number
+  name: string
+  day_of_week: number
+  sort_order: number
+  [key: string]: unknown
+}
+
+interface TrainingProgram {
+  id: number
+  user_id: string
+  name: string
+  created_at: string
+  [key: string]: unknown
+}
+
+interface ProfileState {
+  loading: boolean
+  profileLoading: boolean
+  weightLoading: boolean
+  sessionsLoading: boolean
+  programsLoading: boolean
+  firstName: string | null
+  lastName: string | null
+  birthDate: string | null
+  phone: string | null
+  startWeight: number | null
+  currentWeight: number | null
+  goalWeight: number | null
+  height: number | null
+  age: number | null
+  macros: Macros | null
+  sessions: TrainingSession[]
+  programs: TrainingProgram[]
+  activeProgramId: number | null
+  restSeconds: number
+}
+
+interface ProfileUpdate {
+  goal_weight?: number | null
+  start_weight?: number | null
+  height_cm?: number | null
+  first_name?: string | null
+  last_name?: string | null
+  birth_date?: string | null
+  phone?: string | null
+  rest_seconds?: number | null
+}
+
+interface SessionInput {
+  user_id: string
+  program_id: number
+  name: string
+  day_of_week: number
+  [key: string]: unknown
+}
+
+interface SessionSaveInput {
+  day_of_week: number
+  name: string
+  [key: string]: unknown
+}
+
+interface ProfileContextValue extends ProfileState {
+  logWeight: (kg: number) => Promise<boolean>
+  updateProfile: (data: ProfileUpdate) => Promise<boolean>
+  saveSessions: (sessionsArray: SessionSaveInput[]) => Promise<void>
+  addSession: (sessionData: SessionInput) => Promise<TrainingSession | null>
+  createProgram: (name: string) => Promise<void>
+  switchProgram: (id: number) => Promise<void>
+  renameProgram: (id: number, name: string) => Promise<void>
+  deleteProgram: (id: number) => Promise<void>
+  load: () => Promise<void>
+}
+
+function calcMacros(weight: number, height: number, age: number): Macros {
   const bmr = Math.round(10 * weight + 6.25 * height - 5 * age + 5)
   const tdee = Math.round(bmr * 1.55)
   const deficit = 280
@@ -20,7 +110,7 @@ function calcMacros(weight, height, age) {
   return { bmr, tdee, deficit, targetKcal, protein, fat, carbs, proteinPct, fatPct, carbPct }
 }
 
-function calcAge(birthDate) {
+function calcAge(birthDate: string | null): number | null {
   if (!birthDate) return null
   const today = new Date()
   const birth = new Date(birthDate)
@@ -30,10 +120,14 @@ function calcAge(birthDate) {
   return age
 }
 
-const ProfileContext = createContext(null)
+const ProfileContext = createContext<ProfileContextValue | null>(null)
 
-export function ProfileProvider({ children }) {
-  const [state, setState] = useState({
+interface ProfileProviderProps {
+  children: ReactNode
+}
+
+export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.Element {
+  const [state, setState] = useState<ProfileState>({
     loading: true,
     profileLoading: true,
     weightLoading: true,
@@ -52,9 +146,10 @@ export function ProfileProvider({ children }) {
     sessions: [],
     programs: [],
     activeProgramId: null,
+    restSeconds: 90,
   })
 
-  async function load() {
+  async function load(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -71,7 +166,7 @@ export function ProfileProvider({ children }) {
     // Fire all queries in parallel, but update state as each resolves
     const profilePromise = supabase
       .from('profile')
-      .select('goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id')
+      .select('goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id, rest_seconds')
       .eq('user_id', user.id)
       .single()
 
@@ -99,12 +194,12 @@ export function ProfileProvider({ children }) {
 
     // Weight data resolves independently
     Promise.all([latestLogPromise, firstLogPromise]).then(([{ data: latestLog }, { data: firstLog }]) => {
-      const currentWeight = latestLog?.weight_kg ?? null
-      const firstLogWeight = firstLog?.weight_kg ?? null
+      const currentWeight: number | null = latestLog?.weight_kg ?? null
+      const firstLogWeight: number | null = firstLog?.weight_kg ?? null
       setState(prev => {
         // Prefer start_weight from profile, fall back to first weight_log entry
         const startWeight = prev.startWeight ?? firstLogWeight
-        const newState = { ...prev, currentWeight, startWeight, weightLoading: false }
+        const newState: ProfileState = { ...prev, currentWeight, startWeight, weightLoading: false }
         // Recalculate macros if profile data is already available
         if (!prev.profileLoading && currentWeight && prev.height && prev.age) {
           newState.macros = calcMacros(currentWeight, prev.height, prev.age)
@@ -117,7 +212,7 @@ export function ProfileProvider({ children }) {
     // Programs resolve independently
     programsPromise.then(({ data: programsData }) => {
       setState(prev => {
-        const newState = { ...prev, programs: programsData ?? [], programsLoading: false }
+        const newState: ProfileState = { ...prev, programs: programsData ?? [], programsLoading: false }
         newState.loading = !prev.profileLoading && !prev.weightLoading && !prev.sessionsLoading ? false : prev.loading
         return newState
       })
@@ -125,20 +220,21 @@ export function ProfileProvider({ children }) {
 
     // Profile + sessions: sessions depend on activeProgramId from profile
     profilePromise.then(async ({ data: profile }) => {
-      const activeProgramId = profile?.active_program_id ?? null
-      const goalWeight = profile?.goal_weight ?? null
-      const startWeight = profile?.start_weight ?? null
-      const height = profile?.height_cm ?? null
-      const firstName = profile?.first_name ?? null
-      const lastName = profile?.last_name ?? null
-      const birthDate = profile?.birth_date ?? null
-      const phone = profile?.phone ?? null
+      const activeProgramId: number | null = profile?.active_program_id ?? null
+      const goalWeight: number | null = profile?.goal_weight ?? null
+      const startWeight: number | null = profile?.start_weight ?? null
+      const height: number | null = profile?.height_cm ?? null
+      const firstName: string | null = profile?.first_name ?? null
+      const lastName: string | null = profile?.last_name ?? null
+      const birthDate: string | null = profile?.birth_date ?? null
+      const phone: string | null = profile?.phone ?? null
+      const restSeconds: number = profile?.rest_seconds ?? 90
       const age = calcAge(birthDate)
 
       setState(prev => {
-        const newState = {
+        const newState: ProfileState = {
           ...prev,
-          firstName, lastName, birthDate, phone, goalWeight, height, age, activeProgramId,
+          firstName, lastName, birthDate, phone, goalWeight, height, age, activeProgramId, restSeconds,
           startWeight: startWeight ?? prev.startWeight,
           profileLoading: false,
         }
@@ -153,11 +249,11 @@ export function ProfileProvider({ children }) {
       // Now fetch sessions based on activeProgramId
       const { data: sessionsData } = activeProgramId
         ? await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', activeProgramId).order('day_of_week')
-        : { data: [] }
+        : { data: [] as TrainingSession[] }
 
       setState(prev => {
-        const sessions = sessionsData ?? []
-        const newState = { ...prev, sessions, sessionsLoading: false }
+        const sessions: TrainingSession[] = sessionsData ?? []
+        const newState: ProfileState = { ...prev, sessions, sessionsLoading: false }
         newState.loading = !prev.profileLoading && !prev.weightLoading && !prev.programsLoading ? false : prev.loading
         return newState
       })
@@ -166,18 +262,21 @@ export function ProfileProvider({ children }) {
 
   useEffect(() => { load() }, [])
 
-  async function logWeight(kg) {
+  async function logWeight(kg: number): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
     const today = new Date().toISOString().slice(0, 10)
     const { error } = await supabase.from('weight_log').insert({ date: today, weight_kg: kg, user_id: user.id })
     if (!error) await load()
     return !error
   }
 
-  async function updateProfile({ goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone }) {
+  async function updateProfile({ goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, rest_seconds }: ProfileUpdate): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
-    const row = { user_id: user.id, goal_weight, height_cm, first_name, last_name, birth_date, phone }
+    if (!user) return false
+    const row: Record<string, unknown> = { user_id: user.id, goal_weight, height_cm, first_name, last_name, birth_date, phone }
     if (start_weight != null) row.start_weight = start_weight
+    if (rest_seconds != null) row.rest_seconds = rest_seconds
     const { error } = await supabase.from('profile').upsert(
       row,
       { onConflict: 'user_id' }
@@ -186,19 +285,20 @@ export function ProfileProvider({ children }) {
     return !error
   }
 
-  async function addSession(sessionData) {
+  async function addSession(sessionData: SessionInput): Promise<TrainingSession | null> {
     const { data } = await supabase.from('training_sessions').insert(sessionData).select().single()
     if (data) {
       setState(prev => ({
         ...prev,
-        sessions: [...prev.sessions, data].sort((a, b) => a.day_of_week - b.day_of_week),
+        sessions: [...prev.sessions, data as TrainingSession].sort((a, b) => a.day_of_week - b.day_of_week),
       }))
     }
-    return data
+    return (data as TrainingSession | null) ?? null
   }
 
-  async function createProgram(name) {
+  async function createProgram(name: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
     const { data: prog } = await supabase.from('training_programs').insert({ user_id: user.id, name }).select().single()
     if (prog) {
       await supabase.from('profile').upsert({ user_id: user.id, active_program_id: prog.id }, { onConflict: 'user_id' })
@@ -206,19 +306,21 @@ export function ProfileProvider({ children }) {
     await load()
   }
 
-  async function switchProgram(id) {
+  async function switchProgram(id: number): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
     await supabase.from('profile').upsert({ user_id: user.id, active_program_id: id }, { onConflict: 'user_id' })
     await load()
   }
 
-  async function renameProgram(id, name) {
+  async function renameProgram(id: number, name: string): Promise<void> {
     await supabase.from('training_programs').update({ name }).eq('id', id)
     await load()
   }
 
-  async function deleteProgram(id) {
+  async function deleteProgram(id: number): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
     // Switch to another program first if this is active
     const other = state.programs.find(p => p.id !== id)
     if (other) {
@@ -230,8 +332,9 @@ export function ProfileProvider({ children }) {
     await load()
   }
 
-  async function saveSessions(sessionsArray) {
+  async function saveSessions(sessionsArray: SessionSaveInput[]): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
     await supabase.from('training_sessions').delete().eq('user_id', user.id)
     if (sessionsArray.length > 0) {
       const rows = sessionsArray.map((s, i) => ({
@@ -252,6 +355,6 @@ export function ProfileProvider({ children }) {
   )
 }
 
-export function useProfile() {
+export function useProfile(): ProfileContextValue | null {
   return useContext(ProfileContext)
 }

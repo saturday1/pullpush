@@ -1,7 +1,7 @@
 .header {
   position: relative;
   padding: 56px 40px 48px;
-  background: #3b1a6e;
+  background: #2b2152;
   border-bottom: 1px solid var(--border);
   overflow: hidden;
 
@@ -34,25 +34,25 @@
 
 .blobOrange {
   @extend %blob;
-  width: 55%; height: 140%;
-  top: -20%; left: -10%;
-  background: rgb(255, 120, 50);
+  width: 50%; height: 130%;
+  top: -30%; left: -15%;
+  background: rgb(230, 130, 40);
   animation: blobA 20s ease-in-out infinite alternate;
 }
 
 .blobPink {
   @extend %blob;
-  width: 60%; height: 140%;
-  top: -15%; right: -8%;
-  background: rgb(230, 0, 150);
+  width: 70%; height: 150%;
+  top: -20%; left: 10%;
+  background: rgb(200, 0, 180);
   animation: blobB 26s ease-in-out infinite alternate;
 }
 
 .blobPurple {
   @extend %blob;
-  width: 50%; height: 130%;
-  bottom: -20%; left: 35%;
-  background: rgb(60, 10, 160);
+  width: 60%; height: 140%;
+  bottom: -25%; right: -15%;
+  background: rgb(35, 25, 80);
   animation: blobC 18s ease-in-out infinite alternate;
 }
 
@@ -94,7 +94,7 @@
 }
 
 .title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(56px, 9vw, 108px);
   font-weight: 700;
   font-style: italic;

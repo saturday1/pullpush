@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { type FormEvent, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
@@ -8,14 +8,22 @@ import { useProfile } from '../../../context/ProfileContext'
 import InfoModal from '../../InfoModal/InfoModal'
 import styles from './Vikt.module.scss'
 
-export default function Vikt() {
-  const { t } = useTranslation()
-  const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()
-  const [weightInput,   setWeightInput]   = useState('')
-  const [loggingWeight, setLoggingWeight] = useState(false)
-  const [barsVisible,   setBarsVisible]   = useState(false)
+interface MacroBar {
+  name: string
+  color: string
+  gram: string
+  pct: string
+  barWidth: string
+}
 
-  const loading = weightLoading || profileLoading
+export default function Vikt(): React.JSX.Element {
+  const { t } = useTranslation()
+  const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()!
+  const [weightInput,   setWeightInput]   = useState<string>('')
+  const [loggingWeight, setLoggingWeight] = useState<boolean>(false)
+  const [barsVisible,   setBarsVisible]   = useState<boolean>(false)
+
+  const loading: boolean = weightLoading || profileLoading
 
   useEffect(() => {
     if (!loading) {
@@ -24,9 +32,9 @@ export default function Vikt() {
     }
   }, [loading])
 
-  async function handleLogWeight(e) {
+  async function handleLogWeight(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault()
-    const kg = parseFloat(weightInput.replace(',', '.'))
+    const kg: number = parseFloat(weightInput.replace(',', '.'))
     if (isNaN(kg)) return
     setLoggingWeight(true)
     await logWeight(kg)
@@ -34,17 +42,17 @@ export default function Vikt() {
     setLoggingWeight(false)
   }
 
-  const start = startWeight ?? currentWeight ?? 0
-  const weight = currentWeight ?? start
-  const goal = goalWeight ?? 0
-  const diff = parseFloat((weight - start).toFixed(1))
-  const kvar = Math.max(0, weight - goal).toFixed(1)
-  const pct = start !== goal
+  const start: number = startWeight ?? currentWeight ?? 0
+  const weight: number = currentWeight ?? start
+  const goal: number = goalWeight ?? 0
+  const diff: number = parseFloat((weight - start).toFixed(1))
+  const kvar: string = Math.max(0, weight - goal).toFixed(1)
+  const pct: number = start !== goal
     ? Math.min(100, Math.max(0, ((start - weight) / (start - goal)) * 100))
     : 0
 
   const m = macros
-  const macroBars = m ? [
+  const macroBars: MacroBar[] = m ? [
     { name: `🥩 ${t('Protein')}`,  color: '#f97316', gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
     { name: `🍚 ${t('Carbs')}`,    color: '#60a5fa', gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
     { name: `🥑 ${t('Fat')}`,      color: '#22c55e', gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
@@ -114,7 +122,7 @@ export default function Vikt() {
 
         <div className={styles.macroCard}>
           <div className={styles.macroCardTitle}>{t('Macro split — training day')}</div>
-          {macroBars.map(({ name, color, gram, pct: macroPct, barWidth }) => (
+          {macroBars.map(({ name, color, gram, pct: macroPct, barWidth }: MacroBar) => (
             <div key={name} className={styles.macroRow}>
               <span className={styles.macroName} style={{ color }}>{name}</span>
               <div className={styles.macroBarWrap}>

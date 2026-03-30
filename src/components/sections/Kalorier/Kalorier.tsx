@@ -8,11 +8,19 @@ import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Kalorier.module.scss'
 
-export default function Kalorier() {
+interface MacroBar {
+    name: string
+    color: string
+    gram: string
+    pct: string
+    barWidth: string
+}
+
+export default function Kalorier(): React.JSX.Element {
     const { t } = useTranslation()
-    const { weightLoading, profileLoading, macros, currentWeight } = useProfile()
-    const loading = weightLoading || profileLoading
-    const [barsVisible, setBarsVisible] = useState(false)
+    const { weightLoading, profileLoading, macros, currentWeight } = useProfile()!
+    const loading: boolean = weightLoading || profileLoading
+    const [barsVisible, setBarsVisible] = useState<boolean>(false)
 
     useEffect(() => {
         if (!loading) {
@@ -23,7 +31,7 @@ export default function Kalorier() {
 
     const m = macros
 
-    const macroBars = m ? [
+    const macroBars: MacroBar[] = m ? [
         { name: `🥩 ${t('Protein')}`, color: '#f97316', gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
         { name: `🍚 ${t('Carbs')}`,   color: '#60a5fa', gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
         { name: `🥑 ${t('Fat')}`,     color: '#22c55e', gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
@@ -63,7 +71,7 @@ export default function Kalorier() {
             <Reveal>
                 <div className={styles.card}>
                     <div className={styles.cardTitle}>{t('Macro split — training day')}</div>
-                    {macroBars.map(({ name, color, gram, pct, barWidth }) => (
+                    {macroBars.map(({ name, color, gram, pct, barWidth }: MacroBar) => (
                         <div key={name} className={styles.macroRow}>
                             <span className={styles.macroName} style={{ color }}>{name}</span>
                             <div className={styles.macroBarWrap}>

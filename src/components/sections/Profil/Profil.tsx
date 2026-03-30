@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useProfile } from '../../../context/ProfileContext'
 import { supabase } from '../../../supabase'
@@ -7,25 +7,26 @@ import SectionHeader from '../../SectionHeader/SectionHeader'
 import Skeleton from '../../Skeleton/Skeleton'
 import styles from './Profil.module.scss'
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string | null): string {
     if (!dateStr) return '–'
     return new Date(dateStr).toLocaleDateString('sv-SE')
 }
 
-export default function Profil() {
+export default function Profil(): React.JSX.Element {
     const { t, i18n } = useTranslation()
-    const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, startWeight, updateProfile } = useProfile()
-    const [email, setEmail] = useState('')
+    const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, startWeight, restSeconds, updateProfile } = useProfile()!
+    const [email, setEmail] = useState<string>('')
 
-    const [editing, setEditing] = useState(false)
-    const [editFirst, setEditFirst] = useState('')
-    const [editLast, setEditLast] = useState('')
-    const [editBirth, setEditBirth] = useState('')
-    const [editPhone, setEditPhone] = useState('')
-    const [editHeight, setEditHeight] = useState('')
-    const [editGoal, setEditGoal] = useState('')
-    const [editStart, setEditStart] = useState('')
-    const [saving, setSaving] = useState(false)
+    const [editing, setEditing] = useState<boolean>(false)
+    const [editFirst, setEditFirst] = useState<string>('')
+    const [editLast, setEditLast] = useState<string>('')
+    const [editBirth, setEditBirth] = useState<string>('')
+    const [editPhone, setEditPhone] = useState<string>('')
+    const [editHeight, setEditHeight] = useState<string>('')
+    const [editGoal, setEditGoal] = useState<string>('')
+    const [editStart, setEditStart] = useState<string>('')
+    const [editRest, setEditRest] = useState<string>('')
+    const [saving, setSaving] = useState<boolean>(false)
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data: { user } }) => {
@@ -33,7 +34,7 @@ export default function Profil() {
         })
     }, [])
 
-    function startEdit() {
+    function startEdit(): void {
         setEditFirst(firstName ?? '')
         setEditLast(lastName ?? '')
         setEditBirth(birthDate ?? '')
@@ -41,10 +42,11 @@ export default function Profil() {
         setEditHeight(height?.toString() ?? '')
         setEditGoal(goalWeight?.toString() ?? '')
         setEditStart(startWeight?.toString() ?? '')
+        setEditRest(restSeconds?.toString() ?? '90')
         setEditing(true)
     }
 
-    async function handleSave(e) {
+    async function handleSave(e: FormEvent<HTMLFormElement>): Promise<void> {
         e.preventDefault()
         setSaving(true)
         await updateProfile({
@@ -55,6 +57,7 @@ export default function Profil() {
             last_name: editLast.trim(),
             birth_date: editBirth || null,
             phone: editPhone.trim() || null,
+            rest_seconds: parseInt(editRest) || 90,
         })
         setSaving(false)
         setEditing(false)
@@ -111,6 +114,12 @@ export default function Profil() {
                                     <input className={styles.fieldInput} type="number" step="0.1" value={editGoal} onChange={e => setEditGoal(e.target.value)} placeholder="kg" />
                                 </label>
                             </div>
+                            <div className={styles.fieldRow}>
+                                <label className={styles.field}>
+                                    <span className={styles.fieldLabel}>{t('Rest timer (seconds)')}</span>
+                                    <input className={styles.fieldInput} type="number" min="10" step="5" value={editRest} onChange={e => setEditRest(e.target.value)} placeholder="90" />
+                                </label>
+                            </div>
                             <div className={styles.editActions}>
                                 <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>{t('Cancel')}</button>
                                 <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? t('Saving…') : t('Save')}</button>
@@ -124,6 +133,7 @@ export default function Profil() {
                             <div className={styles.infoRow}><span>{t('Phone')}</span><span>{profileLoading ? <Skeleton width={100} height={14} /> : (phone ?? '–')}</span></div>
                             <div className={styles.infoRow}><span>{t('Start weight')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : (startWeight ? `${startWeight} kg` : '–')}</span></div>
                             <div className={styles.infoRow}><span>{t('Goal weight')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : (goalWeight ? `${goalWeight} kg` : '–')}</span></div>
+                            <div className={styles.infoRow}><span>{t('Rest timer')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${restSeconds}s`}</span></div>
                             <div className={styles.infoRow}><span>{t('Email')}</span><span>{email || '…'}</span></div>
                         </div>
                     )}

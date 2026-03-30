@@ -6,7 +6,12 @@ import { useTheme } from '../../context/ThemeContext'
 import { supabase } from '../../supabase'
 import styles from './Nav.module.scss'
 
-const links = [
+interface NavLinkItem {
+    to: string
+    label: string
+}
+
+const links: NavLinkItem[] = [
     { to: '/traning', label: 'Training' },
     { to: '/vecka',   label: 'Week' },
     { to: '/vikt',    label: 'Weight' },
@@ -15,7 +20,7 @@ const links = [
     { to: '/tips',    label: 'Tips' },
 ]
 
-function GearIcon() {
+function GearIcon(): React.ReactElement {
     return (
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
@@ -24,23 +29,25 @@ function GearIcon() {
     )
 }
 
-export default function Nav() {
+export default function Nav(): React.ReactElement {
     const { t, i18n } = useTranslation()
-    const { theme, toggle } = useTheme()
-    const [open, setOpen] = useState(false)
-    const [navHeight, setNavHeight] = useState(0)
-    const settingsRef = useRef(null)
-    const navRef = useRef(null)
-    const y = useMotionValue(0)
-    const lastScrollY = useRef(0)
-    const lastTime = useRef(performance.now())
-    const isAnimating = useRef(false)
-    const hasSnappedIn = useRef(false)
+    const themeCtx = useTheme()
+    const theme = themeCtx?.theme ?? 'light'
+    const toggle = themeCtx?.toggle ?? (() => {})
+    const [open, setOpen] = useState<boolean>(false)
+    const [navHeight, setNavHeight] = useState<number>(0)
+    const settingsRef = useRef<HTMLDivElement | null>(null)
+    const navRef = useRef<HTMLElement | null>(null)
+    const y = useMotionValue<number>(0)
+    const lastScrollY = useRef<number>(0)
+    const lastTime = useRef<number>(performance.now())
+    const isAnimating = useRef<boolean>(false)
+    const hasSnappedIn = useRef<boolean>(false)
 
-    useEffect(() => {
+    useEffect((): (() => void) | undefined => {
         if (!navRef.current) return
-        const ro = new ResizeObserver(() => {
-            const h = navRef.current?.getBoundingClientRect().height ?? 0
+        const ro = new ResizeObserver((): void => {
+            const h: number = navRef.current?.getBoundingClientRect().height ?? 0
             if (h > 0) {
                 setNavHeight(h)
                 document.documentElement.style.setProperty('--topbar-height', `${h}px`)
@@ -50,30 +57,30 @@ export default function Nav() {
         return () => ro.disconnect()
     }, [])
 
-    useEffect(() => {
+    useEffect((): (() => void) | undefined => {
         if (!navHeight) return
 
-        const SNAP_BACK_TRIGGER = 80
+        const SNAP_BACK_TRIGGER: number = 80
 
-        function onScroll() {
-            const currentY = window.scrollY
-            const delta = currentY - lastScrollY.current
-            const now = performance.now()
-            const timeDelta = now - lastTime.current
-            const velocity = timeDelta > 0 ? delta / timeDelta : 0
+        function onScroll(): void {
+            const currentY: number = window.scrollY
+            const delta: number = currentY - lastScrollY.current
+            const now: number = performance.now()
+            const timeDelta: number = now - lastTime.current
+            const velocity: number = timeDelta > 0 ? delta / timeDelta : 0
 
             lastScrollY.current = currentY
             lastTime.current = now
 
             if (isAnimating.current) return
 
-            const currentNavY = y.get()
+            const currentNavY: number = y.get()
 
             // Near top + scrolling up → snap back
             if (delta < 0 && currentY <= SNAP_BACK_TRIGGER && currentNavY < 0 && !hasSnappedIn.current) {
                 isAnimating.current = true
                 hasSnappedIn.current = true
-                animate(y, 0, { duration: 0.2, type: 'tween' }).then(() => { isAnimating.current = false })
+                animate(y, 0, { duration: 0.2, type: 'tween' }).then((): void => { isAnimating.current = false })
                 return
             }
 
@@ -94,7 +101,7 @@ export default function Nav() {
             if (velocity < -0.8 && currentNavY < 0 && !hasSnappedIn.current) {
                 isAnimating.current = true
                 hasSnappedIn.current = true
-                animate(y, 0, { duration: 0.2, type: 'tween' }).then(() => { isAnimating.current = false })
+                animate(y, 0, { duration: 0.2, type: 'tween' }).then((): void => { isAnimating.current = false })
                 return
             }
 
@@ -108,10 +115,10 @@ export default function Nav() {
         return () => window.removeEventListener('scroll', onScroll)
     }, [navHeight, y])
 
-    useEffect(() => {
+    useEffect((): (() => void) | undefined => {
         if (!open) return
-        function handleClickOutside(e) {
-            if (settingsRef.current && !settingsRef.current.contains(e.target)) setOpen(false)
+        function handleClickOutside(e: MouseEvent): void {
+            if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setOpen(false)
         }
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -133,11 +140,11 @@ export default function Nav() {
             <motion.div style={{ y }}>
                 <nav ref={navRef} className={styles.nav}>
                     <div className={styles.navLinks}>
-                        {links.map(({ to, label }) => (
+                        {links.map(({ to, label }: NavLinkItem) => (
                             <NavLink
                                 key={to}
                                 to={to}
-                                className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}
+                                className={({ isActive }: { isActive: boolean }): string => `${styles.link} ${isActive ? styles.active : ''}`}
                             >
                                 {t(label)}
                             </NavLink>
@@ -145,7 +152,7 @@ export default function Nav() {
                     </div>
 
                     <div className={styles.settingsWrap} ref={settingsRef}>
-                        <button className={styles.settingsBtn} onClick={() => setOpen(o => !o)} title={t('Settings')}>
+                        <button className={styles.settingsBtn} onClick={(): void => setOpen((o: boolean): boolean => !o)} title={t('Settings')}>
                             <GearIcon />
                         </button>
 
@@ -156,13 +163,13 @@ export default function Nav() {
                                     <div className={styles.settingsRow}>
                                         <button
                                             className={`${styles.settingsOption} ${i18n.language === 'sv' ? styles.settingsOptionActive : ''}`}
-                                            onClick={() => i18n.changeLanguage('sv')}
+                                            onClick={(): void => { i18n.changeLanguage('sv') }}
                                         >
                                             <span className={styles.langCode}>SE</span> Svenska
                                         </button>
                                         <button
                                             className={`${styles.settingsOption} ${i18n.language === 'en' ? styles.settingsOptionActive : ''}`}
-                                            onClick={() => i18n.changeLanguage('en')}
+                                            onClick={(): void => { i18n.changeLanguage('en') }}
                                         >
                                             <span className={styles.langCode}>EN</span> English
                                         </button>
@@ -176,13 +183,13 @@ export default function Nav() {
                                     <div className={styles.settingsRow}>
                                         <button
                                             className={`${styles.settingsOption} ${theme === 'light' ? styles.settingsOptionActive : ''}`}
-                                            onClick={() => theme === 'dark' && toggle()}
+                                            onClick={(): void => { theme === 'dark' && toggle() }}
                                         >
                                             ☀️ {t('Light')}
                                         </button>
                                         <button
                                             className={`${styles.settingsOption} ${theme === 'dark' ? styles.settingsOptionActive : ''}`}
-                                            onClick={() => theme === 'light' && toggle()}
+                                            onClick={(): void => { theme === 'light' && toggle() }}
                                         >
                                             🌙 {t('Dark')}
                                         </button>
@@ -192,7 +199,7 @@ export default function Nav() {
                         )}
                     </div>
 
-                    <button className={styles.logout} onClick={() => supabase.auth.signOut()}>
+                    <button className={styles.logout} onClick={(): void => { supabase.auth.signOut() }}>
                         {t('Log out')}
                     </button>
                 </nav>

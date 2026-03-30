@@ -2,14 +2,18 @@ import { useTranslation } from 'react-i18next'
 import { useProfile } from '../../context/ProfileContext'
 import styles from './PageHeader.module.scss'
 
-export default function PageHeader() {
+export default function PageHeader(): React.ReactElement {
   const { t } = useTranslation()
-  const { loading, firstName, startWeight, currentWeight } = useProfile()
+  const profile = useProfile()
+  const loading = profile?.loading ?? true
+  const firstName = profile?.firstName ?? null
+  const startWeight = profile?.startWeight ?? null
+  const currentWeight = profile?.currentWeight ?? null
 
-  const rawDiff = !loading && startWeight != null && currentWeight != null
+  const rawDiff: number | null = !loading && startWeight != null && currentWeight != null
     ? parseFloat((currentWeight - startWeight).toFixed(1))
     : null
-  const diff = rawDiff !== null && rawDiff !== 0 ? rawDiff : null
+  const diff: number | null = rawDiff !== null && rawDiff !== 0 ? rawDiff : null
 
   return (
     <header className={styles.header}>

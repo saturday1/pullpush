@@ -6,7 +6,14 @@ import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
 import { useProfile } from '../../../context/ProfileContext'
 import styles from './Tips.module.scss'
 
-const generalTipKeys = [
+type GoalType = 'bulk' | 'cut' | 'maintain'
+
+interface PeriodiseringBox {
+  title: string
+  text: string
+}
+
+const generalTipKeys: string[] = [
   'Recovery takes longer. <strong>7–9 hours of sleep</strong> is just as important as training.',
   '<strong>5–10 min light cardio</strong> + dynamic stretching before the session. Always warm up properly.',
   '<strong>Technique over weight.</strong> Risk of injury increases with age, and injuries halt all progress.',
@@ -16,7 +23,7 @@ const generalTipKeys = [
   'Photos and how your clothes fit are <strong>better metrics</strong> than just the number on the scale.',
 ]
 
-const goalTips = {
+const goalTips: Record<GoalType, string[]> = {
   bulk: [
     'Eat <strong>250–500 kcal above TDEE</strong> — enough surplus for muscle growth without excessive fat gain.',
     'Keep protein at <strong>1.6–2.2 g/kg</strong> even in a bulk — muscles need building blocks to grow.',
@@ -37,44 +44,44 @@ const goalTips = {
   ],
 }
 
-const GOALS = ['bulk', 'cut', 'maintain']
+const GOALS: GoalType[] = ['bulk', 'cut', 'maintain']
 
-export default function Tips() {
+export default function Tips(): React.JSX.Element {
   const { t } = useTranslation()
-  const { currentWeight, goalWeight } = useProfile()
+  const { currentWeight, goalWeight } = useProfile()!
 
-  const [goal, setGoal] = useState(() => localStorage.getItem('tips_goal') ?? null)
-  const [displayGoal, setDisplayGoal] = useState(() => localStorage.getItem('tips_goal') ?? 'cut')
-  const [tipsFading, setTipsFading] = useState(false)
+  const [goal, setGoal] = useState<GoalType | null>(() => (localStorage.getItem('tips_goal') as GoalType | null) ?? null)
+  const [displayGoal, setDisplayGoal] = useState<GoalType>(() => (localStorage.getItem('tips_goal') as GoalType | null) ?? 'cut')
+  const [tipsFading, setTipsFading] = useState<boolean>(false)
 
   // Auto-detect goal from profile data if user hasn't chosen manually
   useEffect(() => {
     if (localStorage.getItem('tips_goal')) return
     if (!currentWeight || !goalWeight) return
-    const detected = currentWeight > goalWeight + 1 ? 'cut' : goalWeight > currentWeight + 1 ? 'bulk' : 'maintain'
+    const detected: GoalType = currentWeight > goalWeight + 1 ? 'cut' : goalWeight > currentWeight + 1 ? 'bulk' : 'maintain'
     setGoal(detected)
     setDisplayGoal(detected)
   }, [currentWeight, goalWeight])
 
-  // Fade out → swap content → fade in
+  // Fade out -> swap content -> fade in
   useEffect(() => {
     if (!goal || goal === displayGoal) return
     setTipsFading(true)
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setDisplayGoal(goal)
       setTipsFading(false)
     }, 180)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [goal])
 
-  const activeGoal = displayGoal
+  const activeGoal: GoalType = displayGoal
 
-  function selectGoal(g) {
+  function selectGoal(g: GoalType): void {
     setGoal(g)
     localStorage.setItem('tips_goal', g)
   }
 
-  const periodiseringBoxes = [
+  const periodiseringBoxes: PeriodiseringBox[] = [
     { title: t('Progressive overload'), text: t('If you can do more reps than the upper range with good form → increase the weight next time. Add 1.25–2.5 kg for upper body, 2.5–5 kg for legs. Always log your weights.') },
     { title: t('Exercise rotation'),    text: t('Swap 1–2 exercises per session every 6–8 weeks. Keep the core lifts (bench, lat pulldown, leg press). Don\'t swap because it\'s "boring" — progression is the result.') },
     { title: t('Free weights'),         text: t('Add free weights (dumbbell press, deadlift) after 3–4 months when technique is solid. Activates more stabilizer muscles.') },
@@ -87,7 +94,7 @@ export default function Tips() {
       {/* Goal selector */}
       <Reveal>
         <div className={styles.goalBar}>
-          {GOALS.map(g => (
+          {GOALS.map((g: GoalType) => (
             <button
               key={g}
               className={[styles.goalChip, activeGoal === g ? styles.goalChipActive : ''].filter(Boolean).join(' ')}
@@ -105,7 +112,7 @@ export default function Tips() {
           {t('Personalized for')} <strong>{t(`goal_${activeGoal}`)}</strong>
         </div>
         <ul className={[styles.tipsList, styles.tipsListGoal, tipsFading ? styles.goalFading : ''].filter(Boolean).join(' ')}>
-          {goalTips[activeGoal].map(key => (
+          {goalTips[activeGoal].map((key: string) => (
             <li key={key} dangerouslySetInnerHTML={{ __html: t(key) }} />
           ))}
         </ul>
@@ -115,7 +122,7 @@ export default function Tips() {
       <Reveal>
         <div className={styles.generalTipsLabel}>{t('General tips')}</div>
         <ul className={styles.tipsList}>
-          {generalTipKeys.map(key => (
+          {generalTipKeys.map((key: string) => (
             <li key={key} dangerouslySetInnerHTML={{ __html: t(key) }} />
           ))}
         </ul>
@@ -123,7 +130,7 @@ export default function Tips() {
 
       <Reveal>
         <div className={styles.infoGrid}>
-          {periodiseringBoxes.map(({ title, text }) => (
+          {periodiseringBoxes.map(({ title, text }: PeriodiseringBox) => (
             <div key={title} className={styles.infoBox}>
               <h4>{title}</h4>
               <p>{text}</p>
