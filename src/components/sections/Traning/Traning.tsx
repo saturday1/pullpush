@@ -49,7 +49,7 @@ interface TrainingSession {
 }
 
 interface TrainingProgram {
-  id: number
+  id: string
   name: string
   user_id: string
   created_at: string
@@ -352,8 +352,8 @@ function EditSessionModal({ session, onSave, onDelete, onClose }: EditSessionMod
 
 interface EditProgramModalProps {
   program: TrainingProgram
-  onRename: (id: number, name: string) => Promise<void>
-  onDelete: (id: number) => Promise<void>
+  onRename: (id: string, name: string) => Promise<void>
+  onDelete: (id: string) => Promise<void>
   onClose: () => void
 }
 
@@ -554,6 +554,8 @@ export default function Traning(): React.JSX.Element {
   const [logs,             setLogs]             = useState<Record<number, ExerciseLog>>({})
   const [exercisesLoading, setExercisesLoading] = useState<boolean>(true)
   const [hideSets,         setHideSets]         = useState<boolean>(false)
+  const [programDropOpen,  setProgramDropOpen]  = useState<boolean>(false)
+  const programDropRef = useRef<HTMLDivElement | null>(null)
   const [restTimer,        setRestTimer]        = useState<number | null>(null)
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const restEndTimeRef = useRef<number | null>(null)
@@ -572,6 +574,15 @@ export default function Traning(): React.JSX.Element {
   const [editingProgram,   setEditingProgram]   = useState<boolean>(false)
 
   useEffect(() => { loadAll() }, [])
+
+  useEffect(() => {
+    if (!programDropOpen) return
+    function handleClick(e: MouseEvent) {
+      if (programDropRef.current && !programDropRef.current.contains(e.target as Node)) setProgramDropOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [programDropOpen])
 
   useEffect(() => {
     return () => { if (restIntervalRef.current) clearInterval(restIntervalRef.current) }
@@ -832,22 +843,11 @@ export default function Traning(): React.JSX.Element {
         <>
           <Reveal>
             <div className={styles.programBar}>
-              {programs.map((p: TrainingProgram) => (
-                <span key={p.id} className={styles.programChipWrap}>
-                  <button
-                    className={`${styles.programChip} ${p.id === activeProgramId ? styles.programChipActive : ''}`}
-                    onClick={() => { switchProgram(p.id); setAdding(false) }}
-                  >
-                    {p.name}
-                  </button>
-                  {p.id === activeProgramId && (
-                    <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
-                  )}
-                </span>
-              ))}
-              <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>
-                {t('+ New program')}
-              </button>
+              <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
+                {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+              </select>
+              <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
+              <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>
             </div>
           </Reveal>
           <Reveal>
@@ -861,22 +861,11 @@ export default function Traning(): React.JSX.Element {
           {programs.length > 0 && (
             <Reveal>
               <div className={styles.programBar}>
-                {programs.map((p: TrainingProgram) => (
-                  <span key={p.id} className={styles.programChipWrap}>
-                    <button
-                      className={`${styles.programChip} ${p.id === activeProgramId ? styles.programChipActive : ''}`}
-                      onClick={() => { switchProgram(p.id); setAdding(false) }}
-                    >
-                      {p.name}
-                    </button>
-                    {p.id === activeProgramId && (
-                      <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
-                    )}
-                  </span>
-                ))}
-                <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>
-                  {t('+ New program')}
-                </button>
+                <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
+                  {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                </select>
+                <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
+                <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>
               </div>
             </Reveal>
           )}

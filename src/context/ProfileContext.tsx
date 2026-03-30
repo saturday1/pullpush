@@ -25,7 +25,7 @@ interface TrainingSession {
 }
 
 interface TrainingProgram {
-  id: number
+  id: string
   user_id: string
   name: string
   created_at: string
@@ -50,7 +50,7 @@ interface ProfileState {
   macros: Macros | null
   sessions: TrainingSession[]
   programs: TrainingProgram[]
-  activeProgramId: number | null
+  activeProgramId: string | null
   restSeconds: number
 }
 
@@ -67,7 +67,7 @@ interface ProfileUpdate {
 
 interface SessionInput {
   user_id: string
-  program_id: number
+  program_id: string
   name: string
   day_of_week: number
   [key: string]: unknown
@@ -85,9 +85,9 @@ interface ProfileContextValue extends ProfileState {
   saveSessions: (sessionsArray: SessionSaveInput[]) => Promise<void>
   addSession: (sessionData: SessionInput) => Promise<TrainingSession | null>
   createProgram: (name: string) => Promise<void>
-  switchProgram: (id: number) => Promise<void>
-  renameProgram: (id: number, name: string) => Promise<void>
-  deleteProgram: (id: number) => Promise<void>
+  switchProgram: (id: string) => Promise<void>
+  renameProgram: (id: string, name: string) => Promise<void>
+  deleteProgram: (id: string) => Promise<void>
   load: () => Promise<void>
 }
 
@@ -220,7 +220,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
 
     // Profile + sessions: sessions depend on activeProgramId from profile
     profilePromise.then(async ({ data: profile }) => {
-      const activeProgramId: number | null = profile?.active_program_id ?? null
+      const activeProgramId: string | null = profile?.active_program_id ?? null
       const goalWeight: number | null = profile?.goal_weight ?? null
       const startWeight: number | null = profile?.start_weight ?? null
       const height: number | null = profile?.height_cm ?? null
@@ -246,14 +246,24 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
         return newState
       })
 
+      // If no active program, try to use the first available one
+      let resolvedProgramId = activeProgramId
+      if (!resolvedProgramId) {
+        const { data: progs } = await supabase.from('training_programs').select('id').eq('user_id', user.id).order('created_at').limit(1)
+        if (progs?.[0]) {
+          resolvedProgramId = progs[0].id
+          await supabase.from('profile').upsert({ user_id: user.id, active_program_id: resolvedProgramId }, { onConflict: 'user_id' })
+        }
+      }
+
       // Now fetch sessions based on activeProgramId
-      const { data: sessionsData } = activeProgramId
-        ? await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', activeProgramId).order('day_of_week')
+      const { data: sessionsData } = resolvedProgramId
+        ? await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', resolvedProgramId).order('day_of_week')
         : { data: [] as TrainingSession[] }
 
       setState(prev => {
         const sessions: TrainingSession[] = sessionsData ?? []
-        const newState: ProfileState = { ...prev, sessions, sessionsLoading: false }
+        const newState: ProfileState = { ...prev, sessions, sessionsLoading: false, activeProgramId: resolvedProgramId ?? prev.activeProgramId }
         newState.loading = !prev.profileLoading && !prev.weightLoading && !prev.programsLoading ? false : prev.loading
         return newState
       })
@@ -306,19 +316,21 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     await load()
   }
 
-  async function switchProgram(id: number): Promise<void> {
+  async function switchProgram(id: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    setState(prev => ({ ...prev, activeProgramId: id, sessions: [], sessionsLoading: true }))
     await supabase.from('profile').upsert({ user_id: user.id, active_program_id: id }, { onConflict: 'user_id' })
-    await load()
+    const { data: sessionsData } = await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', id).order('day_of_week')
+    setState(prev => ({ ...prev, sessions: (sessionsData ?? []) as TrainingSession[], sessionsLoading: false }))
   }
 
-  async function renameProgram(id: number, name: string): Promise<void> {
+  async function renameProgram(id: string, name: string): Promise<void> {
     await supabase.from('training_programs').update({ name }).eq('id', id)
     await load()
   }
 
-  async function deleteProgram(id: number): Promise<void> {
+  async function deleteProgram(id: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     // Switch to another program first if this is active

@@ -63,17 +63,41 @@
   border-color: transparent;
 }
 
-.addProgramBtn {
+.programBar {
+  position: relative;
+}
+
+.programDropdown {
   font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  padding: 7px 14px;
+  padding: 9px 34px 9px 14px;
   border-radius: 20px;
-  border: 1px dashed var(--border);
-  background: none;
-  color: var(--muted);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
   cursor: pointer;
-  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236e6760' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  transition: border-color 0.15s;
+
+  &:focus { outline: none; border-color: var(--accent); }
+  &:hover { border-color: var(--text); }
+}
+
+.addProgramBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s;
 
   &:hover { color: var(--accent); border-color: var(--accent); }
 }

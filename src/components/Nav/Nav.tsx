@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, useMotionValue, animate } from 'framer-motion'
-import { useTheme } from '../../context/ThemeContext'
-import { supabase } from '../../supabase'
 import styles from './Nav.module.scss'
 
 interface NavLinkItem {
@@ -13,11 +11,9 @@ interface NavLinkItem {
 
 const links: NavLinkItem[] = [
     { to: '/traning', label: 'Training' },
-    { to: '/vecka',   label: 'Week' },
+    // { to: '/vecka',   label: 'Week' },
     { to: '/vikt',    label: 'Weight' },
     { to: '/mat',     label: 'Food' },
-    { to: '/profil',  label: 'Profile' },
-    { to: '/tips',    label: 'Tips' },
 ]
 
 function GearIcon(): React.ReactElement {
@@ -30,13 +26,8 @@ function GearIcon(): React.ReactElement {
 }
 
 export default function Nav(): React.ReactElement {
-    const { t, i18n } = useTranslation()
-    const themeCtx = useTheme()
-    const theme = themeCtx?.theme ?? 'light'
-    const toggle = themeCtx?.toggle ?? (() => {})
-    const [open, setOpen] = useState<boolean>(false)
+    const { t } = useTranslation()
     const [navHeight, setNavHeight] = useState<number>(0)
-    const settingsRef = useRef<HTMLDivElement | null>(null)
     const navRef = useRef<HTMLElement | null>(null)
     const y = useMotionValue<number>(0)
     const lastScrollY = useRef<number>(0)
@@ -115,15 +106,6 @@ export default function Nav(): React.ReactElement {
         return () => window.removeEventListener('scroll', onScroll)
     }, [navHeight, y])
 
-    useEffect((): (() => void) | undefined => {
-        if (!open) return
-        function handleClickOutside(e: MouseEvent): void {
-            if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setOpen(false)
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [open])
-
     return (
         <>
         {/* Layer 1: Fixed shadow over safe-area */}
@@ -151,57 +133,13 @@ export default function Nav(): React.ReactElement {
                         ))}
                     </div>
 
-                    <div className={styles.settingsWrap} ref={settingsRef}>
-                        <button className={styles.settingsBtn} onClick={(): void => setOpen((o: boolean): boolean => !o)} title={t('Settings')}>
-                            <GearIcon />
-                        </button>
-
-                        {open && (
-                            <div className={styles.settingsPopup}>
-                                <div className={styles.settingsSection}>
-                                    <div className={styles.settingsSectionLabel}>{t('Language')}</div>
-                                    <div className={styles.settingsRow}>
-                                        <button
-                                            className={`${styles.settingsOption} ${i18n.language === 'sv' ? styles.settingsOptionActive : ''}`}
-                                            onClick={(): void => { i18n.changeLanguage('sv') }}
-                                        >
-                                            <span className={styles.langCode}>SE</span> Svenska
-                                        </button>
-                                        <button
-                                            className={`${styles.settingsOption} ${i18n.language === 'en' ? styles.settingsOptionActive : ''}`}
-                                            onClick={(): void => { i18n.changeLanguage('en') }}
-                                        >
-                                            <span className={styles.langCode}>EN</span> English
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className={styles.settingsDivider} />
-
-                                <div className={styles.settingsSection}>
-                                    <div className={styles.settingsSectionLabel}>{t('Theme')}</div>
-                                    <div className={styles.settingsRow}>
-                                        <button
-                                            className={`${styles.settingsOption} ${theme === 'light' ? styles.settingsOptionActive : ''}`}
-                                            onClick={(): void => { theme === 'dark' && toggle() }}
-                                        >
-                                            ☀️ {t('Light')}
-                                        </button>
-                                        <button
-                                            className={`${styles.settingsOption} ${theme === 'dark' ? styles.settingsOptionActive : ''}`}
-                                            onClick={(): void => { theme === 'light' && toggle() }}
-                                        >
-                                            🌙 {t('Dark')}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <button className={styles.logout} onClick={(): void => { supabase.auth.signOut() }}>
-                        {t('Log out')}
-                    </button>
+                    <NavLink
+                        to="/settings"
+                        className={({ isActive }: { isActive: boolean }): string => `${styles.settingsBtn} ${isActive ? styles.active : ''}`}
+                        title={t('Settings')}
+                    >
+                        <GearIcon />
+                    </NavLink>
                 </nav>
             </motion.div>
         </div>

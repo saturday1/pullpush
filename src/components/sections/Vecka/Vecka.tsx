@@ -17,7 +17,7 @@ interface TrainingSession {
 }
 
 interface TrainingProgram {
-  id: number
+  id: string
   name: string
   user_id: string
   created_at: string
@@ -59,7 +59,7 @@ export default function Vecka(): React.JSX.Element {
     if (idx >= 0) setDisplayIndex(idx)
   }, [activeProgramId, programs])
 
-  const effectiveProgramId: number | null = programs[displayIndex]?.id ?? activeProgramId
+  const effectiveProgramId: string | null = programs[displayIndex]?.id ?? activeProgramId
 
   // Fetch sessions for the displayed program
   useEffect(() => {

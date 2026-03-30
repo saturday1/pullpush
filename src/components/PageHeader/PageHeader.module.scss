@@ -1,25 +1,13 @@
 .header {
   position: relative;
-  padding: 56px 40px 48px;
+  padding: 20px 40px 18px;
   background: #2b2152;
   border-bottom: 1px solid var(--border);
   overflow: hidden;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--gradient-h);
-    background-size: 200% 100%;
-    animation: gradientShift 4s ease infinite;
-    z-index: 1;
-  }
-
   @media (max-width: 768px) {
-    padding: 44px 20px 36px;
+    padding: 16px 20px 14px;
   }
-
 }
 
 // ── Blobs ───────────────────────────────────────────────────
@@ -27,31 +15,31 @@
 %blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(52px);
+  filter: blur(40px);
   pointer-events: none;
   z-index: 0;
 }
 
 .blobOrange {
   @extend %blob;
-  width: 50%; height: 130%;
-  top: -30%; left: -15%;
+  width: 40%; height: 200%;
+  top: -60%; left: -10%;
   background: rgb(230, 130, 40);
   animation: blobA 20s ease-in-out infinite alternate;
 }
 
 .blobPink {
   @extend %blob;
-  width: 70%; height: 150%;
-  top: -20%; left: 10%;
+  width: 60%; height: 250%;
+  top: -80%; left: 15%;
   background: rgb(200, 0, 180);
   animation: blobB 26s ease-in-out infinite alternate;
 }
 
 .blobPurple {
   @extend %blob;
-  width: 60%; height: 140%;
-  bottom: -25%; right: -15%;
+  width: 50%; height: 220%;
+  bottom: -80%; right: -10%;
   background: rgb(35, 25, 80);
   animation: blobC 18s ease-in-out infinite alternate;
 }
@@ -74,64 +62,36 @@
 
 // ── Content ─────────────────────────────────────────────────
 
-.tag,
-.title,
-.subtitle,
-.weightStat {
+.content {
   position: relative;
   z-index: 1;
-}
-
-.tag {
-  display: inline-block;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .title {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(56px, 9vw, 108px);
+  font-size: clamp(28px, 5vw, 42px);
   font-weight: 700;
   font-style: italic;
-  line-height: 0.92;
-  letter-spacing: 1px;
+  line-height: 1;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   color: #fff;
-  margin-bottom: 10px;
+  margin: 0;
 
   span {
     color: #fff;
     -webkit-text-fill-color: #fff;
-    padding-right: 0.3em;
   }
 }
 
 .subtitle {
   font-family: 'DM Sans', sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 20px;
-  letter-spacing: 0.5px;
-}
-
-.weightStat {
-  display: inline-flex;
-  align-items: center;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  color: var(--text);
+  color: #fff;
+  letter-spacing: 0.3px;
+  margin: 0;
 }

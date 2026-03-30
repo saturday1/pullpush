@@ -8,11 +8,10 @@ import Login from './components/Login/Login'
 import ProfileSetupModal from './components/ProfileSetupModal/ProfileSetupModal'
 import PageHeader from './components/PageHeader/PageHeader'
 import Nav from './components/Nav/Nav'
-import Profil from './components/sections/Profil/Profil'
+import Settings from './components/sections/Settings/Settings'
 import Mat from './components/sections/Mat/Mat'
 import Traning from './components/sections/Traning/Traning'
 import Vecka from './components/sections/Vecka/Vecka'
-import Tips from './components/sections/Tips/Tips'
 import Vikt from './components/sections/Vikt/Vikt'
 import styles from './App.module.scss'
 
@@ -40,11 +39,10 @@ export default function App(): React.ReactElement | null {
         <main className={styles.main}>
           <Routes>
             <Route path="/" element={<Navigate to="/traning" replace />} />
-            <Route path="/profil"  element={<Profil />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/mat"     element={<Mat />} />
             <Route path="/traning" element={<Traning />} />
             <Route path="/vecka"   element={<Vecka />} />
-            <Route path="/tips"    element={<Tips />} />
             <Route path="/vikt"    element={<Vikt />} />
           </Routes>
         </main>
