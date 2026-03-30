@@ -5,6 +5,5 @@ dist/
 .DS_Store
 yarn.lock
 .yarn/
-package-lock.json
 ios/
 android/
