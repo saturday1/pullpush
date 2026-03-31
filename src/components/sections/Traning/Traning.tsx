@@ -725,6 +725,20 @@ export default function Traning(): React.JSX.Element {
     const label = `${reps} × ${ex.name} + ${t('Rest').toLowerCase()}`
     if (RestTimer) RestTimer.start({ seconds: totalTime, label }).catch(() => {})
 
+    // Schedule notification when set cycle ends
+    try {
+      await LocalNotifications.requestPermissions()
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: 2,
+          title: `Set ${currentSet}/${sets} ${t('Done').toLowerCase()}`,
+          body: ex.name,
+          schedule: { at: new Date(Date.now() + totalTime * 1000) },
+          sound: 'default',
+        }],
+      })
+    } catch {}
+
     runTimerStep(plan, 0, ex.id, currentSet, sets, log?.kg ?? null, reps, wId)
   }
 
@@ -863,6 +877,7 @@ export default function Traning(): React.JSX.Element {
     setPaused(false)
     pausedPlanRef.current = null
     try { RestTimer?.stop() } catch {}
+    try { LocalNotifications.cancel({ notifications: [{ id: 2 }] }) } catch {}
   }
 
   async function finishWorkout(save: boolean): Promise<void> {
