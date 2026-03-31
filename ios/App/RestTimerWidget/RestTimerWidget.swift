@@ -8,26 +8,40 @@ import SwiftUI
 struct RestTimerLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RestTimerAttributes.self) { context in
+            let startTime = context.state.endTime.addingTimeInterval(-Double(context.attributes.totalSeconds))
+
             // Lock screen banner
-            HStack(spacing: 16) {
-                Image(systemName: "timer")
-                    .font(.title2)
-                    .foregroundColor(.orange)
+            VStack(spacing: 10) {
+                HStack(spacing: 16) {
+                    Image("PullPushLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 32, height: 32)
 
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(NSLocalizedString("rest_label", bundle: .main, comment: ""))
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(NSLocalizedString("rest_label", bundle: .main, comment: ""))
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.secondary)
 
-                    Text(timerInterval: Date()...context.state.endTime, countsDown: true)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundColor(.primary)
+                        Text(timerInterval: Date()...context.state.endTime, countsDown: true)
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.primary)
+                    }
+
+                    Spacer()
                 }
 
-                Spacer()
+                ProgressView(timerInterval: startTime...context.state.endTime, countsDown: true) {
+                    EmptyView()
+                } currentValueLabel: {
+                    EmptyView()
+                }
+                .progressViewStyle(.linear)
+                .tint(.white)
+                .scaleEffect(y: 1.5)
+                .clipShape(Capsule())
             }
             .padding()
             .background(Color(UIColor.systemBackground))
@@ -36,8 +50,10 @@ struct RestTimerLiveActivity: Widget {
             DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
                     HStack(spacing: 12) {
-                        Image(systemName: "timer")
-                            .foregroundColor(.orange)
+                        Image("PullPushLogo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
                         Text(NSLocalizedString("rest_label", bundle: .main, comment: ""))
                             .font(.caption)
                             .fontWeight(.bold)
@@ -47,8 +63,10 @@ struct RestTimerLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                Image(systemName: "timer")
-                    .foregroundColor(.orange)
+                Image("PullPushLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
             } compactTrailing: {
                 Text(timerInterval: Date()...context.state.endTime, countsDown: true)
                     .font(.system(.body, design: .rounded))
@@ -56,8 +74,10 @@ struct RestTimerLiveActivity: Widget {
                     .monospacedDigit()
                     .frame(minWidth: 36)
             } minimal: {
-                Image(systemName: "timer")
-                    .foregroundColor(.orange)
+                Image("PullPushLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
             }
         }
     }

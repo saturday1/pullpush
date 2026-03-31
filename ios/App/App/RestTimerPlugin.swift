@@ -44,6 +44,12 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin {
                     content: .init(state: state, staleDate: endTime),
                     pushType: nil
                 )
+                // Auto-dismiss when timer reaches 0
+                Task {
+                    try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                    print("🟢 Live Activity auto-dismissed")
+                }
                 print("🟢 Live Activity started: \(activity.id)")
                 call.resolve(["id": activity.id])
             } catch {
