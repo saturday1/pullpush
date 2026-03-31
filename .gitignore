@@ -5,5 +5,8 @@ dist/
 .DS_Store
 yarn.lock
 .yarn/
-ios/
 android/
+ios/App/App/public/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate
