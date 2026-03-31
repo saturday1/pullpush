@@ -1409,24 +1409,29 @@ export default function Traning(): React.JSX.Element {
       {countdownOverlay !== null && timerExercise && !paused && (
         <div className={styles.countdownOverlay} onClick={pauseCountdown}>
           <div className={styles.countdownInner}>
-            <div className={styles.countdownMeta}>{t('Get ready')}</div>
-            <div className={styles.countdownMeta}>Set {timerSet}/{timerSetsTotal}</div>
-            <div className={styles.countdownLabel}>{timerExercise.name}</div>
-            <div className={styles.countdownMeta}>{timerExLog?.reps ?? 10} {t('reps')}</div>
+            <div className={styles.countdownSetLabel}>SET {timerSet}</div>
+            <div className={styles.countdownExLine}>
+              <span className={styles.countdownExName}>{timerExercise.name}</span>
+              {timerExLog?.kg != null && (
+                <span className={styles.countdownWeight}>{timerExLog.kg}kg | {toLbs(timerExLog.kg)} lbs</span>
+              )}
+            </div>
             <div className={styles.countdownNumber}>{countdownOverlay}</div>
-            <div className={styles.overlayHint}>{t('Tap to pause')}</div>
           </div>
+          <div className={styles.countdownHint}>{t('Tap to pause')}</div>
         </div>
       )}
 
       {timerPhase === 'work' && timerExercise && !paused && (
         <div className={styles.workOverlay} onClick={pauseExerciseTimer}>
           <div className={styles.overlayContent}>
-            <div className={styles.overlayTop}>
-              <span className={styles.overlaySetLabel}>SET {timerSet}/{timerSetsTotal}</span>
-              {timerExLog?.kg && <span className={styles.overlayWeight}>{timerExLog.kg} kg</span>}
+            <div className={styles.overlaySetLabel}>SET {timerSet}</div>
+            <div className={styles.overlayExLine}>
+              <span className={styles.overlayExName}>{timerExercise.name}</span>
+              {timerExLog?.kg != null && (
+                <span className={styles.overlayWeight}>{timerExLog.kg}kg | {toLbs(timerExLog.kg)} lbs</span>
+              )}
             </div>
-            <div className={styles.overlayExName}>{timerExercise.name}</div>
             <div className={styles.overlayTime}>
               {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
             </div>
@@ -1440,6 +1445,9 @@ export default function Traning(): React.JSX.Element {
 
       {timerPhase === 'rest' && !paused && (
         <div className={styles.restOverlay} onClick={pauseExerciseTimer}>
+          <div className={styles.blobOrange} />
+          <div className={styles.blobPink} />
+          <div className={styles.blobPurple} />
           <div className={styles.overlayContent}>
             <div className={styles.overlayRestLabel}>{t('Rest')}</div>
             <div className={styles.overlayTime}>
