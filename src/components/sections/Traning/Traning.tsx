@@ -574,7 +574,7 @@ export default function Traning(): React.JSX.Element {
   const { t } = useTranslation()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
-  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
   const [activeTab,        setActiveTab]        = useState<string | null>(null)
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
@@ -690,7 +690,7 @@ export default function Traning(): React.JSX.Element {
     const sets = log?.sets ?? 3
     const reps = log?.reps ?? 10
     const workTime = reps * secPerRep
-    const COUNTDOWN = 5
+    const COUNTDOWN = countdownSeconds
     const currentSet = (completedSets[ex.id] ?? 0) + 1
 
     // Create workout if first set in this session
@@ -1348,11 +1348,14 @@ export default function Traning(): React.JSX.Element {
           onClose={() => setEditingSession(false)}
         />
       )}
-      {countdownOverlay !== null && (
+      {countdownOverlay !== null && timerExercise && (
         <div className={styles.countdownOverlay}>
           <div className={styles.countdownInner}>
+            <div className={styles.countdownMeta}>{t('Get ready')}</div>
+            <div className={styles.countdownMeta}>Set {timerSet}/{timerSetsTotal}</div>
+            <div className={styles.countdownLabel}>{timerExercise.name}</div>
+            <div className={styles.countdownMeta}>{timerExLog?.reps ?? 10} {t('reps')}</div>
             <div className={styles.countdownNumber}>{countdownOverlay}</div>
-            {timerExercise && <div className={styles.countdownLabel}>{timerExercise.name}</div>}
           </div>
         </div>
       )}
