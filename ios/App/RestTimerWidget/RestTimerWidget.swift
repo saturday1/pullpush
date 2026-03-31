@@ -23,7 +23,8 @@ struct RestTimerLiveActivity: Widget {
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.secondary)
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text(timerInterval: Date()...context.state.endTime, countsDown: true)
                             .font(.system(size: 32, weight: .bold, design: .rounded))
