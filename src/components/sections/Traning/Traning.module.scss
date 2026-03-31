@@ -477,32 +477,29 @@
 }
 
 .blobOrange {
-  width: 60%;
-  height: 180%;
-  top: -30%;
+  width: 70%;
+  height: 70%;
+  top: -10%;
   left: -20%;
   background: rgba(230, 130, 40, 0.7);
-  transform: rotate(-15deg);
   animation: rBlobA 20s ease-in-out infinite alternate;
 }
 
 .blobPink {
-  width: 65%;
-  height: 220%;
-  top: -50%;
-  left: 25%;
+  width: 80%;
+  height: 80%;
+  top: 20%;
+  left: 10%;
   background: rgba(200, 0, 180, 0.6);
-  transform: rotate(10deg);
   animation: rBlobB 26s ease-in-out infinite alternate;
 }
 
 .blobPurple {
-  width: 55%;
-  height: 200%;
-  bottom: -50%;
+  width: 70%;
+  height: 70%;
+  bottom: -10%;
   right: -20%;
-  background: rgba(35, 25, 80, 0.5);
-  transform: rotate(-8deg);
+  background: rgba(35, 25, 80, 0.6);
   animation: rBlobC 18s ease-in-out infinite alternate;
 }
 
