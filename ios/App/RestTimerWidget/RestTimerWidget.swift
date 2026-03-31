@@ -19,10 +19,11 @@ struct RestTimerLiveActivity: Widget {
                         .frame(width: 32, height: 32)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(NSLocalizedString("rest_label", bundle: .main, comment: ""))
+                        Text(context.attributes.label.uppercased())
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.secondary)
+                            .lineLimit(1)
 
                         Text(timerInterval: Date()...context.state.endTime, countsDown: true)
                             .font(.system(size: 32, weight: .bold, design: .rounded))

@@ -6,4 +6,5 @@ struct RestTimerAttributes: ActivityAttributes {
         var endTime: Date
     }
     var totalSeconds: Int
+    var label: String
 }

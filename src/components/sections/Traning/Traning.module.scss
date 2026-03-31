@@ -309,6 +309,388 @@
   box-shadow: 0 4px 16px rgba(0,0,0,0.04);
 }
 
+// ── Countdown overlay ───────────────────────────────────────
+
+.countdownOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2b2152;
+  overflow: hidden;
+}
+
+.countdownInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.countdownNumber {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(120px, 30vw, 240px);
+  font-weight: 700;
+  font-style: italic;
+  color: #fff;
+  line-height: 1;
+  animation: countPulse 1s ease-in-out infinite;
+}
+
+.countdownLabel {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(20px, 5vw, 32px);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  opacity: 0.6;
+  text-align: center;
+  padding: 0 20px;
+}
+
+@keyframes countPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.7; }
+}
+
+// ── Workout progress ────────────────────────────────────────
+
+.workoutProgress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.workoutProgressTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.workoutProgressFill {
+  height: 100%;
+  background: var(--text);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.workoutProgressLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+// ── Fullscreen overlays ─────────────────────────────────────
+
+%workoutOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow: hidden;
+}
+
+.workOverlay {
+  @extend %workoutOverlay;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.restOverlay {
+  @extend %workoutOverlay;
+  background: #2b2152;
+  color: #fff;
+}
+
+.overlayContent {
+  width: 100%;
+  max-width: 400px;
+}
+
+.overlayTop {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.overlaySetLabel {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #fff;
+  opacity: 0.6;
+}
+
+.overlayWeight {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  opacity: 0.6;
+}
+
+.overlayExName {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(28px, 7vw, 42px);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.overlayRestLabel {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(24px, 6vw, 36px);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #fff;
+  opacity: 0.6;
+  margin-bottom: 8px;
+}
+
+.overlayTime {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(72px, 20vw, 140px);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 24px;
+}
+
+.overlayProgressTrack {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.overlayProgressFill {
+  height: 100%;
+  background: #fff;
+  border-radius: 999px;
+  transition: width 0.3s linear;
+}
+
+.overlayNext {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+.overlayHint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: #fff;
+  opacity: 0.25;
+}
+
+// ── Pause overlay ───────────────────────────────────────────
+
+.pauseOverlay {
+  @extend %workoutOverlay;
+  background: rgba(0, 0, 0, 0.95);
+  color: #fff;
+}
+
+.pauseTitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(32px, 8vw, 48px);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  opacity: 0.6;
+  margin-bottom: 8px;
+}
+
+.pauseActions {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.pauseResumeBtn {
+  flex: 1;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  color: #000;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pauseStopBtn {
+  flex: 1;
+  padding: 16px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  background: none;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.endDialogActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 32px;
+  width: 100%;
+}
+
+.endWorkoutBtn {
+  margin-top: 16px;
+  display: block;
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: var(--red, #e53e3e); border-color: var(--red, #e53e3e); }
+}
+
+.workoutDone {
+  margin-top: 16px;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 14px;
+  background: var(--bg2);
+  border-radius: 12px;
+}
+
+// ── Undo button ─────────────────────────────────────────────
+
+.undoBtn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 2px;
+  margin-left: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 1; }
+}
+
+// ── Active exercise row ────────────────────────────────────
+
+.exerciseActive {
+  background: var(--bg2);
+  border-left: 3px solid var(--text);
+}
+
+.exNameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exPlayBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.exDoneCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--card);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.setProgress {
+  display: flex;
+  gap: 5px;
+}
+
+.setDotDone {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text);
+  animation: dotPulse 0.3s ease-out;
+}
+
+.setDotPending {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+@keyframes dotPulse {
+  0% { transform: scale(0.5); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
 .exerciseHeader {
   display: grid;
   grid-template-columns: 1fr 48px 40px 40px;

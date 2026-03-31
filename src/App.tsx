@@ -16,13 +16,17 @@ import Vecka from './components/sections/Vecka/Vecka'
 import Vikt from './components/sections/Vikt/Vikt'
 import styles from './App.module.scss'
 
-function AppContent(): React.ReactElement {
+function SplashGate({ children }: { children: React.ReactNode }): React.ReactElement {
   const profile = useProfile()
   const loading = profile?.loading ?? true
-  const location = useLocation()
-  const path = location.pathname
 
   if (loading) return <Splash />
+  return <>{children}</>
+}
+
+function AppRoutes(): React.ReactElement {
+  const location = useLocation()
+  const path = location.pathname
 
   return (
     <>
@@ -55,16 +59,18 @@ export default function App(): React.ReactElement | null {
     return () => subscription.unsubscribe()
   }, [])
 
-  if (session === undefined) return null
+  if (session === undefined) return <Splash />
   if (!session) return <Login />
 
   return (
     <HashRouter>
       <ThemeProvider>
       <ProfileProvider>
-        <Routes>
-          <Route path="*" element={<AppContent />} />
-        </Routes>
+        <SplashGate>
+          <Routes>
+            <Route path="*" element={<AppRoutes />} />
+          </Routes>
+        </SplashGate>
       </ProfileProvider>
       </ThemeProvider>
     </HashRouter>

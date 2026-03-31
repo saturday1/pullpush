@@ -27,9 +27,10 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func start(_ call: CAPPluginCall) {
         print("🟢 RestTimerPlugin.start() called")
         let seconds = call.getInt("seconds") ?? 90
+        let label = call.getString("label") ?? "PULLPUSH"
 
         if #available(iOS 16.2, *) {
-            let attributes = RestTimerAttributes(totalSeconds: seconds)
+            let attributes = RestTimerAttributes(totalSeconds: seconds, label: label)
             let endTime = Date().addingTimeInterval(TimeInterval(seconds))
             let state = RestTimerAttributes.ContentState(endTime: endTime)
 
