@@ -138,6 +138,13 @@
     { "name": "Vatten", "dose": "3+ liter/dag", "info": "Kreatin ökar vattenbehovet. Tecken på underfuktning: trötthet, sämre prestanda, hunger." }
   ],
 
+  "Tips": "Tips",
+  "Creatine": "Kreatin",
+  "creatineTip": "{{dose}} g/dag (0.07 × {{weight}} kg) — ta det när det passar. Ingen laddningsfas behövs. Kör konsekvent varje dag.",
+  "proteinTip": "{{min}}–{{max}} g/dag baserat på din vikt. Sprid över dagens måltider.",
+  "waterTip": "Minst {{liters}} liter/dag. Kreatin ökar behovet. Trötthet och hunger kan vara tecken på för lite.",
+  "sleepTip": "Sikta på {{hours}} timmar. Musklerna återhämtar sig under sömnen.",
+
   "Weight & Calories": "Vikt & Kalorier",
   "Start weight": "Startvikt",
   "Current weight": "Aktuell vikt",

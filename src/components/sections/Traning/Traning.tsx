@@ -39,11 +39,11 @@ interface ExerciseLog {
 }
 
 interface TrainingSession {
-  id: number
+  id: string
   name: string
   day_of_week: number
   user_id: string
-  program_id: number
+  program_id: string
   sort_order: number
   [key: string]: unknown
 }
@@ -278,8 +278,8 @@ function AddSessionModal({ userId, sortOrder, onSave, onClose }: AddSessionModal
 
 interface EditSessionModalProps {
   session: TrainingSession
-  onSave: (id: number, name: string, dayOfWeek: number) => Promise<void>
-  onDelete: (id: number) => Promise<void>
+  onSave: (id: string, name: string, dayOfWeek: number) => Promise<void>
+  onDelete: (id: string) => Promise<void>
   onClose: () => void
 }
 
@@ -519,25 +519,26 @@ interface SortableRowProps {
   onName: (ex: Exercise) => void
   onLog: (ex: Exercise) => void
   hideSets: boolean
+  editMode: boolean
 }
 
-function SortableRow({ ex, log, onName, onLog, hideSets }: SortableRowProps): React.JSX.Element {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id })
+function SortableRow({ ex, log, onName, onLog, hideSets, editMode }: SortableRowProps): React.JSX.Element {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''}`}>
-      <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>
-      <span><button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button></span>
-      <span className={`${styles.weightCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>
+    <div ref={setNodeRef} style={style} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''} ${editMode ? styles.editMode : ''}`}>
+      {editMode && <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>}
+      <span><button className={styles.exNameBtn} onClick={() => editMode && onName(ex)} style={editMode ? {} : { cursor: 'default' }}>{ex.name}</button></span>
+      <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onLog(ex)}>
         <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
         <span className={styles.lbsVal}>{log?.kg != null ? toLbs(log.kg) : ''}</span>
       </span>
-      {!hideSets && <span className={`${styles.numCell} ${styles.clickableCell}`} onClick={() => onLog(ex)}>{log?.sets ?? '–'}</span>}
-      <span className={`${styles.numCell} ${styles.clickableCell} ${styles.repsCell}`} onClick={() => onLog(ex)}>{log?.reps ?? '–'}</span>
+      {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onLog(ex)}>{log?.sets ?? '–'}</span>}
+      <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onLog(ex)}>{log?.reps ?? '–'}</span>
     </div>
   )
 }
@@ -549,11 +550,12 @@ export default function Traning(): React.JSX.Element {
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
   const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
-  const [activeTab,        setActiveTab]        = useState<number | null>(null)
-  const [exercises,        setExercises]        = useState<Record<number, Exercise[]>>({})
-  const [logs,             setLogs]             = useState<Record<number, ExerciseLog>>({})
-  const [exercisesLoading, setExercisesLoading] = useState<boolean>(true)
+  const [activeTab,        setActiveTab]        = useState<string | null>(null)
+  const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
+  const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
+  const [exercisesLoading, setExercisesLoading] = useState<boolean>(false)
   const [hideSets,         setHideSets]         = useState<boolean>(false)
+  const [editMode,         setEditMode]         = useState<boolean>(false)
   const [programDropOpen,  setProgramDropOpen]  = useState<boolean>(false)
   const programDropRef = useRef<HTMLDivElement | null>(null)
   const [restTimer,        setRestTimer]        = useState<number | null>(null)
@@ -789,13 +791,13 @@ export default function Traning(): React.JSX.Element {
     setAddingSession(false)
   }
 
-  async function handleSessionSave(id: number, name: string, day_of_week: number): Promise<void> {
+  async function handleSessionSave(id: string, name: string, day_of_week: number): Promise<void> {
     await supabase.from('training_sessions').update({ name, day_of_week }).eq('id', id)
     await loadProfile()
     setEditingSession(false)
   }
 
-  async function handleSessionDelete(id: number): Promise<void> {
+  async function handleSessionDelete(id: string): Promise<void> {
     await supabase.from('training_sessions').delete().eq('id', id)
     await loadProfile()
     setEditingSession(false)
@@ -858,6 +860,20 @@ export default function Traning(): React.JSX.Element {
 
       {setupStep === null && (
         <>
+          <Reveal>
+            <div className={styles.actionBar}>
+              <button className={`${styles.toggleSetsBtn} ${editMode ? styles.editModeActive : ''}`} onClick={() => setEditMode(m => !m)} type="button">
+                {editMode ? t('Done') : t('Edit')}
+              </button>
+              <button className={styles.toggleSetsBtn} onClick={() => setHideSets(h => !h)} type="button">
+                {hideSets ? t('Show sets') : t('Hide sets')}
+              </button>
+              <button className={styles.restBtn} onClick={restTimer ? stopRest : startRest} type="button">
+                {restTimer ? t('Stop') : t('Rest')}
+              </button>
+            </div>
+          </Reveal>
+
           {programs.length > 0 && (
             <Reveal>
               <div className={styles.programBar}>
@@ -872,53 +888,27 @@ export default function Traning(): React.JSX.Element {
 
           <Reveal>
             <div className={styles.topRow}>
-              <div className={styles.tabs}>
-                {sessionsLoading ? (
-                  <>
-                    <Skeleton width={110} height={36} borderRadius={20} />
-                    <Skeleton width={110} height={36} borderRadius={20} />
-                    <Skeleton width={110} height={36} borderRadius={20} />
-                  </>
-                ) : (
-                  sessions.map((s: TrainingSession) => (
-                    <button
-                      key={s.id}
-                      className={`${styles.tab} ${activeTab === s.id ? styles.active : ''}`}
-                      onClick={() => { setActiveTab(s.id); setAdding(false) }}
-                    >
+              {sessions.length > 0 && (
+                <select
+                  className={styles.sessionDropdown}
+                  value={String(activeTab ?? sessions[0]?.id ?? '')}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setActiveTab(e.target.value); setAdding(false) }}
+                >
+                  {sessions.map((s: TrainingSession) => (
+                    <option key={s.id} value={String(s.id)}>
                       {dayAbbrev[s.day_of_week - 1]} — {s.name}
-                    </button>
-                  ))
-                )}
-              </div>
-              <div className={styles.topActions}>
-                <button className={styles.addSessionBtn} onClick={() => setAddingSession(true)}>
-                  {t('+ Add session')}
-                </button>
-              </div>
+                    </option>
+                  ))}
+                </select>
+              )}
+              {currentSession && (
+                <button className={styles.editProgramBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>✎</button>
+              )}
+              <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>
             </div>
           </Reveal>
 
           <Reveal key={activeTab}>
-            <div className={styles.dayBadgeRow}>
-              <div className={styles.dayBadge}>
-                <div className={styles.dot} />
-                <span className={styles.dayLabel}>
-                  {currentSession ? dayFull[currentSession.day_of_week - 1] : ''}
-                </span>
-              </div>
-              {currentSession && (
-                <button className={styles.editSessionIconBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>
-                  ✎
-                </button>
-              )}
-              <button className={styles.toggleSetsBtn} onClick={() => setHideSets(h => !h)} type="button">
-                {hideSets ? t('Show sets') : t('Hide sets')}
-              </button>
-              <button className={styles.restBtn} onClick={restTimer ? stopRest : startRest} type="button">
-                {restTimer ? t('Stop') : t('Rest')}
-              </button>
-            </div>
 
             {restTimer !== null && (
               <div className={styles.restTimerBar}>
@@ -930,8 +920,8 @@ export default function Traning(): React.JSX.Element {
             )}
 
             <div className={styles.exerciseList}>
-              <div className={`${styles.exerciseHeader} ${hideSets ? styles.hideSets : ''}`}>
-                <span></span>
+              <div className={`${styles.exerciseHeader} ${hideSets ? styles.hideSets : ''} ${editMode ? styles.editMode : ''}`}>
+                {editMode && <span></span>}
                 <span>{t('Exercise')}</span>
                 <span><span className={styles.kgLabel}>kg</span><br/><span className={styles.lbsLabel}>lbs</span></span>
                 {!hideSets && <span>{t('Sets')}</span>}
@@ -952,13 +942,13 @@ export default function Traning(): React.JSX.Element {
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} hideSets={hideSets} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} hideSets={hideSets} editMode={editMode} />
                     ))}
                   </SortableContext>
                 </DndContext>
               )}
 
-              {adding && (
+              {editMode && adding && (
                 <div className={styles.exerciseRow}>
                   <div className={styles.addRow} style={{ gridColumn: '1 / -1' }} ref={catalogDropRef}>
                     <div className={styles.catalogSearchWrap}>
@@ -989,7 +979,7 @@ export default function Traning(): React.JSX.Element {
               )}
             </div>
 
-            {!adding && (
+            {editMode && !adding && (
               <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
             )}
           </Reveal>

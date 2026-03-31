@@ -7,10 +7,10 @@ import { supabase } from '../../../supabase'
 import styles from './Vecka.module.scss'
 
 interface TrainingSession {
-  id: number
+  id: string
   day_of_week: number
   name: string
-  program_id: number
+  program_id: string
   user_id: string
   sort_order: number
   [key: string]: unknown
@@ -29,7 +29,7 @@ interface DayInfo {
   dow: number
   type: string
   train: boolean
-  sessionId: number | null
+  sessionId: string | null
 }
 
 type SlideClass = 'exitLeft' | 'exitRight' | 'enterFromRight' | 'enterFromLeft' | null
@@ -42,7 +42,7 @@ export default function Vecka(): React.JSX.Element {
   const jsDay: number = new Date().getDay()
   const todayDow: number = jsDay === 0 ? 7 : jsDay
 
-  const [exerciseCounts, setExerciseCounts] = useState<Record<number, number>>({})
+  const [exerciseCounts, setExerciseCounts] = useState<Record<string, number>>({})
   const [countsLoading, setCountsLoading] = useState<boolean>(true)
 
   // Index into programs array for the currently displayed program

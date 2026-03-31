@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { supabase } from '../../../supabase'
+import { useProfile } from '../../../context/ProfileContext'
 import Skeleton from '../../Skeleton/Skeleton'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
@@ -705,8 +706,49 @@ function MealTable({ meals, onEdit, onDelete, t }: MealTableProps): React.JSX.El
 
 // --- Main component ---
 
+function buildTips(weight: number | null, age: number | null, t: TFunction): { icon: string; title: string; detail: string }[] {
+    const w = weight ?? 80
+    const tips: { icon: string; title: string; detail: string }[] = []
+
+    // Kreatin: 0.07 g/kg kroppsvikt, avrundat till närmaste halva gram
+    const creatine = Math.round(w * 0.07 * 2) / 2
+    tips.push({
+        icon: '💊',
+        title: t('Creatine'),
+        detail: t('creatineTip', { dose: creatine, weight: w }),
+    })
+
+    // Protein: 1.6-2.0 g/kg
+    const proteinMin = Math.round(w * 1.6)
+    const proteinMax = Math.round(w * 2.0)
+    tips.push({
+        icon: '🥛',
+        title: t('Protein'),
+        detail: t('proteinTip', { min: proteinMin, max: proteinMax }),
+    })
+
+    // Vatten: 0.033 l/kg, avrundat
+    const water = (w * 0.033).toFixed(1)
+    tips.push({
+        icon: '💧',
+        title: t('Water'),
+        detail: t('waterTip', { liters: water }),
+    })
+
+    // Sömn baserat på ålder
+    const sleepHours = age && age > 40 ? '7–9' : '7–8'
+    tips.push({
+        icon: '😴',
+        title: t('Sleep'),
+        detail: t('sleepTip', { hours: sleepHours }),
+    })
+
+    return tips
+}
+
 export default function Mat(): React.JSX.Element {
     const { t } = useTranslation()
+    const profile = useProfile()
     const [tab, setTab] = useState<string>('train')
     const [meals, setMeals] = useState<Meal[]>([])
     const [loading, setLoading] = useState<boolean>(true)
@@ -785,7 +827,7 @@ export default function Mat(): React.JSX.Element {
         fat_g: acc.fat_g + m.fat_g,
     }), { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
 
-    const supplements = t('supplements', { returnObjects: true }) as Supplement[]
+    const tips = buildTips(profile?.currentWeight ?? null, profile?.age ?? null, t)
 
     return (
         <section id="mat">
@@ -797,7 +839,6 @@ export default function Mat(): React.JSX.Element {
                         <button className={`${styles.tab} ${tab === 'train' ? styles.active : ''}`} onClick={() => setTab('train')}>{t('Training day')}</button>
                         <button className={`${styles.tab} ${tab === 'rest' ? styles.active : ''}`} onClick={() => setTab('rest')}>{t('Rest day')}</button>
                     </div>
-                    <button className={styles.addBtn} onClick={() => setAddOpen(true)}>+ {t('Add meal')}</button>
                 </div>
             </Reveal>
 
@@ -824,31 +865,23 @@ export default function Mat(): React.JSX.Element {
                             <span style={{ color: '#22c55e' }}>{t('F')}: {totals.fat_g} g</span>
                         </div>
                         <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} t={t} />
+                        <button className={styles.addMealBottom} onClick={() => setAddOpen(true)}>+ {t('Add meal')}</button>
                     </>
                 )}
             </Reveal>
 
             <Reveal>
-                <div className={styles.subHeading}>{t('Creatine & Supplements')}</div>
-                <div style={{ overflowX: 'auto' }}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>{t('Supplement')}</th>
-                                <th>{t('Dose')}</th>
-                                <th>{t('Recommendation')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Array.isArray(supplements) && supplements.map(({ name, dose, info, blue }: Supplement, i: number) => (
-                                <tr key={i}>
-                                    <td><div className={styles.suppName}>{name}</div></td>
-                                    <td><span className={styles.suppDose} style={blue ? { color: 'var(--blue)' } : {}}>{dose}</span></td>
-                                    <td>{info}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className={styles.subHeading}>{t('Tips')}</div>
+                <div className={styles.tipsGrid}>
+                    {tips.map((tip, i) => (
+                        <div key={i} className={styles.tipCard}>
+                            <span className={styles.tipIcon}>{tip.icon}</span>
+                            <div>
+                                <div className={styles.tipTitle}>{tip.title}</div>
+                                <div className={styles.tipDetail}>{tip.detail}</div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </Reveal>
 

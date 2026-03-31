@@ -33,9 +33,13 @@
   "totalExercisesCount_one": "{{count}} exercise total",
   "totalExercisesCount_other": "{{count}} exercises total",
 
-  "supplements": [
-    { "name": "Creatine monohydrate", "dose": "5 g/day", "info": "Timing doesn't matter — take it whenever convenient. No loading phase needed. Be consistent every day, including rest days." },
-    { "name": "Whey 100 (post-workout)", "dose": "1 scoop (~30g)", "info": "Drink within 1–2h after training. On rest days it's included in the evening snack (in the quark)." },
-    { "name": "Water", "dose": "3+ liters/day", "info": "Creatine increases water needs. Signs of dehydration: fatigue, reduced performance, hunger." }
-  ]
+  "Tips": "Tips",
+  "Creatine": "Creatine",
+  "Protein": "Protein",
+  "Water": "Water",
+  "Sleep": "Sleep",
+  "creatineTip": "{{dose}} g/day (0.07 × {{weight}} kg) — take it whenever convenient. No loading phase needed. Be consistent every day.",
+  "proteinTip": "{{min}}–{{max}} g/day based on your weight. Spread across meals.",
+  "waterTip": "At least {{liters}} liters/day. Creatine increases the need. Fatigue and hunger can be signs of dehydration.",
+  "sleepTip": "Aim for {{hours}} hours. Muscles recover during sleep."
 }

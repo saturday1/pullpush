@@ -15,9 +15,9 @@ interface Macros {
 }
 
 interface TrainingSession {
-  id: number
+  id: string
   user_id: string
-  program_id: number
+  program_id: string
   name: string
   day_of_week: number
   sort_order: number
@@ -52,6 +52,7 @@ interface ProfileState {
   programs: TrainingProgram[]
   activeProgramId: string | null
   restSeconds: number
+  secPerRep: number
 }
 
 interface ProfileUpdate {
@@ -63,6 +64,7 @@ interface ProfileUpdate {
   birth_date?: string | null
   phone?: string | null
   rest_seconds?: number | null
+  sec_per_rep?: number | null
 }
 
 interface SessionInput {
@@ -147,6 +149,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     programs: [],
     activeProgramId: null,
     restSeconds: 90,
+    secPerRep: 4,
   })
 
   async function load(): Promise<void> {
@@ -166,7 +169,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     // Fire all queries in parallel, but update state as each resolves
     const profilePromise = supabase
       .from('profile')
-      .select('goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id, rest_seconds')
+      .select('goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id, rest_seconds, sec_per_rep')
       .eq('user_id', user.id)
       .single()
 
@@ -229,12 +232,13 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       const birthDate: string | null = profile?.birth_date ?? null
       const phone: string | null = profile?.phone ?? null
       const restSeconds: number = profile?.rest_seconds ?? 90
+      const secPerRep: number = profile?.sec_per_rep ?? 4
       const age = calcAge(birthDate)
 
       setState(prev => {
         const newState: ProfileState = {
           ...prev,
-          firstName, lastName, birthDate, phone, goalWeight, height, age, activeProgramId, restSeconds,
+          firstName, lastName, birthDate, phone, goalWeight, height, age, activeProgramId, restSeconds, secPerRep,
           startWeight: startWeight ?? prev.startWeight,
           profileLoading: false,
         }
@@ -281,12 +285,13 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     return !error
   }
 
-  async function updateProfile({ goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, rest_seconds }: ProfileUpdate): Promise<boolean> {
+  async function updateProfile({ goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, rest_seconds, sec_per_rep }: ProfileUpdate): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
     const row: Record<string, unknown> = { user_id: user.id, goal_weight, height_cm, first_name, last_name, birth_date, phone }
     if (start_weight != null) row.start_weight = start_weight
     if (rest_seconds != null) row.rest_seconds = rest_seconds
+    if (sec_per_rep != null) row.sec_per_rep = sec_per_rep
     const { error } = await supabase.from('profile').upsert(
       row,
       { onConflict: 'user_id' }
