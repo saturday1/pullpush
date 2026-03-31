@@ -49,16 +49,13 @@ struct RestTimerLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         Image("PullPushLogo")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 24, height: 24)
-                        Text(NSLocalizedString("rest_label", bundle: .main, comment: ""))
-                            .font(.caption)
-                            .fontWeight(.bold)
+                            .frame(width: 20, height: 20)
                         Text(timerInterval: Date()...context.state.endTime, countsDown: true)
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
                             .monospacedDigit()
                     }
                 }
@@ -66,18 +63,18 @@ struct RestTimerLiveActivity: Widget {
                 Image("PullPushLogo")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
+                    .frame(width: 14, height: 14)
             } compactTrailing: {
                 Text(timerInterval: Date()...context.state.endTime, countsDown: true)
-                    .font(.system(.body, design: .rounded))
-                    .fontWeight(.semibold)
+                    .font(.caption2)
+                    .fontWeight(.bold)
                     .monospacedDigit()
-                    .frame(minWidth: 36)
+                    .frame(width: 36)
             } minimal: {
                 Image("PullPushLogo")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
+                    .frame(width: 14, height: 14)
             }
         }
     }
