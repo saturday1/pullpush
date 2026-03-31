@@ -363,7 +363,7 @@
 .countdownWeight {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(18px, 4.5vw, 24px);
-  font-weight: 700;
+  font-weight: 300;
   font-style: italic;
   text-transform: uppercase;
   color: #fff;
@@ -377,6 +377,7 @@
   color: #fff;
   line-height: 1;
   margin-top: 16px;
+  padding: 0 16px;
   animation: countPulse 1s ease-in-out infinite;
 }
 
@@ -551,7 +552,7 @@
 .overlayWeight {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(18px, 4.5vw, 26px);
-  font-weight: 700;
+  font-weight: 300;
   font-style: italic;
   text-transform: uppercase;
   color: #fff;
@@ -576,6 +577,7 @@
   color: #fff;
   line-height: 1;
   margin-bottom: 20px;
+  padding-right: 4px;
 }
 
 .overlayProgressTrack {
@@ -606,6 +608,7 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   color: #fff;
+  margin-top: 40px;
 }
 
 // ── Pause overlay ───────────────────────────────────────────
