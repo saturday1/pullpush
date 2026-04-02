@@ -41,5 +41,20 @@
   "creatineTip": "{{dose}} g/day (0.07 × {{weight}} kg) — take it whenever convenient. No loading phase needed. Be consistent every day.",
   "proteinTip": "{{min}}–{{max}} g/day based on your weight. Spread across meals.",
   "waterTip": "At least {{liters}} liters/day. Creatine increases the need. Fatigue and hunger can be signs of dehydration.",
-  "sleepTip": "Aim for {{hours}} hours. Muscles recover during sleep."
+  "sleepTip": "Aim for {{hours}} hours. Muscles recover during sleep.",
+
+  "Stats": "Stats",
+  "Training statistics": "Training statistics",
+  "Workout History": "Workout History",
+  "Strength Progress": "Strength Progress",
+  "No workouts yet": "No workouts yet",
+  "Complete your first workout to see stats here": "Complete your first workout to see stats here",
+  "Total workouts": "Total workouts",
+  "Total sets": "Total sets",
+  "Most trained": "Most trained",
+  "Training since": "Training since",
+  "Max weight": "Max weight",
+  "Unknown": "Unknown",
+  "Workouts per month": "Workouts per month",
+  "Workouts": "Workouts"
 }

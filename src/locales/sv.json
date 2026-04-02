@@ -262,5 +262,20 @@
   "trainingDaysCount_one": "{{count}} träningsdag",
   "trainingDaysCount_other": "{{count}} träningsdagar",
   "totalExercisesCount_one": "{{count}} övning totalt",
-  "totalExercisesCount_other": "{{count}} övningar totalt"
+  "totalExercisesCount_other": "{{count}} övningar totalt",
+
+  "Stats": "Statistik",
+  "Training statistics": "Träningsstatistik",
+  "Workout History": "Träningshistorik",
+  "Strength Progress": "Styrkeprogressionen",
+  "No workouts yet": "Inga pass ännu",
+  "Complete your first workout to see stats here": "Slutför ditt första pass för att se statistik här",
+  "Total workouts": "Totalt antal pass",
+  "Total sets": "Totalt antal set",
+  "Most trained": "Mest tränad",
+  "Training since": "Tränar sedan",
+  "Max weight": "Max vikt",
+  "Unknown": "Okänd",
+  "Workouts per month": "Pass per månad",
+  "Workouts": "Pass"
 }

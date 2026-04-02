@@ -39,6 +39,8 @@ function useSubtitle(): string {
     case '/vecka': {
       return `${programs.length} ${t('programs')} · ${sessions.length} ${t('sessions')}`
     }
+    case '/stats':
+      return t('Training statistics')
     case '/settings':
       return t('Account & Settings')
     default:

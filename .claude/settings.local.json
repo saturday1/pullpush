@@ -5,7 +5,9 @@
       "Bash(git pull:*)",
       "Bash(npx cap:*)",
       "Bash(npm run:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find /c/Users/wille/_workspace -type f -name *.sql)",
+      "Bash(grep -r \"workouts\\\\|workout_sets\" /c/Users/wille/_workspace --include=*.d.ts)"
     ]
   }
 }

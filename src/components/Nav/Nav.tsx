@@ -15,6 +15,7 @@ const links: NavLinkItem[] = [
     // { to: '/vecka',   label: 'Week' },
     { to: '/vikt',    label: 'Weight' },
     { to: '/mat',     label: 'Food' },
+    { to: '/stats',   label: 'Stats' },
 ]
 
 function GearIcon(): React.ReactElement {
@@ -122,7 +123,9 @@ export default function Nav(): React.ReactElement {
         <div className={styles.navMask}>
             <motion.div style={{ y }}>
                 <nav ref={navRef} className={styles.nav}>
-                    <Logo color="#000" className={styles.logo} />
+                    <NavLink to="/traning" className={styles.logoLink}>
+                        <Logo color="currentColor" className={styles.logo} />
+                    </NavLink>
                     <div className={styles.navLinks}>
                         {links.map(({ to, label }: NavLinkItem) => (
                             <NavLink

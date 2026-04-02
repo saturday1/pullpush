@@ -14,6 +14,7 @@ import Mat from './components/sections/Mat/Mat'
 import Traning from './components/sections/Traning/Traning'
 import Vecka from './components/sections/Vecka/Vecka'
 import Vikt from './components/sections/Vikt/Vikt'
+import Stats from './components/sections/Stats/Stats'
 import styles from './App.module.scss'
 
 function SplashGate({ children }: { children: React.ReactNode }): React.ReactElement {
@@ -38,6 +39,7 @@ function AppRoutes(): React.ReactElement {
         <div style={{ display: path === '/vikt' ? 'block' : 'none' }}><Vikt /></div>
         <div style={{ display: path === '/mat' ? 'block' : 'none' }}><Mat /></div>
         <div style={{ display: path === '/vecka' ? 'block' : 'none' }}><Vecka /></div>
+        <div style={{ display: path === '/stats' ? 'block' : 'none' }}><Stats /></div>
         <div style={{ display: path === '/settings' ? 'block' : 'none' }}><Settings /></div>
         <Routes>
           <Route path="/" element={<Navigate to="/traning" replace />} />

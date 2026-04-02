@@ -56,6 +56,13 @@
     height: calc(var(--topbar-height, 50px) + env(safe-area-inset-top, 0px));
 }
 
+.logoLink {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text);
+}
+
 .logo {
     width: 42px;
     height: auto;
