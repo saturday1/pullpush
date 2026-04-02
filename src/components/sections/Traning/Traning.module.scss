@@ -331,41 +331,70 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
-.countdownMeta {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(18px, 4vw, 24px);
-  font-weight: 700;
-  font-style: italic;
-  text-transform: uppercase;
-  color: #fff;
-  opacity: 0.5;
-  text-align: center;
-}
-
-.countdownLabel {
+.countdownSetLabel {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(28px, 7vw, 42px);
   font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
   color: #fff;
-  text-align: center;
-  padding: 0 20px;
-  margin: 4px 0;
+}
+
+.countdownExLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.countdownExName {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+}
+
+.countdownWeight {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 300;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
 }
 
 .countdownNumber {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(120px, 30vw, 240px);
+  font-size: clamp(140px, 35vw, 280px);
   font-weight: 700;
   font-style: italic;
   color: #fff;
   line-height: 1;
   margin-top: 16px;
+  padding: 0 16px;
   animation: countPulse 1s ease-in-out infinite;
+}
+
+.countdownHint {
+  position: absolute;
+  bottom: clamp(60px, 10vh, 120px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: #fff;
 }
 
 @keyframes countPulse {
@@ -418,9 +447,8 @@
   z-index: 9998;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
+  justify-content: flex-end;
+  padding: 0 clamp(24px, 6vw, 48px) clamp(80px, 15vh, 160px);
   overflow: hidden;
 }
 
@@ -436,72 +464,135 @@
   color: #fff;
 }
 
-.overlayContent {
-  width: 100%;
-  max-width: 400px;
+// ── Rest overlay animated blobs ─────────────────────────────
+
+.restOverlay .blobOrange,
+.restOverlay .blobPink,
+.restOverlay .blobPurple {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.overlayTop {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 8px;
+.blobOrange {
+  width: 70%;
+  height: 70%;
+  top: -10%;
+  left: -20%;
+  background: rgba(230, 130, 40, 0.7);
+  animation: rBlobA 20s ease-in-out infinite alternate;
+}
+
+.blobPink {
+  width: 80%;
+  height: 80%;
+  top: 20%;
+  left: 10%;
+  background: rgba(200, 0, 180, 0.6);
+  animation: rBlobB 26s ease-in-out infinite alternate;
+}
+
+.blobPurple {
+  width: 70%;
+  height: 70%;
+  bottom: -10%;
+  right: -20%;
+  background: rgba(35, 25, 80, 0.6);
+  animation: rBlobC 18s ease-in-out infinite alternate;
+}
+
+@keyframes rBlobA {
+  0%   { transform: translate(0%, 0%) scale(1); }
+  50%  { transform: translate(30%, 10%) scale(1.15); }
+  100% { transform: translate(10%, -15%) scale(0.9); }
+}
+@keyframes rBlobB {
+  0%   { transform: translate(0%, 0%) scale(1); }
+  40%  { transform: translate(-15%, 12%) scale(1.2); }
+  100% { transform: translate(-8%, -10%) scale(0.92); }
+}
+@keyframes rBlobC {
+  0%   { transform: translate(0%, 0%) scale(1); }
+  60%  { transform: translate(20%, -20%) scale(1.1); }
+  100% { transform: translate(-25%, 10%) scale(1.18); }
+}
+
+// ── Overlay content ─────────────────────────────────────────
+
+.overlayContent {
+  position: relative;
+  z-index: 1;
+  width: 100%;
 }
 
 .overlaySetLabel {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  font-style: italic;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #fff;
-  opacity: 0.6;
-}
-
-.overlayWeight {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-  opacity: 0.6;
-}
-
-.overlayExName {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(28px, 7vw, 42px);
   font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
   color: #fff;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
+}
+
+.overlayExLine {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.overlayExName {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(22px, 5.5vw, 32px);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+}
+
+.overlayWeight {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(22px, 5.5vw, 32px);
+  font-weight: 300;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
 }
 
 .overlayRestLabel {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(24px, 6vw, 36px);
+  font-size: clamp(32px, 8vw, 48px);
   font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
   letter-spacing: 2px;
   color: #fff;
-  opacity: 0.6;
   margin-bottom: 8px;
 }
 
 .overlayTime {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(72px, 20vw, 140px);
+  font-size: clamp(80px, 22vw, 160px);
   font-weight: 700;
   font-style: italic;
   color: #fff;
   line-height: 1;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  padding-right: 4px;
 }
 
 .overlayProgressTrack {
   width: 100%;
-  height: 6px;
+  height: 5px;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 999px;
   overflow: hidden;
@@ -520,7 +611,6 @@
   font-size: 16px;
   font-weight: 500;
   color: #fff;
-  opacity: 0.5;
   margin-bottom: 8px;
 }
 
@@ -528,7 +618,7 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   color: #fff;
-  opacity: 0.25;
+  margin-top: 40px;
 }
 
 // ── Pause overlay ───────────────────────────────────────────
@@ -546,7 +636,6 @@
   font-style: italic;
   text-transform: uppercase;
   color: #fff;
-  opacity: 0.6;
   margin-bottom: 8px;
 }
 

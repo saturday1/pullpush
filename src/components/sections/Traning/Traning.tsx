@@ -725,20 +725,6 @@ export default function Traning(): React.JSX.Element {
     const label = `${reps} × ${ex.name} + ${t('Rest').toLowerCase()}`
     if (RestTimer) RestTimer.start({ seconds: totalTime, label }).catch(() => {})
 
-    // Schedule notification when set cycle ends
-    try {
-      await LocalNotifications.requestPermissions()
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: 2,
-          title: `Set ${currentSet}/${sets} ${t('Done').toLowerCase()}`,
-          body: ex.name,
-          schedule: { at: new Date(Date.now() + totalTime * 1000) },
-          sound: 'default',
-        }],
-      })
-    } catch {}
-
     runTimerStep(plan, 0, ex.id, currentSet, sets, log?.kg ?? null, reps, wId)
   }
 
@@ -783,6 +769,20 @@ export default function Traning(): React.JSX.Element {
     setTimerSecs(duration)
     setTimerTotalSecs(duration)
 
+    // Schedule notification at end of rest phase
+    if (phase === 'rest') {
+      const exName = currentExercises.find(e => e.id === exId)?.name ?? ''
+      LocalNotifications.schedule({
+        notifications: [{
+          id: 2,
+          title: `Set ${currentSet}/${setsTotal} ${t('Done').toLowerCase()}`,
+          body: exName,
+          schedule: { at: new Date(endTime) },
+          sound: 'default',
+        }],
+      }).catch(() => {})
+    }
+
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       const remaining = Math.ceil((timerEndRef.current - Date.now()) / 1000)
@@ -811,11 +811,25 @@ export default function Traning(): React.JSX.Element {
     }, 250)
   }
 
+  function pauseCountdown(): void {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+    pausedRemainRef.current = countdownOverlay ?? 0
+    const step = timerStepRef.current
+    const plan = timerPlanRef.current
+    const exLog = timerExId ? logs[timerExId] : undefined
+    pausedPlanRef.current = {
+      plan, step, exId: timerExId!, currentSet: timerSet, setsTotal: timerSetsTotal,
+      kg: exLog?.kg ?? null, reps: exLog?.reps ?? 10, wId: workoutId
+    }
+    setPaused(true)
+    try { RestTimer?.stop() } catch {}
+  }
+
   function pauseExerciseTimer(): void {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
     pausedRemainRef.current = Math.ceil((timerEndRef.current - Date.now()) / 1000)
-    // Save context to resume later
     const step = timerStepRef.current
     const plan = timerPlanRef.current
     const exLog = timerExId ? logs[timerExId] : undefined
@@ -831,10 +845,30 @@ export default function Traning(): React.JSX.Element {
     const ctx = pausedPlanRef.current
     if (!ctx) return
     setPaused(false)
-    // Restart current phase with remaining time
     const remain = pausedRemainRef.current
     const { plan, step, exId, currentSet, setsTotal, kg, reps, wId } = ctx
     const { phase } = plan[step]
+
+    // Resume countdown phase
+    if (phase === 'countdown') {
+      setCountdownOverlay(remain)
+      const cdEnd = Date.now() + remain * 1000
+      // Restart Live Activity
+      const totalRemaining = plan.slice(step).reduce((sum, p) => sum + p.duration, 0) - (plan[step].duration - remain)
+      if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(totalRemaining)) }).catch(() => {})
+      timerRef.current = setInterval(() => {
+        const r = Math.ceil((cdEnd - Date.now()) / 1000)
+        if (r <= 0) {
+          if (timerRef.current) clearInterval(timerRef.current)
+          timerRef.current = null
+          setCountdownOverlay(null)
+          runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
+        } else {
+          setCountdownOverlay(r)
+        }
+      }, 250)
+      return
+    }
 
     const endTime = Date.now() + remain * 1000
     timerEndRef.current = endTime
@@ -950,6 +984,30 @@ export default function Traning(): React.JSX.Element {
       setLogs(latest)
     }
     setExercisesLoading(false)
+
+    // Resume unfinished workout if exists
+    const { data: openWorkout } = await supabase.from('workouts')
+      .select('id')
+      .eq('user_id', user.id)
+      .is('completed_at', null)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (openWorkout) {
+      setWorkoutId(openWorkout.id)
+      const { data: sets } = await supabase.from('workout_sets')
+        .select('exercise_id, set_number')
+        .eq('workout_id', openWorkout.id)
+
+      if (sets) {
+        const restored: Record<number, number> = {}
+        for (const s of sets as Array<{ exercise_id: number; set_number: number }>) {
+          restored[s.exercise_id] = Math.max(restored[s.exercise_id] ?? 0, s.set_number)
+        }
+        setCompletedSets(restored)
+      }
+    }
   }
 
   async function handleLogSave(exerciseId: number, kg: number, sets: number | null, reps: number): Promise<void> {
@@ -1348,26 +1406,32 @@ export default function Traning(): React.JSX.Element {
           onClose={() => setEditingSession(false)}
         />
       )}
-      {countdownOverlay !== null && timerExercise && (
-        <div className={styles.countdownOverlay}>
+      {countdownOverlay !== null && timerExercise && !paused && (
+        <div className={styles.countdownOverlay} onClick={pauseCountdown}>
           <div className={styles.countdownInner}>
-            <div className={styles.countdownMeta}>{t('Get ready')}</div>
-            <div className={styles.countdownMeta}>Set {timerSet}/{timerSetsTotal}</div>
-            <div className={styles.countdownLabel}>{timerExercise.name}</div>
-            <div className={styles.countdownMeta}>{timerExLog?.reps ?? 10} {t('reps')}</div>
+            <div className={styles.countdownSetLabel}>SET {timerSet}</div>
+            <div className={styles.countdownExLine}>
+              <span className={styles.countdownExName}>{timerExercise.name}</span>
+              {timerExLog?.kg != null && (
+                <span className={styles.countdownWeight}>{timerExLog.kg}kg | {toLbs(timerExLog.kg)} lbs</span>
+              )}
+            </div>
             <div className={styles.countdownNumber}>{countdownOverlay}</div>
           </div>
+          <div className={styles.countdownHint}>{t('Tap to pause')}</div>
         </div>
       )}
 
       {timerPhase === 'work' && timerExercise && !paused && (
         <div className={styles.workOverlay} onClick={pauseExerciseTimer}>
           <div className={styles.overlayContent}>
-            <div className={styles.overlayTop}>
-              <span className={styles.overlaySetLabel}>SET {timerSet}/{timerSetsTotal}</span>
-              {timerExLog?.kg && <span className={styles.overlayWeight}>{timerExLog.kg} kg</span>}
+            <div className={styles.overlaySetLabel}>SET {timerSet}</div>
+            <div className={styles.overlayExLine}>
+              <span className={styles.overlayExName}>{timerExercise.name}</span>
+              {timerExLog?.kg != null && (
+                <span className={styles.overlayWeight}>{timerExLog.kg}kg | {toLbs(timerExLog.kg)} lbs</span>
+              )}
             </div>
-            <div className={styles.overlayExName}>{timerExercise.name}</div>
             <div className={styles.overlayTime}>
               {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
             </div>
@@ -1381,6 +1445,9 @@ export default function Traning(): React.JSX.Element {
 
       {timerPhase === 'rest' && !paused && (
         <div className={styles.restOverlay} onClick={pauseExerciseTimer}>
+          <div className={styles.blobOrange} />
+          <div className={styles.blobPink} />
+          <div className={styles.blobPurple} />
           <div className={styles.overlayContent}>
             <div className={styles.overlayRestLabel}>{t('Rest')}</div>
             <div className={styles.overlayTime}>
@@ -1395,12 +1462,14 @@ export default function Traning(): React.JSX.Element {
         </div>
       )}
 
-      {paused && timerPhase && (
+      {paused && (timerPhase || countdownOverlay !== null) && (
         <div className={styles.pauseOverlay}>
           <div className={styles.overlayContent}>
             <div className={styles.pauseTitle}>{t('Paused')}</div>
             <div className={styles.overlayTime}>
-              {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
+              {countdownOverlay !== null
+                ? countdownOverlay
+                : `${Math.floor(timerSecs / 60)}:${String(timerSecs % 60).padStart(2, '0')}`}
             </div>
             <div className={styles.pauseActions}>
               <button className={styles.pauseResumeBtn} onClick={resumeExerciseTimer}>{t('Continue')}</button>
