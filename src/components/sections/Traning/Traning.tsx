@@ -992,7 +992,7 @@ export default function Traning(): React.JSX.Element {
       .is('completed_at', null)
       .order('started_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (openWorkout) {
       setWorkoutId(openWorkout.id)
@@ -1000,7 +1000,7 @@ export default function Traning(): React.JSX.Element {
         .select('exercise_id, set_number')
         .eq('workout_id', openWorkout.id)
 
-      if (sets) {
+      if (sets && sets.length > 0) {
         const restored: Record<number, number> = {}
         for (const s of sets as Array<{ exercise_id: number; set_number: number }>) {
           restored[s.exercise_id] = Math.max(restored[s.exercise_id] ?? 0, s.set_number)
