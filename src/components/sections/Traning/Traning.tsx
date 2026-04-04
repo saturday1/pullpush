@@ -1167,7 +1167,14 @@ export default function Traning(): React.JSX.Element {
   // Auto-complete workout when all sets done
   useEffect(() => {
     if (allSessionDone && workoutId && !timerPhase) {
-      supabase.from('workouts').update({ completed_at: new Date().toISOString() }).eq('id', workoutId)
+      const id = workoutId
+      supabase.from('workouts').update({ completed_at: new Date().toISOString() }).eq('id', id).then(() => {})
+      // Keep "Workout complete!" visible briefly, then reset
+      const timer = setTimeout(() => {
+        setWorkoutId(null)
+        setCompletedSets({})
+      }, 3000)
+      return () => clearTimeout(timer)
     }
   }, [allSessionDone, workoutId, timerPhase])
 
@@ -1343,7 +1350,7 @@ export default function Traning(): React.JSX.Element {
               <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
             )}
 
-            {!editMode && workoutId && !allSessionDone && (
+            {!editMode && workoutId && !allSessionDone && completedSetsInSession > 0 && (
               <button className={styles.endWorkoutBtn} onClick={() => setShowEndDialog(true)}>{t('End workout')}</button>
             )}
 
