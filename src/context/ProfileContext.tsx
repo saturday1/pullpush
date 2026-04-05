@@ -155,19 +155,21 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     countdownSeconds: 10,
   })
 
-  async function load(): Promise<void> {
+  async function load(silent: boolean = false): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Reset loading flags
-    setState(prev => ({
-      ...prev,
-      loading: true,
-      profileLoading: true,
-      weightLoading: true,
-      sessionsLoading: true,
-      programsLoading: true,
-    }))
+    // Reset loading flags (skip on silent refresh to avoid splash screen)
+    if (!silent) {
+      setState(prev => ({
+        ...prev,
+        loading: true,
+        profileLoading: true,
+        weightLoading: true,
+        sessionsLoading: true,
+        programsLoading: true,
+      }))
+    }
 
     // Fire all queries in parallel, but update state as each resolves
     const profilePromise = supabase
@@ -285,7 +287,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     if (!user) return false
     const today = new Date().toISOString().slice(0, 10)
     const { error } = await supabase.from('weight_log').insert({ date: today, weight_kg: kg, user_id: user.id })
-    if (!error) await load()
+    if (!error) await load(true)
     return !error
   }
 
@@ -301,7 +303,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       row,
       { onConflict: 'user_id' }
     )
-    if (!error) await load()
+    if (!error) await load(true)
     return !error
   }
 
@@ -323,7 +325,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     if (prog) {
       await supabase.from('profile').upsert({ user_id: user.id, active_program_id: prog.id }, { onConflict: 'user_id' })
     }
-    await load()
+    await load(true)
   }
 
   async function switchProgram(id: string): Promise<void> {
@@ -337,7 +339,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
 
   async function renameProgram(id: string, name: string): Promise<void> {
     await supabase.from('training_programs').update({ name }).eq('id', id)
-    await load()
+    await load(true)
   }
 
   async function deleteProgram(id: string): Promise<void> {
@@ -351,7 +353,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       await supabase.from('profile').upsert({ user_id: user.id, active_program_id: null }, { onConflict: 'user_id' })
     }
     await supabase.from('training_programs').delete().eq('id', id)
-    await load()
+    await load(true)
   }
 
   async function saveSessions(sessionsArray: SessionSaveInput[]): Promise<void> {
@@ -367,7 +369,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       }))
       await supabase.from('training_sessions').insert(rows)
     }
-    await load()
+    await load(true)
   }
 
   return (
