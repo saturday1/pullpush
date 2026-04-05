@@ -710,12 +710,11 @@ export default function Traning(): React.JSX.Element {
       setWorkoutId(wId)
     }
 
-    // One set plan: countdown → work → rest (always, for transition to next exercise/set)
-    const plan: { phase: TimerPhase; duration: number }[] = [
-      { phase: 'countdown', duration: COUNTDOWN },
-      { phase: 'work', duration: workTime },
-      { phase: 'rest', duration: restSeconds },
-    ]
+    // One set plan: countdown → work → rest (skip 0-duration phases)
+    const plan: { phase: TimerPhase; duration: number }[] = []
+    if (COUNTDOWN > 0) plan.push({ phase: 'countdown', duration: COUNTDOWN })
+    if (workTime > 0) plan.push({ phase: 'work', duration: workTime })
+    if (restSeconds > 0) plan.push({ phase: 'rest', duration: restSeconds })
 
     timerPlanRef.current = plan
     timerStepRef.current = 0

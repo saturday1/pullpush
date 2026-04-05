@@ -61,9 +61,9 @@ export default function Profil(): React.JSX.Element {
             last_name: editLast.trim(),
             birth_date: editBirth || null,
             phone: editPhone.trim() || null,
-            rest_seconds: Math.max(1, parseInt(editRest) || 90),
-            sec_per_rep: Math.max(1, parseInt(editSecPerRep) || 4),
-            countdown_seconds: Math.max(1, parseInt(editCountdown) || 10),
+            rest_seconds: Math.max(0, parseInt(editRest) || 90),
+            sec_per_rep: Math.max(0, parseInt(editSecPerRep) || 4),
+            countdown_seconds: Math.max(0, parseInt(editCountdown) || 10),
         })
         setSaving(false)
         setEditing(false)
@@ -123,15 +123,15 @@ export default function Profil(): React.JSX.Element {
                             <div className={styles.fieldRow}>
                                 <label className={styles.field}>
                                     <span className={styles.fieldLabel}>{t('Rest timer (seconds)')}</span>
-                                    <input className={styles.fieldInput} type="number" min="1" step="1" value={editRest} onChange={e => setEditRest(e.target.value)} placeholder="90" />
+                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editRest} onChange={e => setEditRest(e.target.value)} placeholder="90" />
                                 </label>
                                 <label className={styles.field}>
                                     <span className={styles.fieldLabel}>{t('Sec per rep')}</span>
-                                    <input className={styles.fieldInput} type="number" min="1" step="1" value={editSecPerRep} onChange={e => setEditSecPerRep(e.target.value)} placeholder="4" />
+                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editSecPerRep} onChange={e => setEditSecPerRep(e.target.value)} placeholder="4" />
                                 </label>
                                 <label className={styles.field}>
                                     <span className={styles.fieldLabel}>{t('Countdown (sec)')}</span>
-                                    <input className={styles.fieldInput} type="number" min="1" step="1" value={editCountdown} onChange={e => setEditCountdown(e.target.value)} placeholder="10" />
+                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editCountdown} onChange={e => setEditCountdown(e.target.value)} placeholder="10" />
                                 </label>
                             </div>
                             <div className={styles.editActions}>
