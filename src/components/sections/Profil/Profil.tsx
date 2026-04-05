@@ -61,7 +61,7 @@ export default function Profil(): React.JSX.Element {
             last_name: editLast.trim(),
             birth_date: editBirth || null,
             phone: editPhone.trim() || null,
-            rest_seconds: parseInt(editRest) || 90,
+            rest_seconds: Math.max(1, parseInt(editRest) || 90),
             sec_per_rep: parseInt(editSecPerRep) || 4,
             countdown_seconds: parseInt(editCountdown) || 10,
         })
@@ -123,7 +123,7 @@ export default function Profil(): React.JSX.Element {
                             <div className={styles.fieldRow}>
                                 <label className={styles.field}>
                                     <span className={styles.fieldLabel}>{t('Rest timer (seconds)')}</span>
-                                    <input className={styles.fieldInput} type="number" min="10" step="5" value={editRest} onChange={e => setEditRest(e.target.value)} placeholder="90" />
+                                    <input className={styles.fieldInput} type="number" min="1" step="1" value={editRest} onChange={e => setEditRest(e.target.value)} placeholder="90" />
                                 </label>
                                 <label className={styles.field}>
                                     <span className={styles.fieldLabel}>{t('Sec per rep')}</span>
