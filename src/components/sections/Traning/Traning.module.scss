@@ -575,7 +575,7 @@
 }
 
 .miniTimerWork { background: #1a1a1a; }
-.miniTimerRest { background: #2b2152; }
+.miniTimerRest { background: linear-gradient(135deg, rgba(230, 130, 40, 0.6) 0%, rgba(200, 0, 180, 0.5) 40%, #2b2152 100%); }
 
 .miniTimerInfo {
   display: flex;

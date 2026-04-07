@@ -528,8 +528,9 @@ interface SortableRowProps {
 
 function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
-  const totalSets = log?.sets ?? 3
-  const allDone = completedSets >= totalSets
+  const configuredSets = log?.sets ?? 3
+  const totalDots = Math.max(configuredSets, completedSets)
+  const allDone = completedSets >= configuredSets
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -549,7 +550,7 @@ function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMod
         )}
         {!editMode && (completedSets > 0 || isTimerActive) && (
           <span className={styles.setProgress}>
-            {Array.from({ length: totalSets }, (_, i) => (
+            {Array.from({ length: totalDots }, (_, i) => (
               <span key={i} className={i < completedSets ? styles.setDotDone : styles.setDotPending} />
             ))}
             {completedSets > 0 && !isTimerActive && (
