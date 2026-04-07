@@ -528,8 +528,9 @@ interface SortableRowProps {
 
 function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
-  const totalSets = log?.sets ?? 3
-  const allDone = completedSets >= totalSets
+  const configuredSets = log?.sets ?? 3
+  const totalDots = Math.max(configuredSets, completedSets)
+  const allDone = completedSets >= configuredSets
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -549,7 +550,7 @@ function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMod
         )}
         {!editMode && (completedSets > 0 || isTimerActive) && (
           <span className={styles.setProgress}>
-            {Array.from({ length: totalSets }, (_, i) => (
+            {Array.from({ length: totalDots }, (_, i) => (
               <span key={i} className={i < completedSets ? styles.setDotDone : styles.setDotPending} />
             ))}
             {completedSets > 0 && !isTimerActive && (
@@ -1539,10 +1540,17 @@ export default function Traning(): React.JSX.Element {
       )}
 
       {timerMinimized && !paused && (timerPhase || countdownOverlay !== null) && (
-        <div className={styles.miniTimerBar} onClick={() => setTimerMinimized(false)}>
+        <div className={`${styles.miniTimerBar} ${timerPhase === 'work' ? styles.miniTimerWork : timerPhase === 'rest' ? styles.miniTimerRest : styles.miniTimerCountdown}`} onClick={() => setTimerMinimized(false)}>
+          {timerPhase === 'rest' && (
+            <>
+              <div className={styles.blobOrange} />
+              <div className={styles.blobPink} />
+              <div className={styles.blobPurple} />
+            </>
+          )}
           <div className={styles.miniTimerInfo}>
             <span className={styles.miniTimerPhase}>
-              {countdownOverlay !== null ? `SET ${timerSet}` : timerPhase === 'work' ? `SET ${timerSet}` : t('Rest')}
+              {countdownOverlay !== null ? `Set ${timerSet} — ${t('Countdown')}` : timerPhase === 'work' ? `Set ${timerSet} — ${t('Reps')}` : `Set ${timerSet} — ${t('Rest')}`}
             </span>
             <span className={styles.miniTimerTime}>
               {countdownOverlay !== null
