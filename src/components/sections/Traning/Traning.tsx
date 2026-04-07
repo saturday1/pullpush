@@ -688,6 +688,7 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function startExerciseTimer(ex: Exercise): Promise<void> {
+    setTimerMinimized(false)
     const log = logs[ex.id]
     const sets = log?.sets ?? 3
     const reps = log?.reps ?? 10
