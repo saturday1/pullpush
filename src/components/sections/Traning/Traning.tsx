@@ -921,8 +921,8 @@ export default function Traning(): React.JSX.Element {
     try { LocalNotifications.cancel({ notifications: [{ id: 2 }] }) } catch {}
   }
 
-  async function finishWorkout(save: boolean): Promise<void> {
-    // Save current in-progress set regardless of phase (countdown, work, rest)
+  // Save/discard the current set and stop the timer — does NOT end the whole workout
+  async function saveSetAndStop(save: boolean): Promise<void> {
     if (save && workoutId && timerExId) {
       const ctx = pausedPlanRef.current
       const exLog = timerExId ? logs[timerExId] : undefined
@@ -939,6 +939,11 @@ export default function Traning(): React.JSX.Element {
       })
     }
     stopExerciseTimer()
+  }
+
+  // End the entire workout (via "Avsluta pass" button)
+  async function finishWorkout(save: boolean): Promise<void> {
+    stopExerciseTimer()
     if (workoutId) {
       if (save) {
         await supabase.from('workouts').update({ completed_at: new Date().toISOString() }).eq('id', workoutId)
@@ -946,12 +951,9 @@ export default function Traning(): React.JSX.Element {
         await supabase.from('workouts').delete().eq('id', workoutId)
       }
     }
+    setWorkoutId(null)
+    setCompletedSets({})
     setShowEndDialog(false)
-    // Delay clearing so the user sees the updated dots briefly
-    setTimeout(() => {
-      setWorkoutId(null)
-      setCompletedSets({})
-    }, save ? 2000 : 0)
   }
 
   async function undoLastSet(exId: string): Promise<void> {
@@ -1518,8 +1520,8 @@ export default function Traning(): React.JSX.Element {
             </div>
             <div className={styles.endDialogActions}>
               <button className={styles.pauseResumeBtn} onClick={resumeExerciseTimer}>{t('Continue')}</button>
-              <button className={styles.pauseStopBtn} onClick={() => { stopExerciseTimer(); finishWorkout(true) }}>{t('Save & end')}</button>
-              <button className={styles.pauseStopBtn} onClick={() => { stopExerciseTimer(); finishWorkout(false) }}>{t('End without saving')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => saveSetAndStop(true)}>{t('Save & end')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => saveSetAndStop(false)}>{t('End without saving')}</button>
             </div>
           </div>
         </div>
