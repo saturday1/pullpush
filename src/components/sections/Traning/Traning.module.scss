@@ -569,11 +569,13 @@
   left: 0;
   right: 0;
   z-index: 9997;
-  background: var(--text);
   color: #fff;
   padding: 12px 24px calc(env(safe-area-inset-bottom, 0px) + 12px);
   cursor: pointer;
 }
+
+.miniTimerWork { background: #1a1a1a; }
+.miniTimerRest { background: #2b2152; }
 
 .miniTimerInfo {
   display: flex;
