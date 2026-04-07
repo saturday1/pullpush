@@ -1,3 +1,4 @@
+import UIKit
 import Capacitor
 import ActivityKit
 
@@ -29,6 +30,9 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         let seconds = call.getInt("seconds") ?? 90
         let label = call.getString("label") ?? "PULLPUSH"
 
+        // Keep screen on during timer
+        DispatchQueue.main.async { UIApplication.shared.isIdleTimerDisabled = true }
+
         if #available(iOS 16.2, *) {
             Task {
                 // End ALL existing activities and wait before starting new one
@@ -59,6 +63,9 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func stop(_ call: CAPPluginCall) {
+        // Allow screen to sleep again
+        DispatchQueue.main.async { UIApplication.shared.isIdleTimerDisabled = false }
+
         if #available(iOS 16.2, *) {
             Task {
                 for activity in Activity<RestTimerAttributes>.activities {
