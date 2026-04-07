@@ -597,6 +597,7 @@ export default function Traning(): React.JSX.Element {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [countdownOverlay, setCountdownOverlay] = useState<number | null>(null)
   const [paused,           setPaused]           = useState<boolean>(false)
+  const [timerMinimized,   setTimerMinimized]   = useState<boolean>(false)
   const pausedRemainRef = useRef<number>(0)
   const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
   const timerEndRef = useRef<number>(0)
@@ -687,6 +688,7 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function startExerciseTimer(ex: Exercise): Promise<void> {
+    setTimerMinimized(false)
     const log = logs[ex.id]
     const sets = log?.sets ?? 3
     const reps = log?.reps ?? 10
@@ -880,7 +882,7 @@ export default function Traning(): React.JSX.Element {
     const endTime = Date.now() + remain * 1000
     timerEndRef.current = endTime
     setTimerSecs(remain)
-    setTimerTotalSecs(remain)
+    // Keep original timerTotalSecs for progress bar — don't reset it
 
     // Restart Live Activity with remaining time
     const remainingTotal = plan.slice(step).reduce((sum, p) => sum + p.duration, 0) - (plan[step].duration - remain)
@@ -923,21 +925,38 @@ export default function Traning(): React.JSX.Element {
 
   // Save/discard the current set and stop the timer — does NOT end the whole workout
   async function saveSetAndStop(save: boolean): Promise<void> {
-    if (save && workoutId && timerExId) {
-      const ctx = pausedPlanRef.current
-      const exLog = timerExId ? logs[timerExId] : undefined
-      const currentSet = ctx?.currentSet ?? timerSet
-      const kg = ctx?.kg ?? exLog?.kg ?? null
-      const reps = ctx?.reps ?? exLog?.reps ?? 10
-      setCompletedSets(prev => ({ ...prev, [timerExId!]: currentSet }))
-      await supabase.from('workout_sets').insert({
-        workout_id: workoutId,
-        exercise_id: timerExId,
-        set_number: currentSet,
-        kg,
-        reps,
-      })
+    const ctx = pausedPlanRef.current
+    const currentSet = ctx?.currentSet ?? timerSet
+    const currentPhase = ctx?.plan[ctx.step]?.phase ?? timerPhase
+    const exId = timerExId
+
+    if (save && workoutId && exId) {
+      // If set not yet saved (countdown or work), save it now
+      if (currentPhase !== 'rest') {
+        const exLog = exId ? logs[exId] : undefined
+        const kg = ctx?.kg ?? exLog?.kg ?? null
+        const reps = ctx?.reps ?? exLog?.reps ?? 10
+        setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
+        await supabase.from('workout_sets').insert({
+          workout_id: workoutId, exercise_id: exId, set_number: currentSet, kg, reps,
+        })
+      }
+      // If rest, set is already saved — nothing to do
     }
+
+    if (!save && workoutId && exId) {
+      // If set was already saved (rest phase), undo it
+      if (currentPhase === 'rest') {
+        setCompletedSets(prev => ({ ...prev, [exId]: Math.max(0, currentSet - 1) }))
+        await supabase.from('workout_sets')
+          .delete()
+          .eq('workout_id', workoutId)
+          .eq('exercise_id', exId)
+          .eq('set_number', currentSet)
+      }
+      // If countdown or work, nothing was saved — nothing to undo
+    }
+
     stopExerciseTimer()
   }
 
@@ -1453,7 +1472,7 @@ export default function Traning(): React.JSX.Element {
           onClose={() => setEditingSession(false)}
         />
       )}
-      {countdownOverlay !== null && timerExercise && !paused && (
+      {countdownOverlay !== null && timerExercise && !paused && !timerMinimized && (
         <div className={styles.countdownOverlay} onClick={pauseCountdown}>
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>SET {timerSet}</div>
@@ -1467,11 +1486,14 @@ export default function Traning(): React.JSX.Element {
               <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg | {toLbs(timerExLog.kg)} lbs</div>
             )}
           </div>
-          <div className={styles.overlayHint}>{t('Tap to pause or end')}</div>
+          <div className={styles.overlayHintRow}>
+            <span>{t('Tap to pause or end')}</span>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+          </div>
         </div>
       )}
 
-      {timerPhase === 'work' && timerExercise && !paused && (
+      {timerPhase === 'work' && timerExercise && !paused && !timerMinimized && (
         <div className={styles.workOverlay} onClick={pauseExerciseTimer}>
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>SET {timerSet}</div>
@@ -1487,11 +1509,14 @@ export default function Traning(): React.JSX.Element {
               <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg | {toLbs(timerExLog.kg)} lbs</div>
             )}
           </div>
-          <div className={styles.overlayHint}>{t('Tap to pause or end')}</div>
+          <div className={styles.overlayHintRow}>
+            <span>{t('Tap to pause or end')}</span>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+          </div>
         </div>
       )}
 
-      {timerPhase === 'rest' && !paused && (
+      {timerPhase === 'rest' && !paused && !timerMinimized && (
         <div className={styles.restOverlay} onClick={pauseExerciseTimer}>
           <div className={styles.blobOrange} />
           <div className={styles.blobPink} />
@@ -1506,11 +1531,36 @@ export default function Traning(): React.JSX.Element {
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
           </div>
-          <div className={styles.overlayHint}>{t('Tap to pause or end')}</div>
+          <div className={styles.overlayHintRow}>
+            <span>{t('Tap to pause or end')}</span>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+          </div>
         </div>
       )}
 
-      {paused && (timerPhase || countdownOverlay !== null) && (
+      {timerMinimized && !paused && (timerPhase || countdownOverlay !== null) && (
+        <div className={styles.miniTimerBar} onClick={() => setTimerMinimized(false)}>
+          <div className={styles.miniTimerInfo}>
+            <span className={styles.miniTimerPhase}>
+              {countdownOverlay !== null ? `SET ${timerSet}` : timerPhase === 'work' ? `SET ${timerSet}` : t('Rest')}
+            </span>
+            <span className={styles.miniTimerTime}>
+              {countdownOverlay !== null
+                ? countdownOverlay
+                : `${Math.floor(timerSecs / 60)}:${String(timerSecs % 60).padStart(2, '0')}`}
+            </span>
+          </div>
+          <div className={styles.miniTimerTrack}>
+            <div className={styles.miniTimerFill} style={{ width: `${
+              countdownOverlay !== null
+                ? (countdownSeconds > 0 ? (countdownOverlay / countdownSeconds) * 100 : 0)
+                : (timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0)
+            }%` }} />
+          </div>
+        </div>
+      )}
+
+      {paused && !timerMinimized && (timerPhase || countdownOverlay !== null) && (
         <div className={styles.pauseOverlay}>
           <div className={styles.overlayContent}>
             <div className={styles.pauseTitle}>{t('Paused')}</div>
