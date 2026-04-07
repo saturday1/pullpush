@@ -946,9 +946,12 @@ export default function Traning(): React.JSX.Element {
         await supabase.from('workouts').delete().eq('id', workoutId)
       }
     }
-    setWorkoutId(null)
-    setCompletedSets({})
     setShowEndDialog(false)
+    // Delay clearing so the user sees the updated dots briefly
+    setTimeout(() => {
+      setWorkoutId(null)
+      setCompletedSets({})
+    }, save ? 2000 : 0)
   }
 
   async function undoLastSet(exId: string): Promise<void> {
