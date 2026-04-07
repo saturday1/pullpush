@@ -327,75 +327,6 @@
   overflow: hidden;
 }
 
-.countdownInner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.countdownSetLabel {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(28px, 7vw, 42px);
-  font-weight: 700;
-  font-style: italic;
-  text-transform: uppercase;
-  color: #fff;
-}
-
-.countdownExLine {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.countdownExName {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(20px, 5vw, 28px);
-  font-weight: 700;
-  font-style: italic;
-  text-transform: uppercase;
-  color: #fff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 55%;
-}
-
-.countdownWeight {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(20px, 5vw, 28px);
-  font-weight: 300;
-  font-style: italic;
-  text-transform: uppercase;
-  color: #fff;
-  white-space: nowrap;
-}
-
-.countdownNumber {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(140px, 35vw, 280px);
-  font-weight: 700;
-  font-style: italic;
-  color: #fff;
-  line-height: 1;
-  margin-top: 16px;
-  padding: 0 16px;
-  animation: countPulse 1s ease-in-out infinite;
-}
-
-.countdownHint {
-  position: absolute;
-  bottom: clamp(60px, 10vh, 120px);
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  color: #fff;
-}
 
 @keyframes countPulse {
   0%, 100% { transform: scale(1); opacity: 1; }
@@ -606,19 +537,33 @@
   transition: width 0.3s linear;
 }
 
-.overlayNext {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 16px;
-  font-weight: 500;
+.overlayReps {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(48px, 12vw, 80px);
+  font-weight: 700;
+  font-style: italic;
   color: #fff;
-  margin-bottom: 8px;
+  line-height: 1;
+  margin-top: 20px;
+}
+
+.overlayWeightBelow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 300;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  margin-top: 4px;
 }
 
 .overlayHint {
+  position: absolute;
+  bottom: clamp(40px, 8vh, 80px);
+  left: clamp(24px, 6vw, 48px);
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   color: #fff;
-  margin-top: 40px;
 }
 
 // ── Pause overlay ───────────────────────────────────────────

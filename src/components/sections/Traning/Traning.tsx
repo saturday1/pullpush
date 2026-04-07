@@ -1455,17 +1455,19 @@ export default function Traning(): React.JSX.Element {
       )}
       {countdownOverlay !== null && timerExercise && !paused && (
         <div className={styles.countdownOverlay} onClick={pauseCountdown}>
-          <div className={styles.countdownInner}>
-            <div className={styles.countdownSetLabel}>SET {timerSet}</div>
-            <div className={styles.countdownExLine}>
-              <span className={styles.countdownExName}>{timerExercise.name}</span>
-              {timerExLog?.kg != null && (
-                <span className={styles.countdownWeight}>{timerExLog.kg}kg | {toLbs(timerExLog.kg)} lbs</span>
-              )}
+          <div className={styles.overlayContent}>
+            <div className={styles.overlaySetLabel}>SET {timerSet}</div>
+            <div className={styles.overlayExName}>{timerExercise.name}</div>
+            <div className={styles.overlayTime}>{countdownOverlay}</div>
+            <div className={styles.overlayProgressTrack}>
+              <div className={styles.overlayProgressFill} style={{ width: `${countdownSeconds > 0 ? (countdownOverlay / countdownSeconds) * 100 : 0}%` }} />
             </div>
-            <div className={styles.countdownNumber}>{countdownOverlay}</div>
+            <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
+            {timerExLog?.kg != null && (
+              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg | {toLbs(timerExLog.kg)} lbs</div>
+            )}
           </div>
-          <div className={styles.countdownHint}>{t('Tap to pause')}</div>
+          <div className={styles.overlayHint}>{t('Tap to pause or end')}</div>
         </div>
       )}
 
@@ -1473,20 +1475,19 @@ export default function Traning(): React.JSX.Element {
         <div className={styles.workOverlay} onClick={pauseExerciseTimer}>
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>SET {timerSet}</div>
-            <div className={styles.overlayExLine}>
-              <span className={styles.overlayExName}>{timerExercise.name}</span>
-              {timerExLog?.kg != null && (
-                <span className={styles.overlayWeight}>{timerExLog.kg}kg | {toLbs(timerExLog.kg)} lbs</span>
-              )}
-            </div>
+            <div className={styles.overlayExName}>{timerExercise.name}</div>
             <div className={styles.overlayTime}>
               {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
             </div>
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayHint}>{t('Tap to pause')}</div>
+            <div className={styles.overlayReps}>{Math.ceil(timerSecs / secPerRep)}x</div>
+            {timerExLog?.kg != null && (
+              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg | {toLbs(timerExLog.kg)} lbs</div>
+            )}
           </div>
+          <div className={styles.overlayHint}>{t('Tap to pause or end')}</div>
         </div>
       )}
 
@@ -1496,16 +1497,16 @@ export default function Traning(): React.JSX.Element {
           <div className={styles.blobPink} />
           <div className={styles.blobPurple} />
           <div className={styles.overlayContent}>
-            <div className={styles.overlayRestLabel}>{t('Rest')}</div>
+            <div className={styles.overlaySetLabel}>{t('Rest')}</div>
+            <div className={styles.overlayExName}>{nextUpLabel}</div>
             <div className={styles.overlayTime}>
               {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
             </div>
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayNext}>{t('Next')}: {nextUpLabel}</div>
-            <div className={styles.overlayHint}>{t('Tap to pause')}</div>
           </div>
+          <div className={styles.overlayHint}>{t('Tap to pause or end')}</div>
         </div>
       )}
 
