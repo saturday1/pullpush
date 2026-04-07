@@ -36,8 +36,8 @@
     left: 0;
     right: 0;
     z-index: 101;
-    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    mask-image: none;
+    -webkit-mask-image: none;
     pointer-events: none;
 }
 
