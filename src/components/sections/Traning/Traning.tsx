@@ -880,7 +880,7 @@ export default function Traning(): React.JSX.Element {
     const endTime = Date.now() + remain * 1000
     timerEndRef.current = endTime
     setTimerSecs(remain)
-    setTimerTotalSecs(remain)
+    // Keep original timerTotalSecs for progress bar — don't reset it
 
     // Restart Live Activity with remaining time
     const remainingTotal = plan.slice(step).reduce((sum, p) => sum + p.duration, 0) - (plan[step].duration - remain)
