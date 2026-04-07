@@ -384,7 +384,10 @@
 
 .restOverlay .blobOrange,
 .restOverlay .blobPink,
-.restOverlay .blobPurple {
+.restOverlay .blobPurple,
+.miniTimerBar .blobOrange,
+.miniTimerBar .blobPink,
+.miniTimerBar .blobPurple {
   position: absolute;
   border-radius: 50%;
   filter: blur(60px);

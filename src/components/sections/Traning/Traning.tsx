@@ -1541,6 +1541,13 @@ export default function Traning(): React.JSX.Element {
 
       {timerMinimized && !paused && (timerPhase || countdownOverlay !== null) && (
         <div className={`${styles.miniTimerBar} ${timerPhase === 'rest' || countdownOverlay !== null ? styles.miniTimerRest : styles.miniTimerWork}`} onClick={() => setTimerMinimized(false)}>
+          {(timerPhase === 'rest' || countdownOverlay !== null) && (
+            <>
+              <div className={styles.blobOrange} />
+              <div className={styles.blobPink} />
+              <div className={styles.blobPurple} />
+            </>
+          )}
           <div className={styles.miniTimerInfo}>
             <span className={styles.miniTimerPhase}>
               {countdownOverlay !== null ? `SET ${timerSet}` : timerPhase === 'work' ? `SET ${timerSet}` : t('Rest')}
