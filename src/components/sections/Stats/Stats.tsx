@@ -316,6 +316,7 @@ export default function Stats(): React.JSX.Element {
                   tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
                 />
                 <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                   contentStyle={{
                     background: 'var(--card)',
                     border: '1px solid var(--border)',
