@@ -30,32 +30,28 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         let label = call.getString("label") ?? "PULLPUSH"
 
         if #available(iOS 16.2, *) {
-            let attributes = RestTimerAttributes(totalSeconds: seconds, label: label)
-            let endTime = Date().addingTimeInterval(TimeInterval(seconds))
-            let state = RestTimerAttributes.ContentState(endTime: endTime)
-
-            // End any existing activities first
-            for existing in Activity<RestTimerAttributes>.activities {
-                Task { await existing.end(nil, dismissalPolicy: .immediate) }
-            }
-
-            do {
-                let activity = try Activity.request(
-                    attributes: attributes,
-                    content: .init(state: state, staleDate: endTime),
-                    pushType: nil
-                )
-                // Auto-dismiss when timer reaches 0
-                Task {
-                    try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
-                    await activity.end(nil, dismissalPolicy: .immediate)
-                    print("🟢 Live Activity auto-dismissed")
+            Task {
+                // End ALL existing activities and wait before starting new one
+                for existing in Activity<RestTimerAttributes>.activities {
+                    await existing.end(nil, dismissalPolicy: .immediate)
                 }
-                print("🟢 Live Activity started: \(activity.id)")
-                call.resolve(["id": activity.id])
-            } catch {
-                print("🔴 Live Activity failed: \(error)")
-                call.reject("Failed to start Live Activity: \(error.localizedDescription)")
+
+                let attributes = RestTimerAttributes(totalSeconds: seconds, label: label)
+                let endTime = Date().addingTimeInterval(TimeInterval(seconds))
+                let state = RestTimerAttributes.ContentState(endTime: endTime)
+
+                do {
+                    let activity = try Activity.request(
+                        attributes: attributes,
+                        content: .init(state: state, staleDate: endTime),
+                        pushType: nil
+                    )
+                    print("🟢 Live Activity started: \(activity.id)")
+                    call.resolve(["id": activity.id])
+                } catch {
+                    print("🔴 Live Activity failed: \(error)")
+                    call.reject("Failed: \(error.localizedDescription)")
+                }
             }
         } else {
             call.reject("Live Activities require iOS 16.1+")
