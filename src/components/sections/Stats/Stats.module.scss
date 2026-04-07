@@ -11,7 +11,7 @@
   margin-bottom: 32px;
 
   @media (min-width: 480px) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 }
 
@@ -43,6 +43,24 @@
   text-overflow: ellipsis;
 }
 
+.summaryValueSmall {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summarySubtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
 // ── Section header ────────────────────────────────────────────
 
 .sectionHeader {
@@ -64,6 +82,7 @@
 }
 
 .workoutCard {
+  position: relative;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -77,7 +96,8 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  overflow: hidden;
 
   &:hover {
     background: var(--bg2, var(--bg));
@@ -87,6 +107,83 @@
   &:active {
     transform: scale(0.995);
   }
+}
+
+.workoutCardPr {
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg, #ff5c35 0%, #e8197d 55%, #7c3aed 100%) border-box;
+  border: 1px solid transparent;
+  box-shadow: 0 4px 24px rgba(232, 25, 125, 0.18);
+
+  &:hover {
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, #fff, #fff) border-box;
+    box-shadow: 0 6px 28px rgba(255, 255, 255, 0.22);
+  }
+}
+
+.workoutDateRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.prBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5c35 0%, #e8197d 55%, #7c3aed 100%);
+  color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(232, 25, 125, 0.35);
+  animation: prBadgeShimmer 2.4s ease-in-out infinite;
+}
+
+.prBadgeIcon {
+  font-size: 12px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.prBadgeText {
+  white-space: nowrap;
+}
+
+@keyframes prBadgeShimmer {
+  0%, 100% { transform: scale(1); box-shadow: 0 2px 8px rgba(232, 25, 125, 0.35); }
+  50%      { transform: scale(1.04); box-shadow: 0 4px 14px rgba(232, 25, 125, 0.55); }
+}
+
+.modalPrBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 92, 53, 0.12), rgba(232, 25, 125, 0.12), rgba(124, 58, 237, 0.12));
+  border: 1px solid rgba(232, 25, 125, 0.3);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.modalPrBannerIcon {
+  font-size: 20px;
+  flex-shrink: 0;
 }
 
 .workoutCardChevron {
@@ -103,6 +200,7 @@
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .workoutDate {
@@ -128,51 +226,6 @@
   color: var(--muted);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-// ── Exercise picker ───────────────────────────────────────────
-
-.exercisePicker {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  margin-bottom: 16px;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar { display: none; }
-}
-
-.exerciseChip {
-  flex-shrink: 0;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 7px 14px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--text);
-  }
-}
-
-.exerciseChipActive {
-  background: var(--gradient);
-  border-color: transparent;
-  color: #fff;
-
-  &:hover {
-    color: #fff;
-    border-color: transparent;
-    opacity: 0.9;
-  }
 }
 
 // ── Chart ─────────────────────────────────────────────────────
@@ -364,6 +417,23 @@
   text-transform: uppercase;
   color: var(--text);
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modalExerciseNamePr {
+  background: linear-gradient(135deg, #ff5c35 0%, #e8197d 55%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.modalExerciseNamePrIcon {
+  font-size: 14px;
+  -webkit-text-fill-color: initial;
+  color: initial;
 }
 
 .modalSetRow {

@@ -46,15 +46,19 @@
   "Stats": "Stats",
   "Training statistics": "Training statistics",
   "Workout History": "Workout History",
-  "Strength Progress": "Strength Progress",
   "No workouts yet": "No workouts yet",
   "Complete your first workout to see stats here": "Complete your first workout to see stats here",
   "Total workouts": "Total workouts",
   "Total sets": "Total sets",
   "Most trained": "Most trained",
   "Training since": "Training since",
-  "Max weight": "Max weight",
   "Unknown": "Unknown",
   "Workouts per month": "Workouts per month",
-  "Workouts": "Workouts"
+  "Workouts": "Workouts",
+  "Favorite this month": "Favorite this month",
+  "sets": "sets",
+  "PR": "PR",
+  "New PR!": "New PR!",
+  "new personal record": "new personal record",
+  "new personal records": "new personal records"
 }
