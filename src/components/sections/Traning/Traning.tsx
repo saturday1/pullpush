@@ -22,9 +22,9 @@ import styles from './Traning.module.scss'
 // --- Data interfaces ---
 
 interface Exercise {
-  id: number
+  id: string
   name: string
-  session_id: number
+  session_id: string
   user_id: string
   sort_order: number
   tab: string
@@ -154,7 +154,7 @@ function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): R
 interface LogModalProps {
   exercise: Exercise
   current: ExerciseLog | undefined
-  onSave: (exerciseId: number, kg: number, sets: number | null, reps: number) => Promise<void>
+  onSave: (exerciseId: string, kg: number, sets: number | null, reps: number) => Promise<void>
   onClose: () => void
 }
 
@@ -519,7 +519,7 @@ interface SortableRowProps {
   onName: (ex: Exercise) => void
   onLog: (ex: Exercise) => void
   onPlay: (ex: Exercise) => void
-  onUndo: (exId: number) => void
+  onUndo: (exId: string) => void
   hideSets: boolean
   editMode: boolean
   isTimerActive: boolean
@@ -586,18 +586,19 @@ export default function Traning(): React.JSX.Element {
 
   // Exercise timer
   type TimerPhase = 'countdown' | 'work' | 'rest' | null
-  const [timerExId,        setTimerExId]        = useState<number | null>(null)
+  const [timerExId,        setTimerExId]        = useState<string | null>(null)
   const [timerPhase,       setTimerPhase]       = useState<TimerPhase>(null)
   const [timerSet,         setTimerSet]         = useState<number>(0)
   const [timerSetsTotal,   setTimerSetsTotal]   = useState<number>(0)
   const [timerSecs,        setTimerSecs]        = useState<number>(0)
   const [timerTotalSecs,   setTimerTotalSecs]   = useState<number>(0)
-  const [completedSets,    setCompletedSets]    = useState<Record<number, number>>({})
+  const [completedSets,    setCompletedSets]    = useState<Record<string, number>>({})
+  const [restoreComplete,  setRestoreComplete]  = useState<boolean>(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [countdownOverlay, setCountdownOverlay] = useState<number | null>(null)
   const [paused,           setPaused]           = useState<boolean>(false)
   const pausedRemainRef = useRef<number>(0)
-  const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: number; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
+  const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
   const timerEndRef = useRef<number>(0)
   const timerPlanRef = useRef<{ phase: TimerPhase; duration: number }[]>([])
   const timerStepRef = useRef<number>(0)
@@ -696,23 +697,24 @@ export default function Traning(): React.JSX.Element {
     // Create workout if first set in this session
     let wId = workoutId
     if (!wId && userId && activeTab && activeProgramId) {
-      const { data } = await supabase.from('workouts').insert({
+      const { data, error } = await supabase.from('workouts').insert({
         user_id: userId,
         session_id: activeTab,
         program_id: activeProgramId,
       }).select('id').single()
-      if (data) {
-        wId = data.id
-        setWorkoutId(wId)
+      if (error || !data) {
+        console.error('workouts insert failed', error)
+        return  // abort — annars sätts completedSets utan persistence
       }
+      wId = data.id
+      setWorkoutId(wId)
     }
 
-    // One set plan: countdown → work → rest (always, for transition to next exercise/set)
-    const plan: { phase: TimerPhase; duration: number }[] = [
-      { phase: 'countdown', duration: COUNTDOWN },
-      { phase: 'work', duration: workTime },
-      { phase: 'rest', duration: restSeconds },
-    ]
+    // One set plan: countdown → work → rest (skip 0-duration phases)
+    const plan: { phase: TimerPhase; duration: number }[] = []
+    if (COUNTDOWN > 0) plan.push({ phase: 'countdown', duration: COUNTDOWN })
+    if (workTime > 0) plan.push({ phase: 'work', duration: workTime })
+    if (restSeconds > 0) plan.push({ phase: 'rest', duration: restSeconds })
 
     timerPlanRef.current = plan
     timerStepRef.current = 0
@@ -728,7 +730,7 @@ export default function Traning(): React.JSX.Element {
     runTimerStep(plan, 0, ex.id, currentSet, sets, log?.kg ?? null, reps, wId)
   }
 
-  function runTimerStep(plan: { phase: TimerPhase; duration: number }[], step: number, exId: number, currentSet: number, setsTotal: number, kg: number | null, reps: number, wId: string | null): void {
+  function runTimerStep(plan: { phase: TimerPhase; duration: number }[], step: number, exId: string, currentSet: number, setsTotal: number, kg: number | null, reps: number, wId: string | null): void {
     if (step >= plan.length) {
       // Set done — stop and wait for next play
       if (timerRef.current) clearInterval(timerRef.current)
@@ -794,13 +796,18 @@ export default function Traning(): React.JSX.Element {
           setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
           // Save completed set to database
           if (wId) {
-            supabase.from('workout_sets').insert({
-              workout_id: wId,
-              exercise_id: exId,
-              set_number: currentSet,
-              kg,
-              reps,
-            }).then(() => {})
+            void (async () => {
+              const { error } = await supabase.from('workout_sets').insert({
+                workout_id: wId,
+                exercise_id: exId,
+                set_number: currentSet,
+                kg,
+                reps,
+              })
+              if (error) console.error('workout_sets insert failed', { wId, exId, currentSet, error })
+            })()
+          } else {
+            console.warn('workout_sets insert skipped: no workoutId')
           }
         }
 
@@ -914,6 +921,27 @@ export default function Traning(): React.JSX.Element {
     try { LocalNotifications.cancel({ notifications: [{ id: 2 }] }) } catch {}
   }
 
+  // Save/discard the current set and stop the timer — does NOT end the whole workout
+  async function saveSetAndStop(save: boolean): Promise<void> {
+    if (save && workoutId && timerExId) {
+      const ctx = pausedPlanRef.current
+      const exLog = timerExId ? logs[timerExId] : undefined
+      const currentSet = ctx?.currentSet ?? timerSet
+      const kg = ctx?.kg ?? exLog?.kg ?? null
+      const reps = ctx?.reps ?? exLog?.reps ?? 10
+      setCompletedSets(prev => ({ ...prev, [timerExId!]: currentSet }))
+      await supabase.from('workout_sets').insert({
+        workout_id: workoutId,
+        exercise_id: timerExId,
+        set_number: currentSet,
+        kg,
+        reps,
+      })
+    }
+    stopExerciseTimer()
+  }
+
+  // End the entire workout (via "Avsluta pass" button)
   async function finishWorkout(save: boolean): Promise<void> {
     stopExerciseTimer()
     if (workoutId) {
@@ -928,18 +956,18 @@ export default function Traning(): React.JSX.Element {
     setShowEndDialog(false)
   }
 
-  function undoLastSet(exId: number): void {
+  async function undoLastSet(exId: string): Promise<void> {
     const prev = completedSets[exId] ?? 0
     if (prev <= 0) return
     setCompletedSets(p => ({ ...p, [exId]: prev - 1 }))
     // Delete from database
     if (workoutId) {
-      supabase.from('workout_sets')
+      const { error } = await supabase.from('workout_sets')
         .delete()
         .eq('workout_id', workoutId)
         .eq('exercise_id', exId)
         .eq('set_number', prev)
-        .then(() => {})
+      if (error) console.error('workout_sets delete failed', error)
     }
   }
 
@@ -986,31 +1014,36 @@ export default function Traning(): React.JSX.Element {
     setExercisesLoading(false)
 
     // Resume unfinished workout if exists
-    const { data: openWorkout } = await supabase.from('workouts')
-      .select('id')
-      .eq('user_id', user.id)
-      .is('completed_at', null)
-      .order('started_at', { ascending: false })
-      .limit(1)
-      .single()
+    try {
+      const { data: openWorkouts, error: wErr } = await supabase.from('workouts')
+        .select('id')
+        .eq('user_id', user.id)
+        .is('completed_at', null)
+        .order('started_at', { ascending: false })
+        .limit(1)
+      if (wErr) console.error('open workouts query failed', wErr)
 
-    if (openWorkout) {
-      setWorkoutId(openWorkout.id)
-      const { data: sets } = await supabase.from('workout_sets')
-        .select('exercise_id, set_number')
-        .eq('workout_id', openWorkout.id)
+      if (openWorkouts && openWorkouts.length > 0) {
+        const openWorkout = openWorkouts[0]
+        const { data: sets, error: sErr } = await supabase.from('workout_sets')
+          .select('exercise_id, set_number')
+          .eq('workout_id', openWorkout.id)
+        if (sErr) console.error('workout_sets query failed', sErr)
 
-      if (sets) {
-        const restored: Record<number, number> = {}
-        for (const s of sets as Array<{ exercise_id: number; set_number: number }>) {
-          restored[s.exercise_id] = Math.max(restored[s.exercise_id] ?? 0, s.set_number)
+        const restored: Record<string, number> = {}
+        for (const s of (sets ?? []) as Array<{ exercise_id: string | number; set_number: number }>) {
+          const key = String(s.exercise_id)
+          restored[key] = Math.max(restored[key] ?? 0, s.set_number)
         }
         setCompletedSets(restored)
+        setWorkoutId(openWorkout.id)
       }
+    } finally {
+      setRestoreComplete(true)
     }
   }
 
-  async function handleLogSave(exerciseId: number, kg: number, sets: number | null, reps: number): Promise<void> {
+  async function handleLogSave(exerciseId: string, kg: number, sets: number | null, reps: number): Promise<void> {
     await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps })
     setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps } }))
     setLogging(null)
@@ -1166,10 +1199,24 @@ export default function Traning(): React.JSX.Element {
 
   // Auto-complete workout when all sets done
   useEffect(() => {
-    if (allSessionDone && workoutId && !timerPhase) {
-      supabase.from('workouts').update({ completed_at: new Date().toISOString() }).eq('id', workoutId)
-    }
-  }, [allSessionDone, workoutId, timerPhase])
+    if (!restoreComplete) return
+    if (currentExercises.length === 0) return
+    if (!allSessionDone || !workoutId || timerPhase) return
+
+    const id = workoutId
+    void (async () => {
+      const { error } = await supabase.from('workouts')
+        .update({ completed_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) console.error('workout auto-complete failed', error)
+    })()
+    // Keep "Workout complete!" visible briefly, then reset
+    const timer = setTimeout(() => {
+      setWorkoutId(null)
+      setCompletedSets({})
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [restoreComplete, currentExercises.length, allSessionDone, workoutId, timerPhase])
 
   // Find active exercise name/details for overlay
   const timerExercise = currentExercises.find(ex => ex.id === timerExId)
@@ -1343,7 +1390,7 @@ export default function Traning(): React.JSX.Element {
               <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
             )}
 
-            {!editMode && workoutId && !allSessionDone && (
+            {!editMode && workoutId && !allSessionDone && completedSetsInSession > 0 && (
               <button className={styles.endWorkoutBtn} onClick={() => setShowEndDialog(true)}>{t('End workout')}</button>
             )}
 
@@ -1471,9 +1518,10 @@ export default function Traning(): React.JSX.Element {
                 ? countdownOverlay
                 : `${Math.floor(timerSecs / 60)}:${String(timerSecs % 60).padStart(2, '0')}`}
             </div>
-            <div className={styles.pauseActions}>
+            <div className={styles.endDialogActions}>
               <button className={styles.pauseResumeBtn} onClick={resumeExerciseTimer}>{t('Continue')}</button>
-              <button className={styles.pauseStopBtn} onClick={stopExerciseTimer}>{t('Stop')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => saveSetAndStop(true)}>{t('Save & end')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => saveSetAndStop(false)}>{t('End without saving')}</button>
             </div>
           </div>
         </div>
