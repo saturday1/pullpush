@@ -3,7 +3,7 @@
   padding: 20px 40px 18px;
   background: #2b2152;
   border-bottom: 1px solid var(--border);
-  overflow: hidden;
+  overflow: clip;
 
   @media (max-width: 768px) {
     padding: 16px 20px 14px;
