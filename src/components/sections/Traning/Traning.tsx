@@ -922,8 +922,8 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function finishWorkout(save: boolean): Promise<void> {
-    // Save current in-progress set if in work phase
-    if (save && workoutId && timerExId && (timerPhase === 'work' || (paused && pausedPlanRef.current?.plan[pausedPlanRef.current.step]?.phase === 'work'))) {
+    // Save current in-progress set regardless of phase (countdown, work, rest)
+    if (save && workoutId && timerExId) {
       const ctx = pausedPlanRef.current
       const exLog = timerExId ? logs[timerExId] : undefined
       const currentSet = ctx?.currentSet ?? timerSet
