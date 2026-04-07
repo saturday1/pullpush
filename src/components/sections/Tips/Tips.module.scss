@@ -1,215 +1,220 @@
 @property --go {
-  syntax: '<number>';
-  inherits: false;
-  initial-value: 0;
+    syntax: '<number>';
+    inherits: false;
+    initial-value: 0;
 }
 
 /* Goal selector */
 .goalBar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
 }
 
 .goalChip {
-  --go: 0;
-  flex: 1;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 9px 16px;
-  border-radius: 99px;
-  border: 1px solid var(--border);
-  background:
-    linear-gradient(135deg,
-      rgba(255, 92, 53,  var(--go)) 0%,
-      rgba(232, 25, 125, var(--go)) 55%,
-      rgba(124, 58, 237, var(--go)) 100%
-    ),
-    var(--card);
-  color: var(--muted);
-  cursor: pointer;
-  transition: --go 0.25s ease, color 0.25s ease, border-color 0.2s ease;
+    --go: 0;
+    flex: 1;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(135deg,
+            rgba(255, 92, 53, var(--go)) 0%,
+            rgba(232, 25, 125, var(--go)) 55%,
+            rgba(124, 58, 237, var(--go)) 100%),
+        var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    transition: --go 0.25s ease, color 0.25s ease, border-color 0.2s ease;
 
-  &:hover {
-    --go: 0.18;
-    color: var(--text);
-    border-color: transparent;
-  }
+    &:hover {
+        --go: 0.18;
+        color: var(--text);
+        border-color: transparent;
+    }
 }
 
 .goalChipActive {
-  --go: 1;
-  color: #fff;
-  border-color: transparent;
+    --go: 1;
+    color: #fff;
+    border-color: transparent;
 }
 
 /* Section labels */
 .goalSectionLabel {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  color: var(--muted);
-  margin-bottom: 10px;
-
-  strong {
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
     font-weight: 700;
-  }
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-bottom: 10px;
+
+    strong {
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+    }
 }
 
 .generalTipsLabel {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  color: var(--muted);
-  margin-top: 32px;
-  margin-bottom: 10px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-top: 32px;
+    margin-bottom: 10px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
 }
 
 /* Tips list */
 .tipsList {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 0;
-
-  li {
+    list-style: none;
     display: flex;
-    gap: 14px;
-    align-items: flex-start;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    color: var(--text);
-    line-height: 1.7;
-    padding: 16px 20px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    transition: box-shadow 0.2s;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 0;
 
-    &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    li {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 15px;
+        color: var(--text);
+        line-height: 1.7;
+        padding: 16px 20px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        transition: box-shadow 0.2s;
 
-    strong { font-weight: 700; }
+        &:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
 
-    &::before {
-      content: '→';
-      flex-shrink: 0;
-      margin-top: 2px;
-      font-size: 13px;
-      background: var(--gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+        strong {
+            font-weight: 700;
+        }
+
+        &::before {
+            content: '→';
+            flex-shrink: 0;
+            margin-top: 2px;
+            font-size: 13px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
     }
-  }
 }
 
 .goalFading {
-  opacity: 0;
-  transition: opacity 0.18s ease;
+    opacity: 0;
+    transition: opacity 0.18s ease;
 }
 
 .goalSectionLabel,
 .tipsListGoal {
-  transition: opacity 0.18s ease;
+    transition: opacity 0.18s ease;
 }
 
 /* Personalized tips get a subtle left accent */
 .tipsListGoal {
-  li {
-    border-left: 2px solid transparent;
-    background:
-      linear-gradient(var(--card), var(--card)) padding-box,
-      var(--gradient) border-box;
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-  }
+    li {
+        border-left: 2px solid transparent;
+        background:
+            linear-gradient(var(--card), var(--card)) padding-box,
+            var(--gradient) border-box;
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+    }
 }
 
 .infoGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin-top: 32px;
-  margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+    margin-bottom: 24px;
 }
 
 .infoBox {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 22px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-  transition: box-shadow 0.2s;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s;
 
-  &:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.08); }
+    &:hover {
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+    }
 
-  h4 {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    font-style: italic;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+    h4 {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        font-style: italic;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
 
-  p {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    color: var(--muted);
-    line-height: 1.65;
-  }
+    p {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 15px;
+        color: var(--muted);
+        line-height: 1.65;
+    }
 }
 
 .deloadNote {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px 22px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  color: var(--muted);
-  margin-bottom: 24px;
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  line-height: 1.65;
-
-  strong {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 18px;
-    font-weight: 400;
-    letter-spacing: 1px;
-    flex-shrink: 0;
-    margin-top: 1px;
-    background: linear-gradient(135deg, var(--orange), var(--pink));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    line-height: 1.65;
+
+    strong {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 18px;
+        font-weight: 400;
+        letter-spacing: 1px;
+        flex-shrink: 0;
+        margin-top: 1px;
+        background: linear-gradient(135deg, var(--orange), var(--pink));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
 }
 
 .disclaimer {
-  margin-top: 36px;
-  padding: 16px 0;
-  border-top: 1px solid var(--border);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  color: var(--faint);
+    margin-top: 36px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    color: var(--faint);
 }
