@@ -922,6 +922,22 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function finishWorkout(save: boolean): Promise<void> {
+    // Save current in-progress set if in work phase
+    if (save && workoutId && timerExId && (timerPhase === 'work' || (paused && pausedPlanRef.current?.plan[pausedPlanRef.current.step]?.phase === 'work'))) {
+      const ctx = pausedPlanRef.current
+      const exLog = timerExId ? logs[timerExId] : undefined
+      const currentSet = ctx?.currentSet ?? timerSet
+      const kg = ctx?.kg ?? exLog?.kg ?? null
+      const reps = ctx?.reps ?? exLog?.reps ?? 10
+      setCompletedSets(prev => ({ ...prev, [timerExId!]: currentSet }))
+      await supabase.from('workout_sets').insert({
+        workout_id: workoutId,
+        exercise_id: timerExId,
+        set_number: currentSet,
+        kg,
+        reps,
+      })
+    }
     stopExerciseTimer()
     if (workoutId) {
       if (save) {
