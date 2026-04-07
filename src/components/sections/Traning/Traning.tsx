@@ -1550,7 +1550,7 @@ export default function Traning(): React.JSX.Element {
           )}
           <div className={styles.miniTimerInfo}>
             <span className={styles.miniTimerPhase}>
-              {countdownOverlay !== null ? t('Countdown') : timerPhase === 'work' ? t('Reps') : `Set ${timerSet} — ${t('Rest')}`}
+              {countdownOverlay !== null ? `Set ${timerSet} — ${t('Countdown')}` : timerPhase === 'work' ? `Set ${timerSet} — ${t('Reps')}` : `Set ${timerSet} — ${t('Rest')}`}
             </span>
             <span className={styles.miniTimerTime}>
               {countdownOverlay !== null
