@@ -278,5 +278,12 @@
   "Max weight": "Max vikt",
   "Unknown": "Okänd",
   "Workouts per month": "Pass per månad",
-  "Workouts": "Pass"
+  "Workouts": "Pass",
+  "Total": "Totalt",
+  "Duration": "Tid",
+  "Set": "Set",
+  "min": "min",
+  "h": "tim",
+  "No sets recorded": "Inga set registrerade",
+  "Close": "Stäng"
 }

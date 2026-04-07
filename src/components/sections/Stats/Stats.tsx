@@ -17,12 +17,27 @@ import Skeleton from '../../Skeleton/Skeleton'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Stats.module.scss'
 
+interface WorkoutSetDetail {
+  set_number: number
+  reps: number | null
+  kg: number | null
+}
+
+interface WorkoutExerciseDetail {
+  id: number
+  name: string
+  sets: WorkoutSetDetail[]
+}
+
 interface CompletedWorkout {
   id: string
   completed_at: string
+  started_at: string | null
   session_id: number | null
   session_name: string | null
   set_count: number
+  total_kg: number
+  exercises: WorkoutExerciseDetail[]
 }
 
 interface ChartPoint {
@@ -40,6 +55,7 @@ type ProgressionMap = Record<number, ExerciseProgression>
 interface RawWorkout {
   id: string
   completed_at: string | null
+  started_at: string | null
   session_id: number | null
 }
 
@@ -49,6 +65,7 @@ interface RawSet {
   exercise_id: number
   kg: number | null
   reps: number | null
+  set_number: number
 }
 
 interface RawSession {
@@ -70,6 +87,31 @@ function formatDisplayDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function formatDisplayTime(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDuration(
+  startIso: string | null,
+  endIso: string | null,
+  t: (k: string) => string,
+): string {
+  if (!startIso || !endIso) return '–'
+  const start = new Date(startIso).getTime()
+  const end = new Date(endIso).getTime()
+  if (!isFinite(start) || !isFinite(end) || end <= start) return '–'
+  const totalMin = Math.round((end - start) / 60000)
+  if (totalMin < 60) return `${totalMin} ${t('min')}`
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return m === 0 ? `${h} ${t('h')}` : `${h} ${t('h')} ${m} ${t('min')}`
+}
+
+function formatTotalKg(kg: number): string {
+  return `${Math.round(kg).toLocaleString('sv-SE')} kg`
+}
+
 export default function Stats(): React.JSX.Element {
   const { t } = useTranslation()
   const { pathname } = useLocation()
@@ -78,6 +120,16 @@ export default function Stats(): React.JSX.Element {
   const [workouts, setWorkouts] = useState<CompletedWorkout[]>([])
   const [progressionMap, setProgressionMap] = useState<ProgressionMap>({})
   const [selectedExId, setSelectedExId] = useState<number | null>(null)
+  const [openWorkout, setOpenWorkout] = useState<CompletedWorkout | null>(null)
+
+  useEffect(() => {
+    if (!openWorkout) return
+    function onKey(e: KeyboardEvent): void {
+      if (e.key === 'Escape') setOpenWorkout(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [openWorkout])
 
   useEffect(() => {
     if (!isActive) return
@@ -91,14 +143,14 @@ export default function Stats(): React.JSX.Element {
       const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
         supabase
           .from('workouts')
-          .select('id, completed_at, session_id')
+          .select('id, completed_at, started_at, session_id')
           .eq('user_id', user.id)
           .not('completed_at', 'is', null)
           .order('completed_at', { ascending: false }),
 
         supabase
           .from('workout_sets')
-          .select('id, workout_id, exercise_id, kg, reps')
+          .select('id, workout_id, exercise_id, kg, reps, set_number')
           .limit(5000),
 
         supabase
@@ -127,22 +179,63 @@ export default function Stats(): React.JSX.Element {
       // Filter sets to only those belonging to user's completed workouts
       const userSets = rawSets.filter(s => workoutIds.has(s.workout_id))
 
-      // Count sets per workout
-      const setCountMap = new Map<string, number>()
+      // Group sets per workout → per exercise (preserve first-occurrence order)
+      interface WorkoutAgg {
+        setCount: number
+        totalKg: number
+        exerciseOrder: number[]
+        exerciseSets: Map<number, WorkoutSetDetail[]>
+      }
+      const workoutAggMap = new Map<string, WorkoutAgg>()
       for (const s of userSets) {
-        setCountMap.set(s.workout_id, (setCountMap.get(s.workout_id) ?? 0) + 1)
+        let agg = workoutAggMap.get(s.workout_id)
+        if (!agg) {
+          agg = { setCount: 0, totalKg: 0, exerciseOrder: [], exerciseSets: new Map() }
+          workoutAggMap.set(s.workout_id, agg)
+        }
+        agg.setCount += 1
+        if (s.kg != null && s.reps != null) {
+          agg.totalKg += s.kg * s.reps
+        }
+        let exSets = agg.exerciseSets.get(s.exercise_id)
+        if (!exSets) {
+          exSets = []
+          agg.exerciseSets.set(s.exercise_id, exSets)
+          agg.exerciseOrder.push(s.exercise_id)
+        }
+        exSets.push({ set_number: s.set_number, reps: s.reps, kg: s.kg })
+      }
+
+      // Sort sets within each exercise by set_number
+      for (const agg of workoutAggMap.values()) {
+        for (const sets of agg.exerciseSets.values()) {
+          sets.sort((a, b) => a.set_number - b.set_number)
+        }
       }
 
       // Process workouts
       const processed: CompletedWorkout[] = rawWorkouts
         .filter(w => w.completed_at)
-        .map(w => ({
-          id: w.id,
-          completed_at: w.completed_at!,
-          session_id: w.session_id,
-          session_name: w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null,
-          set_count: setCountMap.get(w.id) ?? 0,
-        }))
+        .map(w => {
+          const agg = workoutAggMap.get(w.id)
+          const exercises: WorkoutExerciseDetail[] = agg
+            ? agg.exerciseOrder.map(exId => ({
+                id: exId,
+                name: exerciseMap.get(exId) ?? `Exercise ${exId}`,
+                sets: agg.exerciseSets.get(exId) ?? [],
+              }))
+            : []
+          return {
+            id: w.id,
+            completed_at: w.completed_at!,
+            started_at: w.started_at,
+            session_id: w.session_id,
+            session_name: w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null,
+            set_count: agg?.setCount ?? 0,
+            total_kg: agg?.totalKg ?? 0,
+            exercises,
+          }
+        })
 
       // Build workout date lookup for progression
       const workoutDateMap = new Map(rawWorkouts.map(w => [w.id, w.completed_at!]))
@@ -415,15 +508,91 @@ export default function Stats(): React.JSX.Element {
       <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Workout History')}</div>
       <div className={styles.workoutList}>
         {workouts.map(w => (
-          <div key={w.id} className={styles.workoutCard}>
+          <button
+            key={w.id}
+            type="button"
+            className={styles.workoutCard}
+            onClick={() => setOpenWorkout(w)}
+          >
             <div className={styles.workoutCardLeft}>
               <div className={styles.workoutDate}>{formatDisplayDate(w.completed_at)}</div>
               <div className={styles.workoutSession}>{w.session_name ?? '–'}</div>
             </div>
             <div className={styles.workoutSets}>{w.set_count} sets</div>
-          </div>
+            <div className={styles.workoutCardChevron}>›</div>
+          </button>
         ))}
       </div>
+
+      {openWorkout && (
+        <div
+          className={styles.overlay}
+          onClick={() => setOpenWorkout(null)}
+          role="presentation"
+        >
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              className={styles.modalClose}
+              onClick={() => setOpenWorkout(null)}
+              aria-label={t('Close')}
+            >
+              ✕
+            </button>
+            <div className={styles.modalTitle}>
+              {openWorkout.session_name ?? '–'}
+            </div>
+            <div className={styles.modalSubtitle}>
+              {formatDisplayDate(openWorkout.completed_at)} · {formatDisplayTime(openWorkout.completed_at)}
+            </div>
+
+            <div className={styles.modalDivider} />
+
+            <div className={styles.modalStatsRow}>
+              <div className={styles.modalStat}>
+                <div className={styles.modalStatLabel}>{t('Duration')}</div>
+                <div className={styles.modalStatValue}>
+                  ⏱ {formatDuration(openWorkout.started_at, openWorkout.completed_at, t)}
+                </div>
+              </div>
+              <div className={styles.modalStat}>
+                <div className={styles.modalStatLabel}>{t('Total')}</div>
+                <div className={styles.modalStatValue}>
+                  ⚖ {formatTotalKg(openWorkout.total_kg)}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.modalDivider} />
+
+            <div className={styles.modalExerciseList}>
+              {openWorkout.exercises.length === 0 && (
+                <div className={styles.modalEmpty}>{t('No sets recorded')}</div>
+              )}
+              {openWorkout.exercises.map(ex => (
+                <div key={ex.id} className={styles.modalExerciseGroup}>
+                  <div className={styles.modalExerciseName}>{ex.name}</div>
+                  {ex.sets.map((s, i) => (
+                    <div key={i} className={styles.modalSetRow}>
+                      <span className={styles.modalSetLabel}>
+                        {t('Set')} {s.set_number}
+                      </span>
+                      <span className={styles.modalSetValue}>
+                        {s.reps ?? '–'} {t('reps')} × {s.kg ?? '–'} kg
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
