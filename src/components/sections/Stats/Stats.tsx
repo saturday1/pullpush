@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 import { supabase } from '../../../supabase'
 import Skeleton from '../../Skeleton/Skeleton'
+import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Stats.module.scss'
 
 interface CompletedWorkout {
@@ -222,7 +223,8 @@ export default function Stats(): React.JSX.Element {
   // ── Skeleton ──────────────────────────────────────────────
   if (loading) {
     return (
-      <div className={styles.container}>
+      <section className={styles.container}>
+        <SectionHeader number="08" title={t('Stats')} />
         <div className={styles.summaryGrid}>
           {[0, 1, 2, 3].map(i => (
             <div key={i} className={styles.summaryCard}>
@@ -246,23 +248,24 @@ export default function Stats(): React.JSX.Element {
           <Skeleton height={14} width={160} />
         </div>
         <Skeleton height={220} borderRadius={14} />
-      </div>
+      </section>
     )
   }
 
   // ── Empty state ───────────────────────────────────────────
   if (isEmpty) {
     return (
-      <div className={styles.emptyState}>
+      <section className={styles.emptyState}>
         <div className={styles.emptyIcon}>🏋️</div>
         <p className={styles.emptyTitle}>{t('No workouts yet')}</p>
         <p className={styles.emptyText}>{t('Complete your first workout to see stats here')}</p>
-      </div>
+      </section>
     )
   }
 
   return (
-    <div className={styles.container}>
+    <section className={styles.container}>
+      <SectionHeader number="08" title={t('Stats')} />
       {/* ── Section 1: Summary cards ── */}
       <div className={styles.summaryGrid}>
         <div className={styles.summaryCard}>
@@ -421,6 +424,6 @@ export default function Stats(): React.JSX.Element {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
