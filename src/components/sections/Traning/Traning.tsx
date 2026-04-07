@@ -1497,9 +1497,10 @@ export default function Traning(): React.JSX.Element {
                 ? countdownOverlay
                 : `${Math.floor(timerSecs / 60)}:${String(timerSecs % 60).padStart(2, '0')}`}
             </div>
-            <div className={styles.pauseActions}>
+            <div className={styles.endDialogActions}>
               <button className={styles.pauseResumeBtn} onClick={resumeExerciseTimer}>{t('Continue')}</button>
-              <button className={styles.pauseStopBtn} onClick={stopExerciseTimer}>{t('Stop')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => { stopExerciseTimer(); finishWorkout(true) }}>{t('Save & end')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => { stopExerciseTimer(); finishWorkout(false) }}>{t('End without saving')}</button>
             </div>
           </div>
         </div>
