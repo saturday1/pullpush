@@ -923,21 +923,38 @@ export default function Traning(): React.JSX.Element {
 
   // Save/discard the current set and stop the timer — does NOT end the whole workout
   async function saveSetAndStop(save: boolean): Promise<void> {
-    if (save && workoutId && timerExId) {
-      const ctx = pausedPlanRef.current
-      const exLog = timerExId ? logs[timerExId] : undefined
-      const currentSet = ctx?.currentSet ?? timerSet
-      const kg = ctx?.kg ?? exLog?.kg ?? null
-      const reps = ctx?.reps ?? exLog?.reps ?? 10
-      setCompletedSets(prev => ({ ...prev, [timerExId!]: currentSet }))
-      await supabase.from('workout_sets').insert({
-        workout_id: workoutId,
-        exercise_id: timerExId,
-        set_number: currentSet,
-        kg,
-        reps,
-      })
+    const ctx = pausedPlanRef.current
+    const currentSet = ctx?.currentSet ?? timerSet
+    const currentPhase = ctx?.plan[ctx.step]?.phase ?? timerPhase
+    const exId = timerExId
+
+    if (save && workoutId && exId) {
+      // If set not yet saved (countdown or work), save it now
+      if (currentPhase !== 'rest') {
+        const exLog = exId ? logs[exId] : undefined
+        const kg = ctx?.kg ?? exLog?.kg ?? null
+        const reps = ctx?.reps ?? exLog?.reps ?? 10
+        setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
+        await supabase.from('workout_sets').insert({
+          workout_id: workoutId, exercise_id: exId, set_number: currentSet, kg, reps,
+        })
+      }
+      // If rest, set is already saved — nothing to do
     }
+
+    if (!save && workoutId && exId) {
+      // If set was already saved (rest phase), undo it
+      if (currentPhase === 'rest') {
+        setCompletedSets(prev => ({ ...prev, [exId]: Math.max(0, currentSet - 1) }))
+        await supabase.from('workout_sets')
+          .delete()
+          .eq('workout_id', workoutId)
+          .eq('exercise_id', exId)
+          .eq('set_number', currentSet)
+      }
+      // If countdown or work, nothing was saved — nothing to undo
+    }
+
     stopExerciseTimer()
   }
 
