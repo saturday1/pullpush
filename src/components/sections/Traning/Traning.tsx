@@ -1378,7 +1378,7 @@ export default function Traning(): React.JSX.Element {
         <label className={styles.flowSwitch}>
           <input type="checkbox" checked={!editMode} onChange={() => setEditMode(m => !m)} />
           <span className={styles.flowSlider} />
-          <span className={styles.flowLabel}>Flow</span>
+          <span className={styles.flowLabel}>Flow-mode</span>
         </label>
       </div>
 
