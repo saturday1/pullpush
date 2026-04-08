@@ -1,16 +1,18 @@
 .container {
   padding-bottom: 40px;
+  min-width: 0;
 }
 
 // ── Summary cards ─────────────────────────────────────────────
 
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-bottom: 32px;
 
   @media (min-width: 480px) {
+    gap: 12px;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 }
@@ -19,8 +21,13 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 18px 16px;
+  padding: 14px 14px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  min-width: 0;
+
+  @media (min-width: 480px) {
+    padding: 18px 16px;
+  }
 }
 
 .summaryLabel {
@@ -35,22 +42,32 @@
 
 .summaryValue {
   font-family: 'DM Sans', sans-serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+
+  @media (min-width: 480px) {
+    font-size: 22px;
+  }
 }
 
 .summaryValueSmall {
   font-family: 'DM Sans', sans-serif;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+
+  @media (min-width: 480px) {
+    font-size: 18px;
+  }
 }
 
 .summarySubtitle {

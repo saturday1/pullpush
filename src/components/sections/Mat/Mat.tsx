@@ -39,6 +39,9 @@ interface Meal {
     kcal: number
     product_id: number | null
     grams: number | null
+    meal_date: string
+    is_recurring: boolean
+    recurring_until: string | null
 }
 
 interface Nutriments {
@@ -102,6 +105,33 @@ interface MealTotals {
 // --- Constants ---
 
 const EMPTY_FORM: MealFormData = { time_label: '', label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '' }
+
+// --- Date helpers ---
+
+function localDateStr(d: Date): string {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+}
+
+function addDays(dateStr: string, days: number): string {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const dt = new Date(y, m - 1, d)
+    dt.setDate(dt.getDate() + days)
+    return localDateStr(dt)
+}
+
+function formatDateLabel(dateStr: string, todayStr: string, t: TFunction): string {
+    if (dateStr === todayStr) return t('Today')
+    if (dateStr === addDays(todayStr, -1)) return t('Yesterday')
+    if (dateStr === addDays(todayStr, 1)) return t('Tomorrow')
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const dt = new Date(y, m - 1, d)
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${t(dayNames[dt.getDay()])} ${dt.getDate()} ${t(monthNames[dt.getMonth()])}`
+}
 
 // --- Sub-components ---
 
@@ -662,10 +692,11 @@ interface MealTableProps {
     meals: Meal[]
     onEdit: (meal: Meal) => void
     onDelete: (id: number) => void
+    onToggleRecurring: (meal: Meal) => void
     t: TFunction
 }
 
-function MealTable({ meals, onEdit, onDelete, t }: MealTableProps): React.JSX.Element {
+function MealTable({ meals, onEdit, onDelete, onToggleRecurring, t }: MealTableProps): React.JSX.Element {
     return (
         <div style={{ overflowX: 'auto' }}>
             <table className={styles.table}>
@@ -693,6 +724,13 @@ function MealTable({ meals, onEdit, onDelete, t }: MealTableProps): React.JSX.El
                             <td><span className="pill pill-f">{meal.fat_g}g</span></td>
                             <td>{meal.kcal}</td>
                             <td className={styles.actionCell}>
+                                <button
+                                    className={`${styles.starBtn} ${meal.is_recurring ? styles.starBtnActive : ''}`}
+                                    onClick={() => onToggleRecurring(meal)}
+                                    title={meal.is_recurring ? t('Unsave daily') : t('Save daily')}
+                                >
+                                    {meal.is_recurring ? '★' : '☆'}
+                                </button>
                                 <button className={styles.editBtn} onClick={() => onEdit(meal)} title={t('Edit')}>✏️</button>
                                 <button className={styles.deleteBtn} onClick={() => onDelete(meal.id)} title={t('Delete')}>🗑</button>
                             </td>
@@ -749,7 +787,9 @@ function buildTips(weight: number | null, age: number | null, t: TFunction): { i
 export default function Mat(): React.JSX.Element {
     const { t } = useTranslation()
     const profile = useProfile()
-    const [tab, setTab] = useState<string>('train')
+    const todayStr: string = localDateStr(new Date())
+    const [selectedDate, setSelectedDate] = useState<string>(todayStr)
+    const todayRef = useRef<string>(todayStr)
     const [meals, setMeals] = useState<Meal[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [addOpen, setAddOpen] = useState<boolean>(false)
@@ -759,9 +799,26 @@ export default function Mat(): React.JSX.Element {
 
     useEffect(() => { loadMeals() }, [])
 
+    useEffect(() => {
+        function checkDayRollover(): void {
+            const now = localDateStr(new Date())
+            if (now !== todayRef.current) {
+                const prevToday = todayRef.current
+                setSelectedDate(prev => (prev === prevToday ? now : prev))
+                todayRef.current = now
+            }
+        }
+        const interval = setInterval(checkDayRollover, 30_000)
+        document.addEventListener('visibilitychange', checkDayRollover)
+        return () => {
+            clearInterval(interval)
+            document.removeEventListener('visibilitychange', checkDayRollover)
+        }
+    }, [])
+
     async function loadMeals(): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser()
-        const { data } = await supabase.from('meals').select('*').eq('user_id', user!.id).order('day_type').order('sort_order')
+        const { data } = await supabase.from('meals').select('*').eq('user_id', user!.id).order('sort_order')
         setMeals((data as Meal[]) ?? [])
         setLoading(false)
     }
@@ -770,10 +827,9 @@ export default function Mat(): React.JSX.Element {
         setSaving(true)
         setSaveError('')
         const { data: { user } } = await supabase.auth.getUser()
-        const currentMax: number = meals.filter((m: Meal) => m.day_type === tab).reduce((acc: number, m: Meal) => Math.max(acc, m.sort_order), -1)
+        const currentMax: number = meals.reduce((acc: number, m: Meal) => Math.max(acc, m.sort_order), -1)
         const row = {
             user_id: user!.id,
-            day_type: tab,
             sort_order: currentMax + 1,
             time_label: form.time_label.trim(),
             label: form.label.trim(),
@@ -785,12 +841,34 @@ export default function Mat(): React.JSX.Element {
             kcal: Math.round(parseFloat(form.kcal)) || 0,
             product_id: form.product_id ?? null,
             grams: parseFloat(form.grams) || null,
+            meal_date: selectedDate,
+            is_recurring: false,
+            recurring_until: null,
         }
         const { data, error } = await supabase.from('meals').insert(row).select().single()
         if (error) { setSaveError(error.message); setSaving(false); return }
         setMeals(prev => [...prev, data as Meal])
         setSaving(false)
         setAddOpen(false)
+    }
+
+    async function handleToggleRecurring(meal: Meal): Promise<void> {
+        if (!meal.is_recurring) {
+            const { data, error } = await supabase.from('meals').update({
+                is_recurring: true,
+                recurring_until: null,
+            }).eq('id', meal.id).select().single()
+            if (error) return
+            setMeals(prev => prev.map((m: Meal) => m.id === (data as Meal).id ? (data as Meal) : m))
+        } else {
+            const until = selectedDate >= meal.meal_date ? selectedDate : meal.meal_date
+            const { data, error } = await supabase.from('meals').update({
+                is_recurring: false,
+                recurring_until: until,
+            }).eq('id', meal.id).select().single()
+            if (error) return
+            setMeals(prev => prev.map((m: Meal) => m.id === (data as Meal).id ? (data as Meal) : m))
+        }
     }
 
     async function handleEdit(form: MealFormData): Promise<void> {
@@ -819,7 +897,12 @@ export default function Mat(): React.JSX.Element {
         setMeals(prev => prev.filter((m: Meal) => m.id !== id))
     }
 
-    const shown: Meal[] = meals.filter((m: Meal) => m.day_type === tab)
+    const shown: Meal[] = meals.filter((m: Meal) => {
+        const wasRecurring = m.is_recurring || m.recurring_until !== null
+        if (!wasRecurring) return m.meal_date === selectedDate
+        return m.meal_date <= selectedDate
+            && (m.recurring_until === null || selectedDate <= m.recurring_until)
+    })
     const totals: MealTotals = shown.reduce((acc: MealTotals, m: Meal) => ({
         kcal: acc.kcal + m.kcal,
         protein_g: acc.protein_g + m.protein_g,
@@ -834,11 +917,31 @@ export default function Mat(): React.JSX.Element {
             <SectionHeader number="03" title={t('Food & Nutrition')} />
 
             <Reveal>
-                <div className={styles.tabsRow}>
-                    <div className={styles.tabs}>
-                        <button className={`${styles.tab} ${tab === 'train' ? styles.active : ''}`} onClick={() => setTab('train')}>{t('Training day')}</button>
-                        <button className={`${styles.tab} ${tab === 'rest' ? styles.active : ''}`} onClick={() => setTab('rest')}>{t('Rest day')}</button>
+                <div className={styles.dateNav}>
+                    <button
+                        type="button"
+                        className={styles.dateNavBtn}
+                        onClick={() => setSelectedDate(prev => addDays(prev, -1))}
+                        title={t('Previous day')}
+                        aria-label={t('Previous day')}
+                    >‹</button>
+                    <div className={styles.dateLabel}>
+                        <div className={styles.dateLabelMain}>{formatDateLabel(selectedDate, todayStr, t)}</div>
+                        {selectedDate !== todayStr && (
+                            <button
+                                type="button"
+                                className={styles.dateLabelToday}
+                                onClick={() => setSelectedDate(todayStr)}
+                            >{t('Jump to today')}</button>
+                        )}
                     </div>
+                    <button
+                        type="button"
+                        className={styles.dateNavBtn}
+                        onClick={() => setSelectedDate(prev => addDays(prev, 1))}
+                        title={t('Next day')}
+                        aria-label={t('Next day')}
+                    >›</button>
                 </div>
             </Reveal>
 
@@ -909,7 +1012,7 @@ export default function Mat(): React.JSX.Element {
                                 <span style={{ color: '#22c55e' }}>{t('F')}: {totals.fat_g} g</span>
                             </div>
                         )}
-                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} t={t} />
+                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={handleToggleRecurring} t={t} />
                         <button className={styles.addMealBottom} onClick={() => setAddOpen(true)}>+ {t('Add meal')}</button>
                     </>
                 )}

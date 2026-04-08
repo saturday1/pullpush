@@ -51,6 +51,82 @@
   &:hover { opacity: 1; }
 }
 
+.starBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  color: var(--muted);
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+
+  &:hover { opacity: 1; }
+}
+
+.starBtnActive {
+  color: #f5b800;
+  opacity: 1;
+}
+
+.dateNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dateNavBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card, transparent);
+  color: var(--fg, inherit);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+
+  &:hover:not(:disabled) { opacity: 0.8; }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+
+.dateLabel {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dateLabelMain {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--fg, inherit);
+}
+
+.dateLabelToday {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 0;
+  text-decoration: underline;
+
+  &:hover { opacity: 0.8; }
+}
+
 // ── Food search ───────────────────────────────────────────────
 
 .searchSection {
