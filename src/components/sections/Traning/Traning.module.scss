@@ -1404,23 +1404,23 @@
   padding-left: 2px;
 }
 
-.setLine {
+.metaRow {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 16px;
   font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.setLineLabel {
-  font-weight: 600;
+.metaLabel {
+  font-weight: 700;
   color: var(--text);
   min-width: 42px;
 }
 
-.setLineDetail {
+.metaItem {
   font-weight: 500;
 }
 
