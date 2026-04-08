@@ -96,7 +96,7 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
   const [name,       setName]       = useState<string>(exercise.name)
   const [kg,         setKg]         = useState<string>(current?.kg?.toString() ?? '')
   const [lbs,        setLbs]        = useState<string>(current?.kg ? toLbs(current.kg).toString() : '')
-  const [sets,       setSets]       = useState<string>(current?.sets?.toString() ?? '')
+  const [sets,       setSets]       = useState<string>(current?.sets?.toString() ?? '3')
   const [reps,       setReps]       = useState<string>(current?.reps?.toString() ?? '')
   const [saving,     setSaving]     = useState<boolean>(false)
   const [confirming, setConfirming] = useState<boolean>(false)
@@ -620,7 +620,7 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, hideSet
         ) : (
           <div className={styles.setLine}>
             <span className={styles.setLineDetail}>
-              {log?.sets ?? '–'} sets · {log?.reps ?? '–'}× {log?.kg ?? '–'}kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs
+              {log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'} · {log?.reps ?? '–'}× {log?.kg ?? '–'}kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs
             </span>
           </div>
         )}
