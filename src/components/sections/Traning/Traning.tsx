@@ -78,23 +78,47 @@ const toLbs = (kg: number): number  => +(kg  * KG_TO_LBS).toFixed(1)
 
 // --- Sub-components ---
 
-interface NameModalProps {
+interface ExerciseModalProps {
   exercise: Exercise
+  current: ExerciseLog | undefined
   onRename: (exercise: Exercise, name: string) => Promise<void>
+  onLog: (exerciseId: string, kg: number, sets: number | null, reps: number) => Promise<void>
   onDelete: (exercise: Exercise) => Promise<void>
   onClose: () => void
 }
 
-function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): React.JSX.Element {
+function ExerciseModal({ exercise, current, onRename, onLog, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
   const { t } = useTranslation()
   const [name,       setName]       = useState<string>(exercise.name)
+  const [kg,         setKg]         = useState<string>(current?.kg?.toString() ?? '')
+  const [lbs,        setLbs]        = useState<string>(current?.kg ? toLbs(current.kg).toString() : '')
+  const [sets,       setSets]       = useState<string>(current?.sets?.toString() ?? '')
+  const [reps,       setReps]       = useState<string>(current?.reps?.toString() ?? '')
   const [saving,     setSaving]     = useState<boolean>(false)
   const [confirming, setConfirming] = useState<boolean>(false)
   const [deleting,   setDeleting]   = useState<boolean>(false)
 
+  function handleKgChange(val: string): void {
+    setKg(val)
+    const n = parseFloat(val.replace(',', '.'))
+    if (!isNaN(n)) setLbs(toLbs(n).toString())
+  }
+  function handleLbsChange(val: string): void {
+    setLbs(val)
+    const n = parseFloat(val.replace(',', '.'))
+    if (!isNaN(n)) setKg(toKg(n).toString())
+  }
   async function handleSave(): Promise<void> {
+    const trimmed = name.trim()
+    if (!trimmed) return
     setSaving(true)
-    await onRename(exercise, name)
+    if (trimmed !== exercise.name) await onRename(exercise, trimmed)
+    const kgVal = parseFloat(kg.replace(',', '.'))
+    const setsVal = parseInt(sets)
+    const repsVal = parseInt(reps)
+    if (!isNaN(kgVal) && !isNaN(repsVal)) {
+      await onLog(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
+    }
     setSaving(false)
     onClose()
   }
@@ -108,10 +132,9 @@ function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): R
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>{t('Exercise')}</div>
-
         {confirming ? (
           <>
+            <div className={styles.modalTitle}>{t('Delete exercise?')}</div>
             <p className={styles.confirmText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong>? This cannot be undone.', { name: exercise.name }) }} />
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>{t('Cancel')}</button>
@@ -122,23 +145,35 @@ function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): R
           </>
         ) : (
           <>
+            <div className={styles.modalTitle}>{t('Exercise')}</div>
             <div className={styles.modalFields}>
               <label className={styles.modalField}>
                 <span className={styles.modalLabel}>{t('Name')}</span>
-                <input
-                  className={styles.modalInput}
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
-                  autoFocus
-                />
+                <input className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} autoFocus />
               </label>
+              <div className={styles.modalRow}>
+                <label className={styles.modalField}>
+                  <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
+                  <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
+                </label>
+                <label className={styles.modalField}>
+                  <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
+                  <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+                </label>
+              </div>
+              <div className={styles.modalRow}>
+                <label className={styles.modalField}>
+                  <span className={styles.modalLabel}>{t('Sets')}</span>
+                  <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
+                </label>
+                <label className={styles.modalField}>
+                  <span className={styles.modalLabel}>{t('Reps')}</span>
+                  <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
+                </label>
+              </div>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>
-                {t('Delete')}
-              </button>
+              <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>{t('Delete')}</button>
               <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
               <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !name.trim()}>
                 {saving ? '…' : t('Save')}
@@ -146,74 +181,6 @@ function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): R
             </div>
           </>
         )}
-      </div>
-    </div>
-  )
-}
-
-interface LogModalProps {
-  exercise: Exercise
-  current: ExerciseLog | undefined
-  onSave: (exerciseId: string, kg: number, sets: number | null, reps: number) => Promise<void>
-  onClose: () => void
-}
-
-function LogModal({ exercise, current, onSave, onClose }: LogModalProps): React.JSX.Element {
-  const { t } = useTranslation()
-  const [kg,     setKg]     = useState<string>(current?.kg?.toString() ?? '')
-  const [lbs,    setLbs]    = useState<string>(current?.kg ? toLbs(current.kg).toString() : '')
-  const [sets,   setSets]   = useState<string>(current?.sets?.toString() ?? '')
-  const [reps,   setReps]   = useState<string>(current?.reps?.toString() ?? '')
-  const [saving, setSaving] = useState<boolean>(false)
-
-  function handleKgChange(val: string): void {
-    setKg(val)
-    const n = parseFloat(val.replace(',', '.'))
-    if (!isNaN(n)) setLbs(toLbs(n).toString())
-  }
-  function handleLbsChange(val: string): void {
-    setLbs(val)
-    const n = parseFloat(val.replace(',', '.'))
-    if (!isNaN(n)) setKg(toKg(n).toString())
-  }
-  async function handleSave(): Promise<void> {
-    const kgVal   = parseFloat(kg.replace(',', '.'))
-    const setsVal = parseInt(sets)
-    const repsVal = parseInt(reps)
-    if (isNaN(kgVal) || isNaN(repsVal)) return
-    setSaving(true)
-    await onSave(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
-    setSaving(false)
-  }
-
-  return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>{exercise.name}</div>
-        <div className={styles.modalFields}>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
-            <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} autoFocus />
-          </label>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
-            <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
-          </label>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Sets')}</span>
-            <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
-          </label>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Reps')}</span>
-            <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
-          </label>
-        </div>
-        <div className={styles.modalActions}>
-          <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
-          <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-            {saving ? '…' : t('Save')}
-          </button>
-        </div>
       </div>
     </div>
   )
@@ -559,12 +526,12 @@ function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMod
           </span>
         )}
       </span>
-      <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onLog(ex)}>
+      <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>
         <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
         <span className={styles.lbsVal}>{log?.kg != null ? toLbs(log.kg) : ''}</span>
       </span>
-      {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onLog(ex)}>{log?.sets ?? '–'}</span>}
-      <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onLog(ex)}>{log?.reps ?? '–'}</span>
+      {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>{log?.sets ?? '–'}</span>}
+      <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onName(ex)}>{log?.reps ?? '–'}</span>
     </div>
   )
 }
@@ -1438,21 +1405,14 @@ export default function Traning(): React.JSX.Element {
       )}
 
 
-      {logging && (
-        <LogModal
-          exercise={logging}
-          current={logs[logging.id]}
-          onSave={handleLogSave}
-          onClose={() => setLogging(null)}
-        />
-      )}
-
-      {naming && (
-        <NameModal
-          exercise={naming}
+      {(logging || naming) && (
+        <ExerciseModal
+          exercise={(logging ?? naming)!}
+          current={logs[(logging ?? naming)!.id]}
           onRename={handleRename}
+          onLog={handleLogSave}
           onDelete={handleDelete}
-          onClose={() => setNaming(null)}
+          onClose={() => { setLogging(null); setNaming(null) }}
         />
       )}
 

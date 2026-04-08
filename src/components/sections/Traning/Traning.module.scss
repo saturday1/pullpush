@@ -1276,6 +1276,13 @@
   margin-bottom: 20px;
 }
 
+.modalRow {
+  display: flex;
+  gap: 12px;
+
+  > * { flex: 1; }
+}
+
 .modalField {
   display: flex;
   flex-direction: column;
