@@ -1327,24 +1327,47 @@
   &:hover { color: var(--red); }
 }
 
-.indSetsPreview {
-  grid-column: 2 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
+// ── Exercise card layout ────────────────────────────────────
+
+.exerciseCard {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+
+  &:last-child { border-bottom: none; }
 }
 
-.indSetPreviewRow {
+.exerciseCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.exerciseCardSets {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 2px;
+}
+
+.setLine {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
+  color: var(--muted);
+}
+
+.setLineLabel {
   font-weight: 600;
   color: var(--text);
+  min-width: 38px;
+}
 
-  &:not(:last-child)::after {
-    content: '·';
-    margin-left: 8px;
-    color: var(--muted);
-  }
+.setLineDetail {
+  font-weight: 400;
 }
 
 .indSetToggle {

@@ -587,9 +587,9 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, hideSet
     opacity: isDragging ? 0.5 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''} ${editMode ? styles.editMode : ''} ${isTimerActive ? styles.exerciseActive : ''}`}>
-      {editMode && <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>}
-      <span className={styles.exNameCell}>
+    <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`}>
+      <div className={styles.exerciseCardHeader}>
+        {editMode && <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>}
         {editMode ? (
           <button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button>
         ) : (
@@ -608,26 +608,23 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, hideSet
             )}
           </span>
         )}
-      </span>
-      {!hasIndividual && (
-        <>
-          <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>
-            <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
-            <span className={styles.lbsVal}>{log?.kg != null ? toLbs(log.kg) : ''}</span>
-          </span>
-          {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>{log?.sets ?? '–'}</span>}
-          <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onName(ex)}>{log?.reps ?? '–'}</span>
-        </>
-      )}
-      {hasIndividual && (
-        <div className={styles.indSetsPreview} onClick={() => editMode && onName(ex)} style={editMode ? { cursor: 'pointer' } : {}}>
-          {setPlans.map((p, i) => (
-            <span key={i} className={styles.indSetPreviewRow}>
-              {p.reps}× {p.weight_kg ?? '–'}kg
+      </div>
+      <div className={styles.exerciseCardSets} onClick={() => editMode && onName(ex)} style={editMode ? { cursor: 'pointer' } : {}}>
+        {hasIndividual ? (
+          setPlans.map((p, i) => (
+            <div key={i} className={styles.setLine}>
+              <span className={styles.setLineLabel}>Set {i + 1}</span>
+              <span className={styles.setLineDetail}>{p.reps}× {p.weight_kg ?? '–'}kg / {p.weight_kg ? toLbs(p.weight_kg) : '–'} lbs</span>
+            </div>
+          ))
+        ) : (
+          <div className={styles.setLine}>
+            <span className={styles.setLineDetail}>
+              {log?.sets ?? '–'} sets · {log?.reps ?? '–'}× {log?.kg ?? '–'}kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs
             </span>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -1465,13 +1462,6 @@ export default function Traning(): React.JSX.Element {
 
 
             <div className={styles.exerciseList}>
-              <div className={`${styles.exerciseHeader} ${hideSets ? styles.hideSets : ''} ${editMode ? styles.editMode : ''}`}>
-                {editMode && <span></span>}
-                <span>{t('Exercise')}</span>
-                <span><span className={styles.kgLabel}>kg</span><br/><span className={styles.lbsLabel}>lbs</span></span>
-                {!hideSets && <span>{t('Sets')}</span>}
-                <span>{t('Reps')}</span>
-              </div>
 
               {exercisesLoading ? (
                 [0, 1, 2, 3].map((i: number) => (
