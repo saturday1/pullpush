@@ -110,30 +110,78 @@
   margin-bottom: 12px;
 }
 
-.flowToggle {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--muted);
+// ── Section header with Flow toggle ─────────────────────────
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+}
+
+.flowSwitch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+
+  input { display: none; }
+}
+
+.flowSlider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--bg3);
+  border-radius: 999px;
+  transition: background 0.2s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  input:checked + & {
+    background: var(--gradient);
+
+    &::after {
+      transform: translateX(20px);
+    }
+  }
+}
+
+.flowLabel {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
   font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
+  color: var(--muted);
+  transition: color 0.2s;
 
-  &:hover { border-color: var(--text); color: var(--text); }
-}
-
-.flowToggleActive {
-  background: var(--gradient);
-  color: #fff;
-  border-color: transparent;
-
-  &:hover { color: #fff; border-color: transparent; }
+  input:checked ~ & {
+    color: var(--text);
+  }
 }
 
 .topRow {

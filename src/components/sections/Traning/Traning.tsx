@@ -1373,7 +1373,14 @@ export default function Traning(): React.JSX.Element {
 
   return (
     <section id="traning">
-      <SectionHeader number="04" title={t('Training sessions')} />
+      <div className={styles.sectionHeaderRow}>
+        <h2 className={styles.sectionTitle}>{t('Training sessions')}</h2>
+        <label className={styles.flowSwitch}>
+          <input type="checkbox" checked={!editMode} onChange={() => setEditMode(m => !m)} />
+          <span className={styles.flowSlider} />
+          <span className={styles.flowLabel}>Flow</span>
+        </label>
+      </div>
 
       {setupStep === 1 && (
         <Reveal>
@@ -1411,13 +1418,6 @@ export default function Traning(): React.JSX.Element {
             </Reveal>
           )}
 
-          <Reveal>
-            <div className={styles.actionBar}>
-              <button className={`${styles.flowToggle} ${!editMode ? styles.flowToggleActive : ''}`} onClick={() => setEditMode(m => !m)} type="button">
-                Flow
-              </button>
-            </div>
-          </Reveal>
 
           {programs.length > 0 && (
             <Reveal>
