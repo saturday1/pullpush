@@ -1317,9 +1317,11 @@
 
 .modalTitle {
   font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
   font-style: italic;
   font-size: 22px;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--text);
   margin-bottom: 20px;
   line-height: 1.2;
