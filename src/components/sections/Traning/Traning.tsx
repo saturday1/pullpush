@@ -700,6 +700,9 @@ export default function Traning(): React.JSX.Element {
     // Create workout if first set in this session
     let wId = workoutId
     if (!wId && userId && activeTab && activeProgramId) {
+      // Clean up old unfinished workouts
+      await supabase.from('workouts').delete().eq('user_id', userId).is('completed_at', null)
+
       const { data, error } = await supabase.from('workouts').insert({
         user_id: userId,
         session_id: activeTab,
