@@ -307,6 +307,12 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
     const [form, setForm] = useState<MealFormData>(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
     const set = (k: keyof MealFormData, v: string | number | null): void => setForm(f => ({ ...f, [k]: v }))
     const valid: boolean = !!(form.label.trim() && form.food.trim())
+    const [closing, setClosing] = useState<boolean>(false)
+    const requestClose = (): void => {
+        if (closing) return
+        setClosing(true)
+        window.setTimeout(onClose, 200)
+    }
 
     const [productId, setProductId] = useState<number | null>(initial?.product_id ?? null)
     const [searchQuery, setSearchQuery] = useState<string>('')
@@ -573,14 +579,18 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
     }
 
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
+        <div className={`${styles.overlay} ${closing ? styles.overlayClosing : ''}`} onClick={requestClose}>
+            <div className={`${styles.modal} ${closing ? styles.modalClosing : ''}`} onClick={e => e.stopPropagation()}>
                 <div className={styles.modalTitle}>{initial ? t('Edit meal') : t('New meal')}</div>
 
                 <div className={styles.searchSection}>
                     <span className={styles.searchSectionLabel}>{t('Search food database')}</span>
                     <div className={styles.searchRow} ref={dropdownRef}>
                         <div className={styles.searchWrap}>
+                            <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
                             <input
                                 className={styles.searchInput}
                                 value={searchQuery}
@@ -676,7 +686,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                 </div>
                 {saveError && <div className={styles.saveError}>{saveError}</div>}
                 <div className={styles.modalActions}>
-                    <button className={styles.cancelBtn} onClick={onClose} type="button">{t('Cancel')}</button>
+                    <button className={styles.cancelBtn} onClick={requestClose} type="button">{t('Cancel')}</button>
                     <button className={styles.saveBtn} onClick={() => onSave({ ...form, product_id: productId, grams })} disabled={saving || !valid} type="button">
                         {saving ? '…' : t('Save')}
                     </button>

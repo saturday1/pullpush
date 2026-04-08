@@ -160,7 +160,8 @@
 .searchInput {
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
-  padding: 10px 36px 10px 12px;
+  padding: 0 36px 0 38px;
+  height: 40px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -171,6 +172,15 @@
   transition: border-color 0.15s;
 
   &:focus { border-color: var(--accent); }
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
 }
 
 .searchSpinner {
@@ -247,22 +257,26 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  height: 40px;
 }
 
 .gramsInput {
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
-  padding: 10px 28px 10px 12px;
+  padding: 10px 34px 10px 12px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
   outline: none;
-  width: 72px;
+  width: 82px;
+  height: 40px;
+  box-sizing: border-box;
   transition: border-color 0.15s;
 
   &:focus { border-color: var(--accent); }
   &::-webkit-inner-spin-button { opacity: 0; }
+  &::-webkit-outer-spin-button { opacity: 0; }
 }
 
 .gramsUnit {
@@ -294,19 +308,21 @@
 }
 
 .scanBtn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 12px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--text);
+  color: var(--muted);
   cursor: pointer;
   flex-shrink: 0;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 
-  &:hover { border-color: var(--accent); background: var(--card); }
+  &:hover { border-color: var(--accent); color: var(--text); background: var(--card); }
 }
 
 .barcodeInputWrap {
@@ -500,9 +516,18 @@
   animation: overlayIn 0.2s ease both;
 }
 
+.overlayClosing {
+  animation: overlayOut 0.2s ease both;
+}
+
 @keyframes overlayIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes overlayOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 .modal {
@@ -518,9 +543,18 @@
   animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+.modalClosing {
+  animation: modalOut 0.2s ease both;
+}
+
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(16px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes modalOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(8px) scale(0.97); }
 }
 
 .modalTitle {
