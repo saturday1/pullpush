@@ -642,11 +642,9 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                         <span className={styles.modalLabel}>{t('Label')}</span>
                         <select className={styles.modalInput} value={form.label} onChange={e => set('label', e.target.value)}>
                             <option>{t('Breakfast')}</option>
-                            <option>{t('Snack')}</option>
                             <option>{t('Lunch')}</option>
                             <option>{t('Dinner')}</option>
-                            <option>{t('Evening meal')}</option>
-                            <option>{t('Protein')}</option>
+                            <option>{t('Snack')}</option>
                         </select>
                     </label>
                     <label className={styles.modalField}>
@@ -1013,7 +1011,6 @@ export default function Mat(): React.JSX.Element {
                             </div>
                         )}
                         <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={handleToggleRecurring} t={t} />
-                        <button className={styles.addMealBottom} onClick={() => setAddOpen(true)}>+ {t('Add meal')}</button>
                     </>
                 )}
             </Reveal>
@@ -1032,6 +1029,16 @@ export default function Mat(): React.JSX.Element {
                     ))}
                 </div>
             </Reveal>
+
+            {!loading && !addOpen && !editMeal && (
+                <button
+                    type="button"
+                    className={styles.addMealFab}
+                    onClick={() => setAddOpen(true)}
+                    title={t('Add meal')}
+                    aria-label={t('Add meal')}
+                >+</button>
+            )}
 
             {addOpen && (
                 <MealModal
