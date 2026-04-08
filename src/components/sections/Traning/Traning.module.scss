@@ -110,12 +110,30 @@
   margin-bottom: 12px;
 }
 
-.editModeActive {
-  background: var(--text);
-  color: var(--card);
-  border-color: var(--text);
+.flowToggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
 
-  &:hover { background: var(--text); color: var(--card); border-color: var(--text); }
+  &:hover { border-color: var(--text); color: var(--text); }
+}
+
+.flowToggleActive {
+  background: var(--gradient);
+  color: #fff;
+  border-color: transparent;
+
+  &:hover { color: #fff; border-color: transparent; }
 }
 
 .topRow {

@@ -1300,8 +1300,8 @@ export default function Traning(): React.JSX.Element {
 
           <Reveal>
             <div className={styles.actionBar}>
-              <button className={`${styles.toggleSetsBtn} ${editMode ? styles.editModeActive : ''}`} onClick={() => setEditMode(m => !m)} type="button">
-                {editMode ? t('Done') : t('Edit')}
+              <button className={`${styles.flowToggle} ${!editMode ? styles.flowToggleActive : ''}`} onClick={() => setEditMode(m => !m)} type="button">
+                Flow
               </button>
               <button className={styles.toggleSetsBtn} onClick={() => setHideSets(h => !h)} type="button">
                 {hideSets ? t('Show sets') : t('Hide sets')}
