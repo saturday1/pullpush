@@ -519,8 +519,8 @@ export default function Stats(): React.JSX.Element {
                                 <span className={styles.modalPrBannerIcon}>🏆</span>
                                 <span>
                                     {openWorkout.pr_count > 1
-                                        ? `${openWorkout.pr_count}× ${t('new personal records')}`
-                                        : t('new personal record')}
+                                        ? `${openWorkout.pr_count}× ${t('New Personal Records')}`
+                                        : t('New Personal Record')}
                                 </span>
                             </div>
                         )}
