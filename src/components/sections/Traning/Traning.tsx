@@ -234,6 +234,13 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
               ) : (
                 <>
                   <div className={styles.indSetList}>
+                    <div className={styles.indSetHeader}>
+                      <span className={styles.indSetLabel}></span>
+                      <span className={styles.indSetHeaderCell}>{t('Reps')}</span>
+                      <span className={styles.indSetHeaderCell}>{t('kg')}</span>
+                      <span className={styles.indSetHeaderCell}>{t('lbs')}</span>
+                      <span className={styles.indSetHeaderSpacer} />
+                    </div>
                     {indSets.map((s, i) => (
                       <div key={i} className={styles.indSetRow}>
                         <span className={styles.indSetLabel}>Set {i + 1}</span>

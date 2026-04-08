@@ -1360,6 +1360,31 @@
   gap: 8px;
 }
 
+.indSetHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.indSetHeaderCell {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  padding: 0 4px;
+}
+
+.indSetHeaderSpacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+
 .indSetLabel {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 13px;
