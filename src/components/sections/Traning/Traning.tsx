@@ -569,13 +569,12 @@ interface SortableRowProps {
   onLog: (ex: Exercise) => void
   onPlay: (ex: Exercise) => void
   onUndo: (exId: string) => void
-  hideSets: boolean
   editMode: boolean
   isTimerActive: boolean
   completedSets: number
 }
 
-function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, hideSets, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
+function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
   const hasIndividual = setPlans.length > 0
   const configuredSets = hasIndividual ? setPlans.length : (log?.sets ?? 3)
@@ -641,7 +640,6 @@ export default function Traning(): React.JSX.Element {
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [exercisesLoading, setExercisesLoading] = useState<boolean>(false)
   const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
-  const [hideSets,         setHideSets]         = useState<boolean>(false)
   const [editMode,         setEditMode]         = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [showEndDialog,    setShowEndDialog]    = useState<boolean>(false)
@@ -1418,9 +1416,6 @@ export default function Traning(): React.JSX.Element {
               <button className={`${styles.flowToggle} ${!editMode ? styles.flowToggleActive : ''}`} onClick={() => setEditMode(m => !m)} type="button">
                 Flow
               </button>
-              <button className={styles.toggleSetsBtn} onClick={() => setHideSets(h => !h)} type="button">
-                {hideSets ? t('Show sets') : t('Hide sets')}
-              </button>
             </div>
           </Reveal>
 
@@ -1465,11 +1460,11 @@ export default function Traning(): React.JSX.Element {
 
               {exercisesLoading ? (
                 [0, 1, 2, 3].map((i: number) => (
-                  <div key={i} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''}`}>
+                  <div key={i} className={`${styles.exerciseRow}`}>
                     <span><Skeleton width={16} height={16} /></span>
                     <span><Skeleton width="70%" height={14} /></span>
                     <Skeleton width={40} height={14} />
-                    {!hideSets && <Skeleton width={24} height={14} />}
+                    <Skeleton width={24} height={14} />
                     <Skeleton width={24} height={14} />
                   </div>
                 ))
@@ -1477,7 +1472,7 @@ export default function Traning(): React.JSX.Element {
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onUndo={undoLastSet} hideSets={hideSets} editMode={editMode} isTimerActive={timerExId === ex.id} completedSets={completedSets[ex.id] ?? 0} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} completedSets={completedSets[ex.id] ?? 0} />
                     ))}
                   </SortableContext>
                 </DndContext>
