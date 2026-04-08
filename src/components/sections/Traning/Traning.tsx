@@ -78,23 +78,93 @@ const toLbs = (kg: number): number  => +(kg  * KG_TO_LBS).toFixed(1)
 
 // --- Sub-components ---
 
-interface NameModalProps {
+interface SetPlan { set_number: number; reps: number; weight_kg: number | null }
+
+interface ExerciseModalProps {
   exercise: Exercise
+  current: ExerciseLog | undefined
+  setPlans: SetPlan[]
   onRename: (exercise: Exercise, name: string) => Promise<void>
+  onLog: (exerciseId: string, kg: number, sets: number | null, reps: number) => Promise<void>
+  onSaveSetPlans: (exerciseId: string, plans: SetPlan[]) => Promise<void>
   onDelete: (exercise: Exercise) => Promise<void>
   onClose: () => void
 }
 
-function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): React.JSX.Element {
+function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSetPlans, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
   const { t } = useTranslation()
   const [name,       setName]       = useState<string>(exercise.name)
+  const [kg,         setKg]         = useState<string>(current?.kg?.toString() ?? '')
+  const [lbs,        setLbs]        = useState<string>(current?.kg ? toLbs(current.kg).toString() : '')
+  const [sets,       setSets]       = useState<string>(current?.sets?.toString() ?? '3')
+  const [reps,       setReps]       = useState<string>(current?.reps?.toString() ?? '')
   const [saving,     setSaving]     = useState<boolean>(false)
   const [confirming, setConfirming] = useState<boolean>(false)
   const [deleting,   setDeleting]   = useState<boolean>(false)
+  const [individualMode, setIndividualMode] = useState<boolean>(setPlans.length > 0)
+  const [indSets,    setIndSets]    = useState<Array<{ reps: string; kg: string; lbs: string }>>(
+    setPlans.length > 0
+      ? setPlans.map(p => ({ reps: p.reps.toString(), kg: p.weight_kg?.toString() ?? '', lbs: p.weight_kg ? toLbs(p.weight_kg).toString() : '' }))
+      : []
+  )
+
+  function handleKgChange(val: string): void {
+    setKg(val)
+    const n = parseFloat(val.replace(',', '.'))
+    if (!isNaN(n)) setLbs(toLbs(n).toString())
+  }
+  function handleLbsChange(val: string): void {
+    setLbs(val)
+    const n = parseFloat(val.replace(',', '.'))
+    if (!isNaN(n)) setKg(toKg(n).toString())
+  }
+  function addIndSet(): void {
+    setIndSets(prev => [...prev, { reps: '', kg: '', lbs: '' }])
+  }
+  function removeIndSet(i: number): void {
+    setIndSets(prev => prev.filter((_, idx) => idx !== i))
+  }
+  function updateIndSetKg(i: number, val: string): void {
+    setIndSets(prev => prev.map((s, idx) => {
+      if (idx !== i) return s
+      const n = parseFloat(val.replace(',', '.'))
+      return { ...s, kg: val, lbs: !isNaN(n) ? toLbs(n).toString() : s.lbs }
+    }))
+  }
+  function updateIndSetLbs(i: number, val: string): void {
+    setIndSets(prev => prev.map((s, idx) => {
+      if (idx !== i) return s
+      const n = parseFloat(val.replace(',', '.'))
+      return { ...s, lbs: val, kg: !isNaN(n) ? toKg(n).toString() : s.kg }
+    }))
+  }
+  function updateIndSetReps(i: number, val: string): void {
+    setIndSets(prev => prev.map((s, idx) => idx === i ? { ...s, reps: val } : s))
+  }
 
   async function handleSave(): Promise<void> {
+    const trimmed = name.trim()
+    if (!trimmed) return
     setSaving(true)
-    await onRename(exercise, name)
+    if (trimmed !== exercise.name) await onRename(exercise, trimmed)
+
+    if (individualMode && indSets.length > 0) {
+      const plans: SetPlan[] = indSets.map((s, i) => ({
+        set_number: i + 1,
+        reps: parseInt(s.reps) || 0,
+        weight_kg: s.kg ? parseFloat(s.kg.replace(',', '.')) : null,
+      })).filter(p => p.reps > 0)
+      await onSaveSetPlans(exercise.id, plans)
+    } else {
+      // Standard mode — clear any individual plans
+      await onSaveSetPlans(exercise.id, [])
+      const kgVal = parseFloat(kg.replace(',', '.'))
+      const setsVal = parseInt(sets)
+      const repsVal = parseInt(reps)
+      if (!isNaN(kgVal) && !isNaN(repsVal)) {
+        await onLog(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
+      }
+    }
     setSaving(false)
     onClose()
   }
@@ -107,11 +177,10 @@ function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): R
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>{t('Exercise')}</div>
-
+      <div className={`${styles.modal} ${individualMode ? styles.modalLarge : ''}`} onClick={e => e.stopPropagation()}>
         {confirming ? (
           <>
+            <div className={styles.modalTitle}>{t('Delete exercise?')}</div>
             <p className={styles.confirmText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong>? This cannot be undone.', { name: exercise.name }) }} />
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>{t('Cancel')}</button>
@@ -122,23 +191,70 @@ function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): R
           </>
         ) : (
           <>
+            <div className={styles.modalTitle}>{t('Exercise')}</div>
             <div className={styles.modalFields}>
               <label className={styles.modalField}>
                 <span className={styles.modalLabel}>{t('Name')}</span>
-                <input
-                  className={styles.modalInput}
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
-                  autoFocus
-                />
+                <input className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} autoFocus />
               </label>
+
+              {!individualMode ? (
+                <>
+                  <div className={styles.modalRow}>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
+                      <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
+                    </label>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
+                      <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+                    </label>
+                  </div>
+                  <div className={styles.modalRow}>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Sets')}</span>
+                      <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
+                    </label>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Reps')}</span>
+                      <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
+                    </label>
+                  </div>
+                  <button className={styles.indSetToggle} type="button" onClick={() => {
+                    setIndividualMode(true)
+                    if (indSets.length === 0) {
+                      const numSets = parseInt(sets) || 1
+                      const initSets = Array.from({ length: numSets }, () => ({ reps, kg, lbs }))
+                      setIndSets(initSets)
+                    }
+                  }}>
+                    + {t('Individual sets')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className={styles.indSetList}>
+                    {indSets.map((s, i) => (
+                      <div key={i} className={styles.indSetRow}>
+                        <span className={styles.indSetLabel}>Set {i + 1}</span>
+                        <input className={styles.modalInput} type="number" placeholder={t('Reps')} value={s.reps} onChange={e => updateIndSetReps(i, e.target.value)} />
+                        <input className={styles.modalInput} type="number" step="0.5" placeholder="kg" value={s.kg} onChange={e => updateIndSetKg(i, e.target.value)} />
+                        <input className={styles.modalInput} type="number" step="1" placeholder="lbs" value={s.lbs} onChange={e => updateIndSetLbs(i, e.target.value)} />
+                        <button className={styles.indSetRemove} type="button" onClick={() => removeIndSet(i)}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <button className={styles.indSetToggle} type="button" onClick={addIndSet}>
+                    + {t('Add set')}
+                  </button>
+                  <button className={styles.indSetBack} type="button" onClick={() => { setIndividualMode(false); setIndSets([]) }}>
+                    ← {t('Back to standard')}
+                  </button>
+                </>
+              )}
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>
-                {t('Delete')}
-              </button>
+              <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>{t('Delete')}</button>
               <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
               <button className={styles.saveBtn} onClick={handleSave} disabled={saving || !name.trim()}>
                 {saving ? '…' : t('Save')}
@@ -146,74 +262,6 @@ function NameModal({ exercise, onRename, onDelete, onClose }: NameModalProps): R
             </div>
           </>
         )}
-      </div>
-    </div>
-  )
-}
-
-interface LogModalProps {
-  exercise: Exercise
-  current: ExerciseLog | undefined
-  onSave: (exerciseId: string, kg: number, sets: number | null, reps: number) => Promise<void>
-  onClose: () => void
-}
-
-function LogModal({ exercise, current, onSave, onClose }: LogModalProps): React.JSX.Element {
-  const { t } = useTranslation()
-  const [kg,     setKg]     = useState<string>(current?.kg?.toString() ?? '')
-  const [lbs,    setLbs]    = useState<string>(current?.kg ? toLbs(current.kg).toString() : '')
-  const [sets,   setSets]   = useState<string>(current?.sets?.toString() ?? '')
-  const [reps,   setReps]   = useState<string>(current?.reps?.toString() ?? '')
-  const [saving, setSaving] = useState<boolean>(false)
-
-  function handleKgChange(val: string): void {
-    setKg(val)
-    const n = parseFloat(val.replace(',', '.'))
-    if (!isNaN(n)) setLbs(toLbs(n).toString())
-  }
-  function handleLbsChange(val: string): void {
-    setLbs(val)
-    const n = parseFloat(val.replace(',', '.'))
-    if (!isNaN(n)) setKg(toKg(n).toString())
-  }
-  async function handleSave(): Promise<void> {
-    const kgVal   = parseFloat(kg.replace(',', '.'))
-    const setsVal = parseInt(sets)
-    const repsVal = parseInt(reps)
-    if (isNaN(kgVal) || isNaN(repsVal)) return
-    setSaving(true)
-    await onSave(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
-    setSaving(false)
-  }
-
-  return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>{exercise.name}</div>
-        <div className={styles.modalFields}>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
-            <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} autoFocus />
-          </label>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
-            <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
-          </label>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Sets')}</span>
-            <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
-          </label>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Reps')}</span>
-            <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
-          </label>
-        </div>
-        <div className={styles.modalActions}>
-          <button className={styles.cancelBtn} onClick={onClose}>{t('Cancel')}</button>
-          <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-            {saving ? '…' : t('Save')}
-          </button>
-        </div>
       </div>
     </div>
   )
@@ -516,19 +564,20 @@ function SetupGuide({ step, onCreateProgram, onAddSession }: SetupGuideProps): R
 interface SortableRowProps {
   ex: Exercise
   log: ExerciseLog | undefined
+  setPlans: SetPlan[]
   onName: (ex: Exercise) => void
   onLog: (ex: Exercise) => void
   onPlay: (ex: Exercise) => void
   onUndo: (exId: string) => void
-  hideSets: boolean
   editMode: boolean
   isTimerActive: boolean
   completedSets: number
 }
 
-function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
+function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
-  const configuredSets = log?.sets ?? 3
+  const hasIndividual = setPlans.length > 0
+  const configuredSets = hasIndividual ? setPlans.length : (log?.sets ?? 3)
   const totalDots = Math.max(configuredSets, completedSets)
   const allDone = completedSets >= configuredSets
   const style = {
@@ -537,9 +586,9 @@ function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMod
     opacity: isDragging ? 0.5 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''} ${editMode ? styles.editMode : ''} ${isTimerActive ? styles.exerciseActive : ''}`}>
-      {editMode && <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>}
-      <span className={styles.exNameCell}>
+    <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`} onClick={() => editMode ? onName(ex) : onPlay(ex)}>
+      <div className={styles.exerciseCardHeader}>
+        {editMode && <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>}
         {editMode ? (
           <button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button>
         ) : (
@@ -558,13 +607,24 @@ function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMod
             )}
           </span>
         )}
-      </span>
-      <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onLog(ex)}>
-        <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
-        <span className={styles.lbsVal}>{log?.kg != null ? toLbs(log.kg) : ''}</span>
-      </span>
-      {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onLog(ex)}>{log?.sets ?? '–'}</span>}
-      <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onLog(ex)}>{log?.reps ?? '–'}</span>
+      </div>
+      <div className={styles.exerciseCardSets} onClick={() => editMode && onName(ex)} style={editMode ? { cursor: 'pointer' } : {}}>
+        {hasIndividual ? (
+          setPlans.map((p, i) => (
+            <div key={i} className={styles.metaRow}>
+              <span className={styles.metaLabel}>Set {i + 1}</span>
+              <span className={styles.metaItem}>{p.reps} reps</span>
+              <span className={styles.metaItem}>{p.weight_kg ?? '–'} kg / {p.weight_kg ? toLbs(p.weight_kg) : '–'} lbs</span>
+            </div>
+          ))
+        ) : (
+          <div className={styles.metaRow}>
+            <span className={styles.metaItem}>{log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'}</span>
+            <span className={styles.metaItem}>{log?.reps ?? '–'} reps</span>
+            <span className={styles.metaItem}>{log?.kg ?? '–'} kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -580,10 +640,13 @@ export default function Traning(): React.JSX.Element {
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [exercisesLoading, setExercisesLoading] = useState<boolean>(false)
-  const [hideSets,         setHideSets]         = useState<boolean>(false)
+  const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
   const [editMode,         setEditMode]         = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [showEndDialog,    setShowEndDialog]    = useState<boolean>(false)
+  const [showInactiveDialog, setShowInactiveDialog] = useState<boolean>(false)
+  const inactivityRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const INACTIVITY_MINUTES = 15
 
   // Exercise timer
   type TimerPhase = 'countdown' | 'work' | 'rest' | null
@@ -691,15 +754,23 @@ export default function Traning(): React.JSX.Element {
   async function startExerciseTimer(ex: Exercise): Promise<void> {
     setTimerMinimized(false)
     const log = logs[ex.id]
-    const sets = log?.sets ?? 3
-    const reps = log?.reps ?? 10
+    const indPlans = individualSets[ex.id]
+    const currentSet = (completedSets[ex.id] ?? 0) + 1
+
+    // Per-set data: use individual plans if available, otherwise global log
+    const setInfo = indPlans?.[currentSet - 1]
+    const reps = setInfo?.reps ?? log?.reps ?? 10
+    const setKg = setInfo?.weight_kg ?? log?.kg ?? null
+    const sets = indPlans ? indPlans.length : (log?.sets ?? 3)
     const workTime = reps * secPerRep
     const COUNTDOWN = countdownSeconds
-    const currentSet = (completedSets[ex.id] ?? 0) + 1
 
     // Create workout if first set in this session
     let wId = workoutId
     if (!wId && userId && activeTab && activeProgramId) {
+      // Clean up old unfinished workouts
+      await supabase.from('workouts').delete().eq('user_id', userId).is('completed_at', null)
+
       const { data, error } = await supabase.from('workouts').insert({
         user_id: userId,
         session_id: activeTab,
@@ -727,10 +798,10 @@ export default function Traning(): React.JSX.Element {
 
     // Start Live Activity with total time (countdown + work + rest)
     const totalTime = plan.reduce((sum, p) => sum + p.duration, 0)
-    const label = `${reps} × ${ex.name} + ${t('Rest').toLowerCase()}`
+    const label = `${reps} × ${ex.name}${setKg ? ` ${setKg}kg` : ''} + ${t('Rest').toLowerCase()}`
     if (RestTimer) RestTimer.start({ seconds: totalTime, label }).catch(() => {})
 
-    runTimerStep(plan, 0, ex.id, currentSet, sets, log?.kg ?? null, reps, wId)
+    runTimerStep(plan, 0, ex.id, currentSet, sets, setKg, reps, wId)
   }
 
   function runTimerStep(plan: { phase: TimerPhase; duration: number }[], step: number, exId: string, currentSet: number, setsTotal: number, kg: number | null, reps: number, wId: string | null): void {
@@ -1031,6 +1102,24 @@ export default function Traning(): React.JSX.Element {
       }
       setLogs(latest)
     }
+    // Load individual set plans
+    const allExIds = Object.values(grouped).flat().map(e => e.id)
+    if (allExIds.length > 0) {
+      const { data: planData } = await supabase
+        .from('exercise_set_plans')
+        .select('exercise_id, set_number, reps, weight_kg')
+        .in('exercise_id', allExIds)
+        .order('set_number')
+      if (planData) {
+        const plans: Record<string, SetPlan[]> = {}
+        for (const p of planData as Array<{ exercise_id: string; set_number: number; reps: number; weight_kg: number | null }>) {
+          if (!plans[p.exercise_id]) plans[p.exercise_id] = []
+          plans[p.exercise_id].push({ set_number: p.set_number, reps: p.reps, weight_kg: p.weight_kg })
+        }
+        setIndividualSets(plans)
+      }
+    }
+
     setExercisesLoading(false)
 
     // Resume unfinished workout if exists
@@ -1067,6 +1156,21 @@ export default function Traning(): React.JSX.Element {
     await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps })
     setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps } }))
     setLogging(null)
+  }
+
+  async function handleSaveSetPlans(exerciseId: string, plans: SetPlan[]): Promise<void> {
+    await supabase.from('exercise_set_plans').delete().eq('exercise_id', exerciseId)
+    if (plans.length > 0) {
+      await supabase.from('exercise_set_plans').insert(
+        plans.map(p => ({ exercise_id: exerciseId, set_number: p.set_number, reps: p.reps, weight_kg: p.weight_kg }))
+      )
+    }
+    setIndividualSets(prev => {
+      const next = { ...prev }
+      if (plans.length > 0) next[exerciseId] = plans
+      else delete next[exerciseId]
+      return next
+    })
   }
 
   async function handleRename(exercise: Exercise, name: string): Promise<void> {
@@ -1238,6 +1342,16 @@ export default function Traning(): React.JSX.Element {
     return () => clearTimeout(timer)
   }, [restoreComplete, currentExercises.length, allSessionDone, workoutId, timerPhase])
 
+  // Inactivity timeout — show dialog if no activity for 15 min during active workout
+  useEffect(() => {
+    if (inactivityRef.current) clearTimeout(inactivityRef.current)
+    if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) return
+    inactivityRef.current = setTimeout(() => {
+      setShowInactiveDialog(true)
+    }, INACTIVITY_MINUTES * 60 * 1000)
+    return () => { if (inactivityRef.current) clearTimeout(inactivityRef.current) }
+  }, [workoutId, completedSetsInSession, allSessionDone, timerPhase, completedSets])
+
   // Find active exercise name/details for overlay
   const timerExercise = currentExercises.find(ex => ex.id === timerExId)
   const timerExLog = timerExId ? logs[timerExId] : undefined
@@ -1260,7 +1374,14 @@ export default function Traning(): React.JSX.Element {
 
   return (
     <section id="traning">
-      <SectionHeader number="04" title={t('Training sessions')} />
+      <div className={styles.sectionHeaderRow}>
+        <h2 className={styles.sectionTitle}>{t('Training sessions')}</h2>
+        <label className={styles.flowSwitch}>
+          <input type="checkbox" checked={!editMode} onChange={() => setEditMode(m => !m)} />
+          <span className={styles.flowSlider} />
+          <span className={styles.flowLabel}>Flow-mode</span>
+        </label>
+      </div>
 
       {setupStep === 1 && (
         <Reveal>
@@ -1298,16 +1419,6 @@ export default function Traning(): React.JSX.Element {
             </Reveal>
           )}
 
-          <Reveal>
-            <div className={styles.actionBar}>
-              <button className={`${styles.toggleSetsBtn} ${editMode ? styles.editModeActive : ''}`} onClick={() => setEditMode(m => !m)} type="button">
-                {editMode ? t('Done') : t('Edit')}
-              </button>
-              <button className={styles.toggleSetsBtn} onClick={() => setHideSets(h => !h)} type="button">
-                {hideSets ? t('Show sets') : t('Hide sets')}
-              </button>
-            </div>
-          </Reveal>
 
           {programs.length > 0 && (
             <Reveal>
@@ -1347,21 +1458,14 @@ export default function Traning(): React.JSX.Element {
 
 
             <div className={styles.exerciseList}>
-              <div className={`${styles.exerciseHeader} ${hideSets ? styles.hideSets : ''} ${editMode ? styles.editMode : ''}`}>
-                {editMode && <span></span>}
-                <span>{t('Exercise')}</span>
-                <span><span className={styles.kgLabel}>kg</span><br/><span className={styles.lbsLabel}>lbs</span></span>
-                {!hideSets && <span>{t('Sets')}</span>}
-                <span>{t('Reps')}</span>
-              </div>
 
               {exercisesLoading ? (
                 [0, 1, 2, 3].map((i: number) => (
-                  <div key={i} className={`${styles.exerciseRow} ${hideSets ? styles.hideSets : ''}`}>
+                  <div key={i} className={`${styles.exerciseRow}`}>
                     <span><Skeleton width={16} height={16} /></span>
                     <span><Skeleton width="70%" height={14} /></span>
                     <Skeleton width={40} height={14} />
-                    {!hideSets && <Skeleton width={24} height={14} />}
+                    <Skeleton width={24} height={14} />
                     <Skeleton width={24} height={14} />
                   </div>
                 ))
@@ -1369,7 +1473,7 @@ export default function Traning(): React.JSX.Element {
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onUndo={undoLastSet} hideSets={hideSets} editMode={editMode} isTimerActive={timerExId === ex.id} completedSets={completedSets[ex.id] ?? 0} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} completedSets={completedSets[ex.id] ?? 0} />
                     ))}
                   </SortableContext>
                 </DndContext>
@@ -1422,21 +1526,16 @@ export default function Traning(): React.JSX.Element {
       )}
 
 
-      {logging && (
-        <LogModal
-          exercise={logging}
-          current={logs[logging.id]}
-          onSave={handleLogSave}
-          onClose={() => setLogging(null)}
-        />
-      )}
-
-      {naming && (
-        <NameModal
-          exercise={naming}
+      {(logging || naming) && (
+        <ExerciseModal
+          exercise={(logging ?? naming)!}
+          current={logs[(logging ?? naming)!.id]}
+          setPlans={individualSets[(logging ?? naming)!.id] ?? []}
           onRename={handleRename}
+          onLog={handleLogSave}
+          onSaveSetPlans={handleSaveSetPlans}
           onDelete={handleDelete}
-          onClose={() => setNaming(null)}
+          onClose={() => { setLogging(null); setNaming(null) }}
         />
       )}
 
@@ -1594,6 +1693,20 @@ export default function Traning(): React.JSX.Element {
               <button className={styles.pauseResumeBtn} onClick={() => finishWorkout(true)}>{t('Save & end')}</button>
               <button className={styles.pauseStopBtn} onClick={() => finishWorkout(false)}>{t('End without saving')}</button>
               <button className={styles.pauseStopBtn} onClick={() => setShowEndDialog(false)}>{t('Cancel')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showInactiveDialog && (
+        <div className={styles.pauseOverlay}>
+          <div className={styles.overlayContent}>
+            <div className={styles.pauseTitle}>{t('Still training?')}</div>
+            <div className={styles.overlayNext}>{t('You have an unfinished workout')}</div>
+            <div className={styles.endDialogActions}>
+              <button className={styles.pauseResumeBtn} onClick={() => setShowInactiveDialog(false)}>{t('Continue training')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => { setShowInactiveDialog(false); finishWorkout(true) }}>{t('Save & end')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => { setShowInactiveDialog(false); finishWorkout(false) }}>{t('End without saving')}</button>
             </div>
           </div>
         </div>

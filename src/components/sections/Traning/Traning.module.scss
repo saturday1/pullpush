@@ -110,12 +110,78 @@
   margin-bottom: 12px;
 }
 
-.editModeActive {
-  background: var(--text);
-  color: var(--card);
-  border-color: var(--text);
+// ── Section header with Flow toggle ─────────────────────────
 
-  &:hover { background: var(--text); color: var(--card); border-color: var(--text); }
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+}
+
+.flowSwitch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+
+  input { display: none; }
+}
+
+.flowSlider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--bg3);
+  border-radius: 999px;
+  transition: background 0.2s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  input:checked + & {
+    background: var(--gradient);
+
+    &::after {
+      transform: translateX(20px);
+    }
+  }
+}
+
+.flowLabel {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 0.2s;
+
+  input:checked ~ & {
+    color: var(--text);
+  }
 }
 
 .topRow {
@@ -745,9 +811,11 @@
   gap: 6px;
   background: none;
   border: none;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
   color: var(--text);
   cursor: pointer;
   padding: 0;
@@ -935,9 +1003,11 @@
   border: none;
   padding: 0;
   color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
   cursor: pointer;
   text-align: left;
   transition: color 0.15s;
@@ -1211,9 +1281,10 @@
   inset: 0;
   z-index: 400;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px 20px;
+  overflow-y: auto;
   background: rgba(15, 14, 13, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -1229,9 +1300,12 @@
   background: var(--card);
   border-radius: 16px;
   border: 1px solid var(--border);
-  padding: 28px;
+  padding: 20px;
   width: 100%;
   max-width: 340px;
+  overflow: hidden;
+  margin-bottom: 40px;
+  flex-shrink: 0;
   box-shadow: 0 24px 60px rgba(0,0,0,0.16);
   animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -1243,9 +1317,11 @@
 
 .modalTitle {
   font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
   font-style: italic;
   font-size: 22px;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--text);
   margin-bottom: 20px;
   line-height: 1.2;
@@ -1256,6 +1332,128 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
+}
+
+.modalRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+
+  > * { flex: 1; min-width: 0; }
+}
+
+.modalLarge {
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.indSetList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.indSetRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indSetLabel {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.indSetRemove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+
+  &:hover { color: var(--red); }
+}
+
+// ── Exercise card layout ────────────────────────────────────
+
+.exerciseCard {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+
+  &:last-child { border-bottom: none; }
+}
+
+.exerciseCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.exerciseCardSets {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 2px;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.metaLabel {
+  font-weight: 700;
+  color: var(--text);
+  min-width: 42px;
+}
+
+.metaItem {
+  font-weight: 500;
+}
+
+.indSetToggle {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: var(--text); border-color: var(--text); }
+}
+
+.indSetBack {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 0;
+
+  &:hover { color: var(--text); }
 }
 
 .modalField {
@@ -1274,6 +1472,7 @@
 }
 
 .modalInput {
+  width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
   padding: 10px 12px;
