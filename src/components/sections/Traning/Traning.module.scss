@@ -1378,7 +1378,7 @@
 // ── Exercise card layout ────────────────────────────────────
 
 .exerciseCard {
-  padding: 14px 16px;
+  padding: 18px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--card);
   cursor: pointer;
@@ -1390,7 +1390,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .exerciseCardSets {
@@ -1405,18 +1405,19 @@
   align-items: baseline;
   gap: 8px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--muted);
+  line-height: 1.5;
 }
 
 .setLineLabel {
   font-weight: 600;
   color: var(--text);
-  min-width: 38px;
+  min-width: 42px;
 }
 
 .setLineDetail {
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .indSetToggle {
