@@ -609,7 +609,7 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, hideSet
           </span>
         )}
       </span>
-      {!hasIndividual ? (
+      {!hasIndividual && (
         <>
           <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>
             <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
@@ -618,14 +618,15 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, hideSet
           {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>{log?.sets ?? '–'}</span>}
           <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onName(ex)}>{log?.reps ?? '–'}</span>
         </>
-      ) : (
-        <span className={styles.indSetsPreview} onClick={() => editMode && onName(ex)} style={editMode ? { cursor: 'pointer' } : {}}>
+      )}
+      {hasIndividual && (
+        <div className={styles.indSetsPreview} onClick={() => editMode && onName(ex)} style={editMode ? { cursor: 'pointer' } : {}}>
           {setPlans.map((p, i) => (
             <span key={i} className={styles.indSetPreviewRow}>
-              Set {i + 1}: {p.reps}× {p.weight_kg ?? '–'}kg
+              {p.reps}× {p.weight_kg ?? '–'}kg
             </span>
           ))}
-        </span>
+        </div>
       )}
     </div>
   )
