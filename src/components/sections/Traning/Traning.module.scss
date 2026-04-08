@@ -1285,6 +1285,75 @@
   > * { flex: 1; min-width: 0; }
 }
 
+.modalLarge {
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.indSetList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.indSetRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indSetLabel {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.indSetRemove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+
+  &:hover { color: var(--red); }
+}
+
+.indSetToggle {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: var(--text); border-color: var(--text); }
+}
+
+.indSetBack {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 0;
+
+  &:hover { color: var(--text); }
+}
+
 .modalField {
   display: flex;
   flex-direction: column;

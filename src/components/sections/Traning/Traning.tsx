@@ -78,16 +78,20 @@ const toLbs = (kg: number): number  => +(kg  * KG_TO_LBS).toFixed(1)
 
 // --- Sub-components ---
 
+interface SetPlan { set_number: number; reps: number; weight_kg: number | null }
+
 interface ExerciseModalProps {
   exercise: Exercise
   current: ExerciseLog | undefined
+  setPlans: SetPlan[]
   onRename: (exercise: Exercise, name: string) => Promise<void>
   onLog: (exerciseId: string, kg: number, sets: number | null, reps: number) => Promise<void>
+  onSaveSetPlans: (exerciseId: string, plans: SetPlan[]) => Promise<void>
   onDelete: (exercise: Exercise) => Promise<void>
   onClose: () => void
 }
 
-function ExerciseModal({ exercise, current, onRename, onLog, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
+function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSetPlans, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
   const { t } = useTranslation()
   const [name,       setName]       = useState<string>(exercise.name)
   const [kg,         setKg]         = useState<string>(current?.kg?.toString() ?? '')
@@ -97,6 +101,12 @@ function ExerciseModal({ exercise, current, onRename, onLog, onDelete, onClose }
   const [saving,     setSaving]     = useState<boolean>(false)
   const [confirming, setConfirming] = useState<boolean>(false)
   const [deleting,   setDeleting]   = useState<boolean>(false)
+  const [individualMode, setIndividualMode] = useState<boolean>(setPlans.length > 0)
+  const [indSets,    setIndSets]    = useState<Array<{ reps: string; kg: string }>>(
+    setPlans.length > 0
+      ? setPlans.map(p => ({ reps: p.reps.toString(), kg: p.weight_kg?.toString() ?? '' }))
+      : []
+  )
 
   function handleKgChange(val: string): void {
     setKg(val)
@@ -108,16 +118,38 @@ function ExerciseModal({ exercise, current, onRename, onLog, onDelete, onClose }
     const n = parseFloat(val.replace(',', '.'))
     if (!isNaN(n)) setKg(toKg(n).toString())
   }
+  function addIndSet(): void {
+    setIndSets(prev => [...prev, { reps: '', kg: '' }])
+  }
+  function removeIndSet(i: number): void {
+    setIndSets(prev => prev.filter((_, idx) => idx !== i))
+  }
+  function updateIndSet(i: number, field: 'reps' | 'kg', val: string): void {
+    setIndSets(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s))
+  }
+
   async function handleSave(): Promise<void> {
     const trimmed = name.trim()
     if (!trimmed) return
     setSaving(true)
     if (trimmed !== exercise.name) await onRename(exercise, trimmed)
-    const kgVal = parseFloat(kg.replace(',', '.'))
-    const setsVal = parseInt(sets)
-    const repsVal = parseInt(reps)
-    if (!isNaN(kgVal) && !isNaN(repsVal)) {
-      await onLog(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
+
+    if (individualMode && indSets.length > 0) {
+      const plans: SetPlan[] = indSets.map((s, i) => ({
+        set_number: i + 1,
+        reps: parseInt(s.reps) || 0,
+        weight_kg: s.kg ? parseFloat(s.kg.replace(',', '.')) : null,
+      })).filter(p => p.reps > 0)
+      await onSaveSetPlans(exercise.id, plans)
+    } else {
+      // Standard mode — clear any individual plans
+      await onSaveSetPlans(exercise.id, [])
+      const kgVal = parseFloat(kg.replace(',', '.'))
+      const setsVal = parseInt(sets)
+      const repsVal = parseInt(reps)
+      if (!isNaN(kgVal) && !isNaN(repsVal)) {
+        await onLog(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
+      }
     }
     setSaving(false)
     onClose()
@@ -131,7 +163,7 @@ function ExerciseModal({ exercise, current, onRename, onLog, onDelete, onClose }
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+      <div className={`${styles.modal} ${individualMode ? styles.modalLarge : ''}`} onClick={e => e.stopPropagation()}>
         {confirming ? (
           <>
             <div className={styles.modalTitle}>{t('Delete exercise?')}</div>
@@ -151,26 +183,53 @@ function ExerciseModal({ exercise, current, onRename, onLog, onDelete, onClose }
                 <span className={styles.modalLabel}>{t('Name')}</span>
                 <input className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} autoFocus />
               </label>
-              <div className={styles.modalRow}>
-                <label className={styles.modalField}>
-                  <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
-                  <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
-                </label>
-                <label className={styles.modalField}>
-                  <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
-                  <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
-                </label>
-              </div>
-              <div className={styles.modalRow}>
-                <label className={styles.modalField}>
-                  <span className={styles.modalLabel}>{t('Sets')}</span>
-                  <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
-                </label>
-                <label className={styles.modalField}>
-                  <span className={styles.modalLabel}>{t('Reps')}</span>
-                  <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
-                </label>
-              </div>
+
+              {!individualMode ? (
+                <>
+                  <div className={styles.modalRow}>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
+                      <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
+                    </label>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
+                      <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+                    </label>
+                  </div>
+                  <div className={styles.modalRow}>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Sets')}</span>
+                      <input className={styles.modalInput} type="number" step="1" value={sets} onChange={e => setSets(e.target.value)} />
+                    </label>
+                    <label className={styles.modalField}>
+                      <span className={styles.modalLabel}>{t('Reps')}</span>
+                      <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
+                    </label>
+                  </div>
+                  <button className={styles.indSetToggle} type="button" onClick={() => { setIndividualMode(true); if (indSets.length === 0) addIndSet() }}>
+                    + {t('Individual sets')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className={styles.indSetList}>
+                    {indSets.map((s, i) => (
+                      <div key={i} className={styles.indSetRow}>
+                        <span className={styles.indSetLabel}>Set {i + 1}</span>
+                        <input className={styles.modalInput} type="number" placeholder={t('Reps')} value={s.reps} onChange={e => updateIndSet(i, 'reps', e.target.value)} />
+                        <input className={styles.modalInput} type="number" step="0.5" placeholder="kg" value={s.kg} onChange={e => updateIndSet(i, 'kg', e.target.value)} />
+                        <button className={styles.indSetRemove} type="button" onClick={() => removeIndSet(i)}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <button className={styles.indSetToggle} type="button" onClick={addIndSet}>
+                    + {t('Add set')}
+                  </button>
+                  <button className={styles.indSetBack} type="button" onClick={() => { setIndividualMode(false); setIndSets([]) }}>
+                    ← {t('Back to standard')}
+                  </button>
+                </>
+              )}
             </div>
             <div className={styles.modalActions}>
               <button className={styles.deleteSessionBtn} onClick={() => setConfirming(true)}>{t('Delete')}</button>
@@ -547,6 +606,7 @@ export default function Traning(): React.JSX.Element {
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [exercisesLoading, setExercisesLoading] = useState<boolean>(false)
+  const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
   const [hideSets,         setHideSets]         = useState<boolean>(false)
   const [editMode,         setEditMode]         = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
@@ -661,11 +721,16 @@ export default function Traning(): React.JSX.Element {
   async function startExerciseTimer(ex: Exercise): Promise<void> {
     setTimerMinimized(false)
     const log = logs[ex.id]
-    const sets = log?.sets ?? 3
-    const reps = log?.reps ?? 10
+    const indPlans = individualSets[ex.id]
+    const currentSet = (completedSets[ex.id] ?? 0) + 1
+
+    // Per-set data: use individual plans if available, otherwise global log
+    const setInfo = indPlans?.[currentSet - 1]
+    const reps = setInfo?.reps ?? log?.reps ?? 10
+    const setKg = setInfo?.weight_kg ?? log?.kg ?? null
+    const sets = indPlans ? indPlans.length : (log?.sets ?? 3)
     const workTime = reps * secPerRep
     const COUNTDOWN = countdownSeconds
-    const currentSet = (completedSets[ex.id] ?? 0) + 1
 
     // Create workout if first set in this session
     let wId = workoutId
@@ -700,10 +765,10 @@ export default function Traning(): React.JSX.Element {
 
     // Start Live Activity with total time (countdown + work + rest)
     const totalTime = plan.reduce((sum, p) => sum + p.duration, 0)
-    const label = `${reps} × ${ex.name} + ${t('Rest').toLowerCase()}`
+    const label = `${reps} × ${ex.name}${setKg ? ` ${setKg}kg` : ''} + ${t('Rest').toLowerCase()}`
     if (RestTimer) RestTimer.start({ seconds: totalTime, label }).catch(() => {})
 
-    runTimerStep(plan, 0, ex.id, currentSet, sets, log?.kg ?? null, reps, wId)
+    runTimerStep(plan, 0, ex.id, currentSet, sets, setKg, reps, wId)
   }
 
   function runTimerStep(plan: { phase: TimerPhase; duration: number }[], step: number, exId: string, currentSet: number, setsTotal: number, kg: number | null, reps: number, wId: string | null): void {
@@ -1004,6 +1069,24 @@ export default function Traning(): React.JSX.Element {
       }
       setLogs(latest)
     }
+    // Load individual set plans
+    const allExIds = Object.values(grouped).flat().map(e => e.id)
+    if (allExIds.length > 0) {
+      const { data: planData } = await supabase
+        .from('exercise_set_plans')
+        .select('exercise_id, set_number, reps, weight_kg')
+        .in('exercise_id', allExIds)
+        .order('set_number')
+      if (planData) {
+        const plans: Record<string, SetPlan[]> = {}
+        for (const p of planData as Array<{ exercise_id: string; set_number: number; reps: number; weight_kg: number | null }>) {
+          if (!plans[p.exercise_id]) plans[p.exercise_id] = []
+          plans[p.exercise_id].push({ set_number: p.set_number, reps: p.reps, weight_kg: p.weight_kg })
+        }
+        setIndividualSets(plans)
+      }
+    }
+
     setExercisesLoading(false)
 
     // Resume unfinished workout if exists
@@ -1040,6 +1123,21 @@ export default function Traning(): React.JSX.Element {
     await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps })
     setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps } }))
     setLogging(null)
+  }
+
+  async function handleSaveSetPlans(exerciseId: string, plans: SetPlan[]): Promise<void> {
+    await supabase.from('exercise_set_plans').delete().eq('exercise_id', exerciseId)
+    if (plans.length > 0) {
+      await supabase.from('exercise_set_plans').insert(
+        plans.map(p => ({ exercise_id: exerciseId, set_number: p.set_number, reps: p.reps, weight_kg: p.weight_kg }))
+      )
+    }
+    setIndividualSets(prev => {
+      const next = { ...prev }
+      if (plans.length > 0) next[exerciseId] = plans
+      else delete next[exerciseId]
+      return next
+    })
   }
 
   async function handleRename(exercise: Exercise, name: string): Promise<void> {
@@ -1409,8 +1507,10 @@ export default function Traning(): React.JSX.Element {
         <ExerciseModal
           exercise={(logging ?? naming)!}
           current={logs[(logging ?? naming)!.id]}
+          setPlans={individualSets[(logging ?? naming)!.id] ?? []}
           onRename={handleRename}
           onLog={handleLogSave}
+          onSaveSetPlans={handleSaveSetPlans}
           onDelete={handleDelete}
           onClose={() => { setLogging(null); setNaming(null) }}
         />
