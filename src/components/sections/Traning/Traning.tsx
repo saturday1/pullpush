@@ -102,9 +102,9 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
   const [confirming, setConfirming] = useState<boolean>(false)
   const [deleting,   setDeleting]   = useState<boolean>(false)
   const [individualMode, setIndividualMode] = useState<boolean>(setPlans.length > 0)
-  const [indSets,    setIndSets]    = useState<Array<{ reps: string; kg: string }>>(
+  const [indSets,    setIndSets]    = useState<Array<{ reps: string; kg: string; lbs: string }>>(
     setPlans.length > 0
-      ? setPlans.map(p => ({ reps: p.reps.toString(), kg: p.weight_kg?.toString() ?? '' }))
+      ? setPlans.map(p => ({ reps: p.reps.toString(), kg: p.weight_kg?.toString() ?? '', lbs: p.weight_kg ? toLbs(p.weight_kg).toString() : '' }))
       : []
   )
 
@@ -119,13 +119,27 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
     if (!isNaN(n)) setKg(toKg(n).toString())
   }
   function addIndSet(): void {
-    setIndSets(prev => [...prev, { reps: '', kg: '' }])
+    setIndSets(prev => [...prev, { reps: '', kg: '', lbs: '' }])
   }
   function removeIndSet(i: number): void {
     setIndSets(prev => prev.filter((_, idx) => idx !== i))
   }
-  function updateIndSet(i: number, field: 'reps' | 'kg', val: string): void {
-    setIndSets(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s))
+  function updateIndSetKg(i: number, val: string): void {
+    setIndSets(prev => prev.map((s, idx) => {
+      if (idx !== i) return s
+      const n = parseFloat(val.replace(',', '.'))
+      return { ...s, kg: val, lbs: !isNaN(n) ? toLbs(n).toString() : s.lbs }
+    }))
+  }
+  function updateIndSetLbs(i: number, val: string): void {
+    setIndSets(prev => prev.map((s, idx) => {
+      if (idx !== i) return s
+      const n = parseFloat(val.replace(',', '.'))
+      return { ...s, lbs: val, kg: !isNaN(n) ? toKg(n).toString() : s.kg }
+    }))
+  }
+  function updateIndSetReps(i: number, val: string): void {
+    setIndSets(prev => prev.map((s, idx) => idx === i ? { ...s, reps: val } : s))
   }
 
   async function handleSave(): Promise<void> {
@@ -206,7 +220,14 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
                       <input className={styles.modalInput} type="number" step="1" value={reps} onChange={e => setReps(e.target.value)} />
                     </label>
                   </div>
-                  <button className={styles.indSetToggle} type="button" onClick={() => { setIndividualMode(true); if (indSets.length === 0) addIndSet() }}>
+                  <button className={styles.indSetToggle} type="button" onClick={() => {
+                    setIndividualMode(true)
+                    if (indSets.length === 0) {
+                      const numSets = parseInt(sets) || 1
+                      const initSets = Array.from({ length: numSets }, () => ({ reps, kg, lbs }))
+                      setIndSets(initSets)
+                    }
+                  }}>
                     + {t('Individual sets')}
                   </button>
                 </>
@@ -216,8 +237,9 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
                     {indSets.map((s, i) => (
                       <div key={i} className={styles.indSetRow}>
                         <span className={styles.indSetLabel}>Set {i + 1}</span>
-                        <input className={styles.modalInput} type="number" placeholder={t('Reps')} value={s.reps} onChange={e => updateIndSet(i, 'reps', e.target.value)} />
-                        <input className={styles.modalInput} type="number" step="0.5" placeholder="kg" value={s.kg} onChange={e => updateIndSet(i, 'kg', e.target.value)} />
+                        <input className={styles.modalInput} type="number" placeholder={t('Reps')} value={s.reps} onChange={e => updateIndSetReps(i, e.target.value)} />
+                        <input className={styles.modalInput} type="number" step="0.5" placeholder="kg" value={s.kg} onChange={e => updateIndSetKg(i, e.target.value)} />
+                        <input className={styles.modalInput} type="number" step="1" placeholder="lbs" value={s.lbs} onChange={e => updateIndSetLbs(i, e.target.value)} />
                         <button className={styles.indSetRemove} type="button" onClick={() => removeIndSet(i)}>✕</button>
                       </div>
                     ))}
