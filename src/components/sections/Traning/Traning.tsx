@@ -614,16 +614,14 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMod
             <div key={i} className={styles.metaRow}>
               <span className={styles.metaLabel}>Set {i + 1}</span>
               <span className={styles.metaItem}>{p.reps} reps</span>
-              <span className={styles.metaItem}>{p.weight_kg ?? '–'} kg</span>
-              <span className={styles.metaItem}>{p.weight_kg ? toLbs(p.weight_kg) : '–'} lbs</span>
+              <span className={styles.metaItem}>{p.weight_kg ?? '–'} kg / {p.weight_kg ? toLbs(p.weight_kg) : '–'} lbs</span>
             </div>
           ))
         ) : (
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>{log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'}</span>
             <span className={styles.metaItem}>{log?.reps ?? '–'} reps</span>
-            <span className={styles.metaItem}>{log?.kg ?? '–'} kg</span>
-            <span className={styles.metaItem}>{log?.kg != null ? toLbs(log.kg) : '–'} lbs</span>
+            <span className={styles.metaItem}>{log?.kg ?? '–'} kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs</span>
           </div>
         )}
       </div>
