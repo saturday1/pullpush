@@ -1327,6 +1327,20 @@
   &:hover { color: var(--red); }
 }
 
+.indSetsPreview {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.indSetPreviewRow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
 .indSetToggle {
   background: none;
   border: 1px dashed var(--border);

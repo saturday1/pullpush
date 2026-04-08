@@ -564,6 +564,7 @@ function SetupGuide({ step, onCreateProgram, onAddSession }: SetupGuideProps): R
 interface SortableRowProps {
   ex: Exercise
   log: ExerciseLog | undefined
+  setPlans: SetPlan[]
   onName: (ex: Exercise) => void
   onLog: (ex: Exercise) => void
   onPlay: (ex: Exercise) => void
@@ -574,9 +575,10 @@ interface SortableRowProps {
   completedSets: number
 }
 
-function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
+function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, hideSets, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
-  const configuredSets = log?.sets ?? 3
+  const hasIndividual = setPlans.length > 0
+  const configuredSets = hasIndividual ? setPlans.length : (log?.sets ?? 3)
   const totalDots = Math.max(configuredSets, completedSets)
   const allDone = completedSets >= configuredSets
   const style = {
@@ -607,12 +609,24 @@ function SortableRow({ ex, log, onName, onLog, onPlay, onUndo, hideSets, editMod
           </span>
         )}
       </span>
-      <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>
-        <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
-        <span className={styles.lbsVal}>{log?.kg != null ? toLbs(log.kg) : ''}</span>
-      </span>
-      {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>{log?.sets ?? '–'}</span>}
-      <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onName(ex)}>{log?.reps ?? '–'}</span>
+      {!hasIndividual ? (
+        <>
+          <span className={`${styles.weightCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>
+            <span className={styles.kgVal}>{log?.kg ?? '–'}</span>
+            <span className={styles.lbsVal}>{log?.kg != null ? toLbs(log.kg) : ''}</span>
+          </span>
+          {!hideSets && <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''}`} onClick={() => editMode && onName(ex)}>{log?.sets ?? '–'}</span>}
+          <span className={`${styles.numCell} ${editMode ? styles.clickableCell : ''} ${styles.repsCell}`} onClick={() => editMode && onName(ex)}>{log?.reps ?? '–'}</span>
+        </>
+      ) : (
+        <span className={styles.indSetsPreview} onClick={() => editMode && onName(ex)} style={editMode ? { cursor: 'pointer' } : {}}>
+          {setPlans.map((p, i) => (
+            <span key={i} className={styles.indSetPreviewRow}>
+              Set {i + 1}: {p.reps}× {p.weight_kg ?? '–'}kg
+            </span>
+          ))}
+        </span>
+      )}
     </div>
   )
 }
@@ -1472,7 +1486,7 @@ export default function Traning(): React.JSX.Element {
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onUndo={undoLastSet} hideSets={hideSets} editMode={editMode} isTimerActive={timerExId === ex.id} completedSets={completedSets[ex.id] ?? 0} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onUndo={undoLastSet} hideSets={hideSets} editMode={editMode} isTimerActive={timerExId === ex.id} completedSets={completedSets[ex.id] ?? 0} />
                     ))}
                   </SortableContext>
                 </DndContext>
