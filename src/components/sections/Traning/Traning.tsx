@@ -584,6 +584,9 @@ export default function Traning(): React.JSX.Element {
   const [editMode,         setEditMode]         = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [showEndDialog,    setShowEndDialog]    = useState<boolean>(false)
+  const [showInactiveDialog, setShowInactiveDialog] = useState<boolean>(false)
+  const inactivityRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const INACTIVITY_MINUTES = 15
 
   // Exercise timer
   type TimerPhase = 'countdown' | 'work' | 'rest' | null
@@ -1241,6 +1244,16 @@ export default function Traning(): React.JSX.Element {
     return () => clearTimeout(timer)
   }, [restoreComplete, currentExercises.length, allSessionDone, workoutId, timerPhase])
 
+  // Inactivity timeout — show dialog if no activity for 15 min during active workout
+  useEffect(() => {
+    if (inactivityRef.current) clearTimeout(inactivityRef.current)
+    if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) return
+    inactivityRef.current = setTimeout(() => {
+      setShowInactiveDialog(true)
+    }, INACTIVITY_MINUTES * 60 * 1000)
+    return () => { if (inactivityRef.current) clearTimeout(inactivityRef.current) }
+  }, [workoutId, completedSetsInSession, allSessionDone, timerPhase, completedSets])
+
   // Find active exercise name/details for overlay
   const timerExercise = currentExercises.find(ex => ex.id === timerExId)
   const timerExLog = timerExId ? logs[timerExId] : undefined
@@ -1597,6 +1610,20 @@ export default function Traning(): React.JSX.Element {
               <button className={styles.pauseResumeBtn} onClick={() => finishWorkout(true)}>{t('Save & end')}</button>
               <button className={styles.pauseStopBtn} onClick={() => finishWorkout(false)}>{t('End without saving')}</button>
               <button className={styles.pauseStopBtn} onClick={() => setShowEndDialog(false)}>{t('Cancel')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showInactiveDialog && (
+        <div className={styles.pauseOverlay}>
+          <div className={styles.overlayContent}>
+            <div className={styles.pauseTitle}>{t('Still training?')}</div>
+            <div className={styles.overlayNext}>{t('You have an unfinished workout')}</div>
+            <div className={styles.endDialogActions}>
+              <button className={styles.pauseResumeBtn} onClick={() => setShowInactiveDialog(false)}>{t('Continue training')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => { setShowInactiveDialog(false); finishWorkout(true) }}>{t('Save & end')}</button>
+              <button className={styles.pauseStopBtn} onClick={() => { setShowInactiveDialog(false); finishWorkout(false) }}>{t('End without saving')}</button>
             </div>
           </div>
         </div>
