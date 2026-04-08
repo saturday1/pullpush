@@ -858,12 +858,57 @@ export default function Mat(): React.JSX.Element {
                     </div>
                 ) : (
                     <>
-                        <div className={styles.totals}>
-                            <span>{t('Total:')} <strong>{totals.kcal} kcal</strong></span>
-                            <span style={{ color: '#f97316' }}>{t('P')}: {totals.protein_g} g</span>
-                            <span style={{ color: '#60a5fa' }}>{t('C')}: {totals.carbs_g} g</span>
-                            <span style={{ color: '#22c55e' }}>{t('F')}: {totals.fat_g} g</span>
-                        </div>
+                        {profile?.macros ? (
+                            <div className={styles.macroRings}>
+                                {([
+                                    { key: 'kcal', label: 'KCAL', current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
+                                    { key: 'protein', label: 'PROT', current: totals.protein_g, target: profile.macros.protein, unit: 'g', color: '#f97316' },
+                                    { key: 'carbs', label: 'CARBS', current: totals.carbs_g, target: profile.macros.carbs, unit: 'g', color: '#60a5fa' },
+                                    { key: 'fat', label: 'FAT', current: totals.fat_g, target: profile.macros.fat, unit: 'g', color: '#22c55e' },
+                                ] as const).map(row => {
+                                    const pct = row.target > 0 ? Math.min(100, (row.current / row.target) * 100) : 0
+                                    return (
+                                        <div key={row.key} className={styles.macroRing}>
+                                            <div className={styles.macroRingSvgWrap}>
+                                                <svg className={styles.macroRingSvg} viewBox="0 0 36 36">
+                                                    <circle
+                                                        cx="18" cy="18" r="16"
+                                                        fill="none"
+                                                        stroke="var(--border)"
+                                                        strokeWidth="3"
+                                                        pathLength={100}
+                                                    />
+                                                    <circle
+                                                        cx="18" cy="18" r="16"
+                                                        fill="none"
+                                                        stroke={row.color}
+                                                        strokeWidth="3"
+                                                        strokeLinecap="round"
+                                                        pathLength={100}
+                                                        strokeDasharray="100 100"
+                                                        strokeDashoffset={100 - pct}
+                                                        transform="rotate(-90 18 18)"
+                                                        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+                                                    />
+                                                </svg>
+                                                <div className={styles.macroRingValue}>
+                                                    <span className={styles.macroRingCurrent}>{row.current}{row.unit}</span>
+                                                    <span className={styles.macroRingTarget}>/ {row.target}{row.unit}</span>
+                                                </div>
+                                            </div>
+                                            <span className={styles.macroRingLabel}>{row.label}</span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <div className={styles.totals}>
+                                <span>{t('Total:')} <strong>{totals.kcal} kcal</strong></span>
+                                <span style={{ color: '#f97316' }}>{t('P')}: {totals.protein_g} g</span>
+                                <span style={{ color: '#60a5fa' }}>{t('C')}: {totals.carbs_g} g</span>
+                                <span style={{ color: '#22c55e' }}>{t('F')}: {totals.fat_g} g</span>
+                            </div>
+                        )}
                         <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} t={t} />
                         <button className={styles.addMealBottom} onClick={() => setAddOpen(true)}>+ {t('Add meal')}</button>
                     </>

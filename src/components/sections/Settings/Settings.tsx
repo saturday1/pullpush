@@ -15,9 +15,9 @@ export default function Settings(): React.ReactElement {
 
     return (
         <section id="settings">
-            <SectionHeader title={t('Settings')} />
-
             <Profil />
+
+            <SectionHeader title={t('Settings')} />
 
             <Reveal>
                 <div className={styles.card}>
