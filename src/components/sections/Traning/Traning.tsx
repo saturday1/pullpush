@@ -36,6 +36,7 @@ interface ExerciseLog {
   kg: number
   sets: number | null
   reps: number
+  unilateral: boolean
 }
 
 interface TrainingSession {
@@ -85,7 +86,7 @@ interface ExerciseModalProps {
   current: ExerciseLog | undefined
   setPlans: SetPlan[]
   onRename: (exercise: Exercise, name: string) => Promise<void>
-  onLog: (exerciseId: string, kg: number, sets: number | null, reps: number) => Promise<void>
+  onLog: (exerciseId: string, kg: number, sets: number | null, reps: number, unilateral: boolean) => Promise<void>
   onSaveSetPlans: (exerciseId: string, plans: SetPlan[]) => Promise<void>
   onDelete: (exercise: Exercise) => Promise<void>
   onClose: () => void
@@ -101,6 +102,7 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
   const [saving,     setSaving]     = useState<boolean>(false)
   const [confirming, setConfirming] = useState<boolean>(false)
   const [deleting,   setDeleting]   = useState<boolean>(false)
+  const [unilateral, setUnilateral] = useState<boolean>(current?.unilateral ?? false)
   const [individualMode, setIndividualMode] = useState<boolean>(setPlans.length > 0)
   const [indSets,    setIndSets]    = useState<Array<{ reps: string; kg: string; lbs: string }>>(
     setPlans.length > 0
@@ -162,7 +164,7 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
       const setsVal = parseInt(sets)
       const repsVal = parseInt(reps)
       if (!isNaN(kgVal) && !isNaN(repsVal)) {
-        await onLog(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal)
+        await onLog(exercise.id, kgVal, isNaN(setsVal) ? null : setsVal, repsVal, unilateral)
       }
     }
     setSaving(false)
@@ -230,6 +232,10 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
                   }}>
                     + {t('Individual sets')}
                   </button>
+                  <label className={styles.unilateralToggle}>
+                    <input type="checkbox" checked={unilateral} onChange={e => setUnilateral(e.target.checked)} />
+                    <span>{t('Unilateral (per side)')}</span>
+                  </label>
                 </>
               ) : (
                 <>
@@ -584,6 +590,7 @@ interface SortableRowProps {
 }
 
 function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets }: SortableRowProps): React.JSX.Element {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
   const hasIndividual = setPlans.length > 0
   const configuredSets = hasIndividual ? setPlans.length : (log?.sets ?? 3)
@@ -635,7 +642,7 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onMaximize, onU
         ) : (
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>{log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'}</span>
-            <span className={styles.metaItem}>{log?.reps ?? '–'} reps</span>
+            <span className={styles.metaItem}>{log?.reps ?? '–'} reps{log?.unilateral ? ` ${t('per side')}` : ''}</span>
             <span className={styles.metaItem}>{log?.kg ?? '–'} kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs</span>
           </div>
         )}
@@ -651,7 +658,7 @@ export default function Traning(): React.JSX.Element {
   const { t } = useTranslation()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
-  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
@@ -669,7 +676,7 @@ export default function Traning(): React.JSX.Element {
   const INACTIVITY_MINUTES = 15
 
   // Exercise timer
-  type TimerPhase = 'countdown' | 'work' | 'rest' | null
+  type TimerPhase = 'countdown' | 'work' | 'rest' | 'side_pause' | null
   const [timerExId,        setTimerExId]        = useState<string | null>(null)
   const [timerPhase,       setTimerPhase]       = useState<TimerPhase>(null)
   const [timerSet,         setTimerSet]         = useState<number>(0)
@@ -804,10 +811,13 @@ export default function Traning(): React.JSX.Element {
       setWorkoutId(wId)
     }
 
-    // One set plan: countdown → work → rest (skip 0-duration phases)
+    // One set plan: countdown → work [→ side_pause → work] → rest
+    const isUnilateral = log?.unilateral ?? false
     const plan: { phase: TimerPhase; duration: number }[] = []
     if (COUNTDOWN > 0) plan.push({ phase: 'countdown', duration: COUNTDOWN })
     if (workTime > 0) plan.push({ phase: 'work', duration: workTime })
+    if (isUnilateral && sidePauseSeconds > 0) plan.push({ phase: 'side_pause', duration: sidePauseSeconds })
+    if (isUnilateral && workTime > 0) plan.push({ phase: 'work', duration: workTime })
     if (restSeconds > 0) plan.push({ phase: 'rest', duration: restSeconds })
 
     timerPlanRef.current = plan
@@ -1128,8 +1138,8 @@ export default function Traning(): React.JSX.Element {
 
     if (logData) {
       const latest: Record<string, ExerciseLog> = {}
-      for (const row of logData as Array<{ exercise_id: string; weight_kg: number; sets: number | null; reps: number }>) {
-        latest[row.exercise_id] = { kg: row.weight_kg, sets: row.sets, reps: row.reps }
+      for (const row of logData as Array<{ exercise_id: string; weight_kg: number; sets: number | null; reps: number; unilateral?: boolean }>) {
+        latest[row.exercise_id] = { kg: row.weight_kg, sets: row.sets, reps: row.reps, unilateral: row.unilateral ?? false }
       }
       setLogs(latest)
     }
@@ -1183,9 +1193,9 @@ export default function Traning(): React.JSX.Element {
     }
   }
 
-  async function handleLogSave(exerciseId: string, kg: number, sets: number | null, reps: number): Promise<void> {
-    await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps })
-    setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps } }))
+  async function handleLogSave(exerciseId: string, kg: number, sets: number | null, reps: number, unilateral: boolean = false): Promise<void> {
+    await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps, unilateral })
+    setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps, unilateral } }))
     setLogging(null)
   }
 
@@ -1493,7 +1503,9 @@ export default function Traning(): React.JSX.Element {
                     let setTime = 0
                     for (let i = 0; i < numSets; i++) {
                       const reps = indPlans?.[i]?.reps ?? log?.reps ?? 10
-                      setTime += countdownSeconds + (reps * secPerRep) + restSeconds
+                      const workDur = reps * secPerRep
+                      const isUni = log?.unilateral ?? false
+                      setTime += countdownSeconds + workDur + (isUni ? sidePauseSeconds + workDur : 0) + restSeconds
                     }
                     return sum + setTime
                   }, 0)
@@ -1667,6 +1679,22 @@ export default function Traning(): React.JSX.Element {
         </div>
       )}
 
+      {timerPhase === 'side_pause' && !paused && !timerMinimized && (
+        <div className={styles.countdownOverlay} onClick={pauseExerciseTimer}>
+          <div className={styles.overlayContent}>
+            <div className={styles.overlaySetLabel}>{t('Switch side')}</div>
+            <div className={styles.overlayTime}>{timerSecs}</div>
+            <div className={styles.overlayProgressTrack}>
+              <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
+            </div>
+          </div>
+          <div className={styles.overlayHintRow}>
+            <span>{t('Tap to pause or end')}</span>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+          </div>
+        </div>
+      )}
+
       {timerPhase === 'rest' && !paused && !timerMinimized && (
         <div className={styles.restOverlay} onClick={pauseExerciseTimer}>
           <div className={styles.blobOrange} />
@@ -1700,7 +1728,7 @@ export default function Traning(): React.JSX.Element {
           )}
           <div className={styles.miniTimerInfo}>
             <span className={styles.miniTimerPhase}>
-              {countdownOverlay !== null ? `Set ${timerSet} — ${t('Countdown')}` : timerPhase === 'work' ? `Set ${timerSet} — ${t('Reps')}` : `Set ${timerSet} — ${t('Rest')}`}
+              {countdownOverlay !== null ? `Set ${timerSet} — ${t('Countdown')}` : timerPhase === 'work' ? `Set ${timerSet} — ${t('Reps')}` : timerPhase === 'side_pause' ? `Set ${timerSet} — ${t('Switch side')}` : `Set ${timerSet} — ${t('Rest')}`}
             </span>
             <span className={styles.miniTimerTime}>
               {countdownOverlay !== null

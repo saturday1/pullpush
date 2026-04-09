@@ -1435,6 +1435,22 @@
   margin-bottom: 16px;
 }
 
+.unilateralToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+  }
+}
+
 // ── Complete modal ───────────────────────────────────────────
 
 .completeOverlay {

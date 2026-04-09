@@ -14,7 +14,7 @@ function formatDate(dateStr: string | null): string {
 
 export default function Profil(): React.JSX.Element {
     const { t, i18n } = useTranslation()
-    const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, startWeight, restSeconds, secPerRep, countdownSeconds, updateProfile } = useProfile()!
+    const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, startWeight, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, updateProfile } = useProfile()!
     const [email, setEmail] = useState<string>('')
 
     const [editing, setEditing] = useState<boolean>(false)
@@ -28,6 +28,7 @@ export default function Profil(): React.JSX.Element {
     const [editRest, setEditRest] = useState<string>('')
     const [editSecPerRep, setEditSecPerRep] = useState<string>('')
     const [editCountdown, setEditCountdown] = useState<string>('')
+    const [editSidePause, setEditSidePause] = useState<string>('')
     const [saving, setSaving] = useState<boolean>(false)
 
     useEffect(() => {
@@ -47,6 +48,7 @@ export default function Profil(): React.JSX.Element {
         setEditRest(restSeconds?.toString() ?? '90')
         setEditSecPerRep(secPerRep?.toString() ?? '4')
         setEditCountdown(countdownSeconds?.toString() ?? '10')
+        setEditSidePause(sidePauseSeconds?.toString() ?? '5')
         setEditing(true)
     }
 
@@ -64,6 +66,7 @@ export default function Profil(): React.JSX.Element {
             rest_seconds: Math.max(0, parseInt(editRest) || 90),
             sec_per_rep: Math.max(0, parseInt(editSecPerRep) || 4),
             countdown_seconds: Math.max(0, parseInt(editCountdown) || 10),
+            side_pause_seconds: Math.max(0, parseInt(editSidePause) || 5),
         })
         setSaving(false)
         setEditing(false)
@@ -133,6 +136,10 @@ export default function Profil(): React.JSX.Element {
                                     <span className={styles.fieldLabel}>{t('Countdown (sec)')}</span>
                                     <input className={styles.fieldInput} type="number" min="0" step="1" value={editCountdown} onChange={e => setEditCountdown(e.target.value)} placeholder="10" />
                                 </label>
+                                <label className={styles.field}>
+                                    <span className={styles.fieldLabel}>{t('Side pause (sec)')}</span>
+                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editSidePause} onChange={e => setEditSidePause(e.target.value)} placeholder="5" />
+                                </label>
                             </div>
                             <div className={styles.editActions}>
                                 <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>{t('Cancel')}</button>
@@ -150,6 +157,7 @@ export default function Profil(): React.JSX.Element {
                             <div className={styles.infoRow}><span>{t('Rest timer')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${restSeconds}s`}</span></div>
                             <div className={styles.infoRow}><span>{t('Sec per rep')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${secPerRep}s`}</span></div>
                             <div className={styles.infoRow}><span>{t('Countdown')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${countdownSeconds}s`}</span></div>
+                            <div className={styles.infoRow}><span>{t('Side pause')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${sidePauseSeconds}s`}</span></div>
                             <div className={styles.infoRow}><span>{t('Email')}</span><span>{email || '…'}</span></div>
                         </div>
                     )}
