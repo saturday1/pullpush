@@ -177,7 +177,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     // Fire all queries in parallel, but update state as each resolves
     const profilePromise = supabase
       .from('profile')
-      .select('goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, active_program_id, rest_seconds, sec_per_rep, countdown_seconds, side_pause_seconds')
+      .select('*')
       .eq('user_id', user.id)
       .single()
 
