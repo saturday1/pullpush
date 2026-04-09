@@ -1497,8 +1497,9 @@ export default function Traning(): React.JSX.Element {
                     }
                     return sum + setTime
                   }, 0)
-                  const mins = Math.round(totalSec / 60)
-                  return `~${mins} min`
+                  const mins = Math.floor(totalSec / 60)
+                  const secs = totalSec % 60
+                  return `~${mins} min ${secs} sek`
                 })()}
               </div>
             )}
