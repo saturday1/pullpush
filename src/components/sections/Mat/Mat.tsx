@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
@@ -134,6 +135,127 @@ function formatDateLabel(dateStr: string, todayStr: string, t: TFunction): strin
 }
 
 // --- Sub-components ---
+
+interface DatePickerProps {
+    value: string
+    todayStr: string
+    anchorRect: DOMRect
+    onChange: (dateStr: string) => void
+    onClose: () => void
+    t: TFunction
+}
+
+function DatePicker({ value, todayStr, anchorRect, onChange, onClose, t }: DatePickerProps): React.JSX.Element {
+    const [vy, vm] = value.split('-').map(Number)
+    const [viewYear, setViewYear] = useState<number>(vy)
+    const [viewMonth, setViewMonth] = useState<number>(vm - 1) // 0-indexed
+    const popoverRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+        function onDocClick(e: MouseEvent): void {
+            if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+                onClose()
+            }
+        }
+        function onKey(e: KeyboardEvent): void {
+            if (e.key === 'Escape') onClose()
+        }
+        // Defer so the click that opened the popover doesn't immediately close it
+        const id = setTimeout(() => {
+            document.addEventListener('mousedown', onDocClick)
+        }, 0)
+        document.addEventListener('keydown', onKey)
+        return () => {
+            clearTimeout(id)
+            document.removeEventListener('mousedown', onDocClick)
+            document.removeEventListener('keydown', onKey)
+        }
+    }, [onClose])
+
+    // Position: centered horizontally under the anchor, clamped to viewport
+    const popWidth = Math.min(300, window.innerWidth - 32)
+    const anchorCenterX = anchorRect.left + anchorRect.width / 2
+    let left = anchorCenterX - popWidth / 2
+    const margin = 12
+    if (left < margin) left = margin
+    if (left + popWidth > window.innerWidth - margin) left = window.innerWidth - margin - popWidth
+    const top = anchorRect.bottom + 10
+    const arrowLeft = anchorCenterX - left // arrow position relative to popover
+
+    function prevMonth(): void {
+        if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11) }
+        else setViewMonth(viewMonth - 1)
+    }
+    function nextMonth(): void {
+        if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0) }
+        else setViewMonth(viewMonth + 1)
+    }
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+    // Build day grid (Monday-first)
+    const firstOfMonth = new Date(viewYear, viewMonth, 1)
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+    // JS getDay(): 0=Sun, 1=Mon...6=Sat. Convert to Mon=0..Sun=6
+    const firstDow = (firstOfMonth.getDay() + 6) % 7
+    const cells: Array<{ day: number; dateStr: string } | null> = []
+    for (let i = 0; i < firstDow; i++) cells.push(null)
+    for (let d = 1; d <= daysInMonth; d++) {
+        const mm = String(viewMonth + 1).padStart(2, '0')
+        const dd = String(d).padStart(2, '0')
+        cells.push({ day: d, dateStr: `${viewYear}-${mm}-${dd}` })
+    }
+    while (cells.length % 7 !== 0) cells.push(null)
+
+    return createPortal(
+        <div
+            ref={popoverRef}
+            className={styles.datePickerPopover}
+            role="dialog"
+            aria-label={t('Pick a date')}
+            style={{ top: `${top}px`, left: `${left}px`, width: `${popWidth}px` }}
+        >
+            <div className={styles.datePickerArrow} style={{ left: `${arrowLeft}px` }} />
+            <div className={styles.datePickerHeader}>
+                <button type="button" className={styles.datePickerNavBtn} onClick={prevMonth} aria-label={t('Previous month')}>‹</button>
+                <div className={styles.datePickerTitle}>{t(monthNames[viewMonth])} {viewYear}</div>
+                <button type="button" className={styles.datePickerNavBtn} onClick={nextMonth} aria-label={t('Next month')}>›</button>
+            </div>
+            <div className={styles.datePickerWeekdays}>
+                {weekdayLabels.map(w => <div key={w} className={styles.datePickerWeekday}>{t(w)}</div>)}
+            </div>
+            <div className={styles.datePickerGrid}>
+                {cells.map((cell, i) => {
+                    if (!cell) return <div key={i} className={styles.datePickerCellEmpty} />
+                    const isToday = cell.dateStr === todayStr
+                    const isSelected = cell.dateStr === value
+                    const cls = [
+                        styles.datePickerCell,
+                        isToday ? styles.datePickerCellToday : '',
+                        isSelected ? styles.datePickerCellSelected : '',
+                    ].filter(Boolean).join(' ')
+                    return (
+                        <button
+                            key={i}
+                            type="button"
+                            className={cls}
+                            onClick={() => { onChange(cell.dateStr); onClose() }}
+                        >{cell.day}</button>
+                    )
+                })}
+            </div>
+            <div className={styles.datePickerFooter}>
+                <button
+                    type="button"
+                    className={styles.datePickerTodayBtn}
+                    onClick={() => { onChange(todayStr); onClose() }}
+                >{t('Jump to today')}</button>
+            </div>
+        </div>,
+        document.body
+    )
+}
 
 interface BarcodeScannerProps {
     onResult: (barcode: string) => void
@@ -798,7 +920,8 @@ export default function Mat(): React.JSX.Element {
     const todayStr: string = localDateStr(new Date())
     const [selectedDate, setSelectedDate] = useState<string>(todayStr)
     const todayRef = useRef<string>(todayStr)
-    const dateInputRef = useRef<HTMLInputElement | null>(null)
+    const [pickerAnchor, setPickerAnchor] = useState<DOMRect | null>(null)
+    const dateLabelBtnRef = useRef<HTMLButtonElement | null>(null)
     const [meals, setMeals] = useState<Meal[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [addOpen, setAddOpen] = useState<boolean>(false)
@@ -936,36 +1059,34 @@ export default function Mat(): React.JSX.Element {
                     >‹</button>
                     <div className={styles.dateLabel}>
                         <button
+                            ref={dateLabelBtnRef}
                             type="button"
                             className={styles.dateLabelMainBtn}
                             onClick={() => {
-                                const input = dateInputRef.current
-                                if (!input) return
-                                if (typeof input.showPicker === 'function') {
-                                    input.showPicker()
-                                } else {
-                                    input.click()
-                                    input.focus()
-                                }
+                                if (pickerAnchor) { setPickerAnchor(null); return }
+                                const rect = dateLabelBtnRef.current?.getBoundingClientRect() ?? null
+                                setPickerAnchor(rect)
                             }}
                             title={t('Pick a date')}
                             aria-label={t('Pick a date')}
+                            aria-expanded={pickerAnchor !== null}
                         >{formatDateLabel(selectedDate, todayStr, t)}</button>
-                        <input
-                            ref={dateInputRef}
-                            type="date"
-                            className={styles.hiddenDateInput}
-                            value={selectedDate}
-                            onChange={e => { if (e.target.value) setSelectedDate(e.target.value) }}
-                            tabIndex={-1}
-                            aria-hidden="true"
-                        />
                         {selectedDate !== todayStr && (
                             <button
                                 type="button"
                                 className={styles.dateLabelToday}
                                 onClick={() => setSelectedDate(todayStr)}
                             >{t('Jump to today')}</button>
+                        )}
+                        {pickerAnchor && (
+                            <DatePicker
+                                value={selectedDate}
+                                todayStr={todayStr}
+                                anchorRect={pickerAnchor}
+                                onChange={setSelectedDate}
+                                onClose={() => setPickerAnchor(null)}
+                                t={t}
+                            />
                         )}
                     </div>
                     <button
