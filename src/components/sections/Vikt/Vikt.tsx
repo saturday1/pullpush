@@ -155,7 +155,7 @@ export default function Vikt(): React.JSX.Element {
                 value={weightInput}
                 onChange={e => setWeightInput(e.target.value)}
                 className={styles.logInput}
-                style={{ width: '100%', marginBottom: 16 }}
+                style={{ width: '100%', marginBottom: 8 }}
                 autoFocus
               />
               <div className={styles.weightModalActions}>
