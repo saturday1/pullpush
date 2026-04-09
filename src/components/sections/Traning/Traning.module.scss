@@ -1426,6 +1426,76 @@
   &:hover { color: var(--red); }
 }
 
+// ── Complete modal ───────────────────────────────────────────
+
+.completeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 14, 13, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.completeModal {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 40px 32px;
+  text-align: center;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+}
+
+.completeEmoji {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.completeTitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.completeText {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.completeNext {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.completeBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--gradient);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
 // ── Exercise card layout ────────────────────────────────────
 
 .exerciseCard {

@@ -663,6 +663,7 @@ export default function Traning(): React.JSX.Element {
   const [editMode,         setEditMode]         = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [showEndDialog,    setShowEndDialog]    = useState<boolean>(false)
+  const [showCompleteModal, setShowCompleteModal] = useState<string | null>(null)
   const [showInactiveDialog, setShowInactiveDialog] = useState<boolean>(false)
   const inactivityRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const INACTIVITY_MINUTES = 15
@@ -1053,10 +1054,15 @@ export default function Traning(): React.JSX.Element {
 
   // End the entire workout (via "Avsluta pass" button)
   async function finishWorkout(save: boolean): Promise<void> {
+    const sessionName = currentSession?.name ?? ''
+    const dayOfWeek = currentSession?.day_of_week ?? 0
     stopExerciseTimer()
     if (workoutId) {
       if (save) {
         await supabase.from('workouts').update({ completed_at: new Date().toISOString() }).eq('id', workoutId)
+        // Find next session day name
+        const nextDayName = dayFull[dayOfWeek - 1] ?? ''
+        setShowCompleteModal(`${sessionName}|${nextDayName}`)
       } else {
         await supabase.from('workouts').delete().eq('id', workoutId)
       }
@@ -1353,18 +1359,18 @@ export default function Traning(): React.JSX.Element {
     if (!allSessionDone || !workoutId || timerPhase) return
 
     const id = workoutId
+    const sessionName = currentSession?.name ?? ''
+    const dayOfWeek = currentSession?.day_of_week ?? 0
+    const nextDayName = dayFull[dayOfWeek - 1] ?? ''
     void (async () => {
       const { error } = await supabase.from('workouts')
         .update({ completed_at: new Date().toISOString() })
         .eq('id', id)
       if (error) console.error('workout auto-complete failed', error)
     })()
-    // Keep "Workout complete!" visible briefly, then reset
-    const timer = setTimeout(() => {
-      setWorkoutId(null)
-      setCompletedSets({})
-    }, 3000)
-    return () => clearTimeout(timer)
+    setShowCompleteModal(`${sessionName}|${nextDayName}`)
+    setWorkoutId(null)
+    setCompletedSets({})
   }, [restoreComplete, currentExercises.length, allSessionDone, workoutId, timerPhase])
 
   // Inactivity timeout — show dialog if no activity for 15 min during active workout
@@ -1736,6 +1742,23 @@ export default function Traning(): React.JSX.Element {
           </div>
         </div>
       )}
+
+      {showCompleteModal && (() => {
+        const [sessionName, nextDay] = showCompleteModal.split('|')
+        return (
+          <div className={styles.completeOverlay} onClick={() => setShowCompleteModal(null)}>
+            <div className={styles.completeModal} onClick={e => e.stopPropagation()}>
+              <div className={styles.completeEmoji}>💪</div>
+              <div className={styles.completeTitle}>{t('Great job!')}</div>
+              <div className={styles.completeText}>
+                {t('Your {{session}} is now saved!', { session: sessionName })}
+              </div>
+              {nextDay && <div className={styles.completeNext}>{t('See you on {{day}}!', { day: nextDay })}</div>}
+              <button className={styles.completeBtn} onClick={() => setShowCompleteModal(null)}>{t('Close')}</button>
+            </div>
+          </div>
+        )
+      })()}
     </section>
   )
 }
