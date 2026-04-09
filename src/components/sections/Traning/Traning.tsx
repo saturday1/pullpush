@@ -595,15 +595,11 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMod
   return (
     <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`} onClick={() => editMode ? onName(ex) : onPlay(ex)}>
       <div className={styles.exerciseCardHeader}>
-        {editMode && <span className={styles.dragHandle} {...attributes} {...listeners}>⋮⋮</span>}
-        {editMode ? (
-          <button className={styles.exNameBtn} onClick={() => onName(ex)}>{ex.name}</button>
-        ) : (
-          <button className={styles.exPlayBtn} onClick={() => onPlay(ex)}>
-            {allDone ? <span className={styles.exDoneCheck}>✓</span> : null}
-            {ex.name}
-          </button>
-        )}
+        {editMode && <span className={styles.dragHandle} {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}>⋮⋮</span>}
+        <span className={styles.exNameText}>
+          {allDone && !editMode && <span className={styles.exDoneCheck}>✓</span>}
+          {ex.name}
+        </span>
         {!editMode && (completedSets > 0 || isTimerActive) && (
           <span className={styles.setProgress}>
             {Array.from({ length: totalDots }, (_, i) => (
@@ -615,7 +611,7 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMod
           </span>
         )}
       </div>
-      <div className={styles.exerciseCardSets} onClick={() => editMode && onName(ex)} style={editMode ? { cursor: 'pointer' } : {}}>
+      <div className={styles.exerciseCardSets}>
         {hasIndividual ? (
           setPlans.map((p, i) => (
             <div key={i} className={styles.metaRow}>

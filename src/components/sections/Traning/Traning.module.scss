@@ -805,6 +805,19 @@
   gap: 4px;
 }
 
+.exNameText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--text);
+  flex: 1;
+}
+
 .exPlayBtn {
   display: flex;
   align-items: center;
