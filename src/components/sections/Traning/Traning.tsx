@@ -655,7 +655,7 @@ export default function Traning(): React.JSX.Element {
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
-  const [activeTab,        setActiveTab]        = useState<string | null>(null)
+  const [activeTab,        setActiveTab]        = useState<string | null>(() => localStorage.getItem('pullpush_activeTab'))
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [exercisesLoading, setExercisesLoading] = useState<boolean>(false)
@@ -1087,9 +1087,15 @@ export default function Traning(): React.JSX.Element {
 
   useEffect(() => {
     if (sessions.length > 0 && (activeTab === null || !sessions.find((s: TrainingSession) => s.id === activeTab))) {
-      setActiveTab(sessions[0].id)
+      const saved = localStorage.getItem('pullpush_activeTab')
+      const match = saved && sessions.find((s: TrainingSession) => s.id === saved)
+      setActiveTab(match ? saved : sessions[0].id)
     }
   }, [sessions])
+
+  useEffect(() => {
+    if (activeTab) localStorage.setItem('pullpush_activeTab', activeTab)
+  }, [activeTab])
 
   async function loadAll(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
