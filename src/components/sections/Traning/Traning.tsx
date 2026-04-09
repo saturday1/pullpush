@@ -594,7 +594,7 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMod
   }
   return (
     <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`} onClick={() => editMode ? onName(ex) : onPlay(ex)} {...(editMode ? { ...attributes, ...listeners } : {})}>
-      {editMode && <div className={styles.dragStrip}>⋮⋮</div>}
+      {editMode && <div className={styles.dragStrip}><span className={styles.dragGrip} /></div>}
       <div className={styles.exerciseCardBody}>
       <div className={styles.exerciseCardHeader}>
         <span className={styles.exNameText}>
