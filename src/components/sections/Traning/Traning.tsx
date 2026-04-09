@@ -593,9 +593,8 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMod
     opacity: isDragging ? 0.5 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`} onClick={() => editMode ? onName(ex) : onPlay(ex)}>
+    <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`} onClick={() => editMode ? onName(ex) : onPlay(ex)} {...(editMode ? { ...attributes, ...listeners } : {})}>
       <div className={styles.exerciseCardHeader}>
-        {editMode && <span className={styles.dragHandle} {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}>⋮⋮</span>}
         <span className={styles.exNameText}>
           {allDone && !editMode && <span className={styles.exDoneCheck}>✓</span>}
           {ex.name}
