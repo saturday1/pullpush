@@ -575,25 +575,36 @@ interface SortableRowProps {
   onName: (ex: Exercise) => void
   onLog: (ex: Exercise) => void
   onPlay: (ex: Exercise) => void
+  onMaximize: () => void
   onUndo: (exId: string) => void
   editMode: boolean
   isTimerActive: boolean
+  timerRunning: boolean
   completedSets: number
 }
 
-function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMode, isTimerActive, completedSets }: SortableRowProps): React.JSX.Element {
+function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets }: SortableRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
   const hasIndividual = setPlans.length > 0
   const configuredSets = hasIndividual ? setPlans.length : (log?.sets ?? 3)
   const totalDots = Math.max(configuredSets, completedSets)
   const allDone = completedSets >= configuredSets
+  const isDisabled = timerRunning && !isTimerActive
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.5 : isDisabled ? 0.4 : 1,
   }
+
+  function handleClick(): void {
+    if (editMode) { onName(ex); return }
+    if (isTimerActive && timerRunning) { onMaximize(); return }
+    if (isDisabled) return
+    onPlay(ex)
+  }
+
   return (
-    <div ref={setNodeRef} style={{ ...style, ...(editMode ? { touchAction: 'none' } : {}) }} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`} onClick={() => editMode ? onName(ex) : onPlay(ex)} {...(editMode ? { ...attributes, ...listeners } : {})}>
+    <div ref={setNodeRef} style={{ ...style, ...(editMode ? { touchAction: 'none' } : {}) }} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''} ${isDisabled ? styles.exerciseDisabled : ''}`} onClick={handleClick} {...(editMode ? { ...attributes, ...listeners } : {})}>
       {editMode && <div className={styles.dragStrip}><span className={styles.dragGrip} /></div>}
       <div className={styles.exerciseCardBody}>
       <div className={styles.exerciseCardHeader}>
@@ -1481,7 +1492,7 @@ export default function Traning(): React.JSX.Element {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} completedSets={completedSets[ex.id] ?? 0} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onMaximize={() => setTimerMinimized(false)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} timerRunning={timerMinimized && !!(timerPhase || countdownOverlay !== null)} completedSets={completedSets[ex.id] ?? 0} />
                     ))}
                   </SortableContext>
                 </DndContext>

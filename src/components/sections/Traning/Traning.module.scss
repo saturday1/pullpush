@@ -799,6 +799,10 @@
   border-left: 3px solid var(--text);
 }
 
+.exerciseDisabled {
+  cursor: default;
+}
+
 .exNameCell {
   display: flex;
   flex-direction: column;
