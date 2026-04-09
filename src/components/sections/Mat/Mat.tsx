@@ -798,6 +798,7 @@ export default function Mat(): React.JSX.Element {
     const todayStr: string = localDateStr(new Date())
     const [selectedDate, setSelectedDate] = useState<string>(todayStr)
     const todayRef = useRef<string>(todayStr)
+    const dateInputRef = useRef<HTMLInputElement | null>(null)
     const [meals, setMeals] = useState<Meal[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [addOpen, setAddOpen] = useState<boolean>(false)
@@ -934,7 +935,31 @@ export default function Mat(): React.JSX.Element {
                         aria-label={t('Previous day')}
                     >‹</button>
                     <div className={styles.dateLabel}>
-                        <div className={styles.dateLabelMain}>{formatDateLabel(selectedDate, todayStr, t)}</div>
+                        <button
+                            type="button"
+                            className={styles.dateLabelMainBtn}
+                            onClick={() => {
+                                const input = dateInputRef.current
+                                if (!input) return
+                                if (typeof input.showPicker === 'function') {
+                                    input.showPicker()
+                                } else {
+                                    input.click()
+                                    input.focus()
+                                }
+                            }}
+                            title={t('Pick a date')}
+                            aria-label={t('Pick a date')}
+                        >{formatDateLabel(selectedDate, todayStr, t)}</button>
+                        <input
+                            ref={dateInputRef}
+                            type="date"
+                            className={styles.hiddenDateInput}
+                            value={selectedDate}
+                            onChange={e => { if (e.target.value) setSelectedDate(e.target.value) }}
+                            tabIndex={-1}
+                            aria-hidden="true"
+                        />
                         {selectedDate !== todayStr && (
                             <button
                                 type="button"
