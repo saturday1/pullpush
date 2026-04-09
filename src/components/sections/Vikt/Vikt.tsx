@@ -160,7 +160,7 @@ export default function Vikt(): React.JSX.Element {
               />
               <div className={styles.weightModalActions}>
                 <button type="button" className={styles.weightModalCancel} onClick={() => setShowWeightModal(false)}>{t('Cancel')}</button>
-                <button type="submit" disabled={loggingWeight} className={styles.logBtn} style={{ flex: 1 }}>
+                <button type="submit" disabled={loggingWeight} className={`${styles.logBtn} ${styles.weightModalSave}`}>
                   {loggingWeight ? '…' : t('Save')}
                 </button>
               </div>
