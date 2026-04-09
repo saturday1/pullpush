@@ -4,6 +4,10 @@
   gap: 12px;
 }
 
+.item:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .item {
   background: var(--card);
   padding: 22px 22px 18px;
