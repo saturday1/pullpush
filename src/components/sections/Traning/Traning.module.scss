@@ -1426,6 +1426,14 @@
   &:hover { color: var(--red); }
 }
 
+.estimatedTime {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
 // ── Complete modal ───────────────────────────────────────────
 
 .completeOverlay {

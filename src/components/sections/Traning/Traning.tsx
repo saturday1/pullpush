@@ -1483,6 +1483,25 @@ export default function Traning(): React.JSX.Element {
               )}
               <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>
             </div>
+            {currentExercises.length > 0 && (
+              <div className={styles.estimatedTime}>
+                {(() => {
+                  const totalSec = currentExercises.reduce((sum, ex) => {
+                    const indPlans = individualSets[ex.id]
+                    const log = logs[ex.id]
+                    const numSets = indPlans ? indPlans.length : (log?.sets ?? 3)
+                    let setTime = 0
+                    for (let i = 0; i < numSets; i++) {
+                      const reps = indPlans?.[i]?.reps ?? log?.reps ?? 10
+                      setTime += countdownSeconds + (reps * secPerRep) + restSeconds
+                    }
+                    return sum + setTime
+                  }, 0)
+                  const mins = Math.round(totalSec / 60)
+                  return `~${mins} min`
+                })()}
+              </div>
+            )}
           </Reveal>
 
           <Reveal key={activeTab}>
