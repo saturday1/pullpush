@@ -103,9 +103,10 @@ input[type=number] { -moz-appearance: textfield; }
   padding: 2px 8px;
   border-radius: 20px;
 
-  &-p { background: rgba(234,88,12,0.10);  color: #c24408; }
-  &-k { background: rgba(37,99,235,0.10);  color: #1d4ed8; }
-  &-f { background: rgba(22,163,74,0.10);  color: #15803d; }
+  &-p    { background: rgba(234,88,12,0.10);  color: #c24408; }
+  &-k    { background: rgba(37,99,235,0.10);  color: #1d4ed8; }
+  &-f    { background: rgba(22,163,74,0.10);  color: #15803d; }
+  &-kcal { background: rgba(232,25,125,0.10); color: #c01267; }
 }
 
 // Staggered card animations

@@ -828,47 +828,45 @@ interface MealTableProps {
 
 function MealTable({ meals, onEdit, onDelete, onToggleRecurring, t }: MealTableProps): React.JSX.Element {
     return (
-        <div style={{ overflowX: 'auto' }}>
-            <table className={styles.table}>
-                <thead>
-                    <tr>
-                        <th>{t('Time')}</th>
-                        <th>{t('Food')}</th>
-                        <th style={{ color: '#f97316' }}>{t('P')}</th>
-                        <th style={{ color: '#60a5fa' }}>{t('C')}</th>
-                        <th style={{ color: '#22c55e' }}>{t('F')}</th>
-                        <th>Kcal</th>
-                        <th></th>
+        <table className={styles.table}>
+            <thead>
+                <tr>
+                    <th>{t('Time')}</th>
+                    <th>{t('Food')}</th>
+                    <th style={{ color: '#f97316' }}>{t('P')}</th>
+                    <th style={{ color: '#60a5fa' }}>{t('C')}</th>
+                    <th style={{ color: '#22c55e' }}>{t('F')}</th>
+                    <th>Kcal</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {meals.map((meal: Meal) => (
+                    <tr key={meal.id}>
+                        <td>
+                            <div className={styles.mealTime}>{meal.time_label}</div>
+                            <div className={styles.mealLabel}>{meal.label}</div>
+                        </td>
+                        <td>{meal.food}{meal.note && <em className={styles.mealNote}> {meal.note}</em>}</td>
+                        <td><span className="pill pill-p">{meal.protein_g}g</span></td>
+                        <td><span className="pill pill-k">{meal.carbs_g}g</span></td>
+                        <td><span className="pill pill-f">{meal.fat_g}g</span></td>
+                        <td><span className="pill pill-kcal">{meal.kcal}</span></td>
+                        <td className={styles.actionCell}>
+                            <button
+                                className={`${styles.starBtn} ${meal.is_recurring ? styles.starBtnActive : ''}`}
+                                onClick={() => onToggleRecurring(meal)}
+                                title={meal.is_recurring ? t('Unsave daily') : t('Save daily')}
+                            >
+                                {meal.is_recurring ? '★' : '☆'}
+                            </button>
+                            <button className={styles.editBtn} onClick={() => onEdit(meal)} title={t('Edit')}>✏️</button>
+                            <button className={styles.deleteBtn} onClick={() => onDelete(meal.id)} title={t('Delete')}>🗑</button>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    {meals.map((meal: Meal) => (
-                        <tr key={meal.id}>
-                            <td>
-                                <div className={styles.mealTime}>{meal.time_label}</div>
-                                <div className={styles.mealLabel}>{meal.label}</div>
-                            </td>
-                            <td>{meal.food}{meal.note && <em className={styles.mealNote}> {meal.note}</em>}</td>
-                            <td><span className="pill pill-p">{meal.protein_g}g</span></td>
-                            <td><span className="pill pill-k">{meal.carbs_g}g</span></td>
-                            <td><span className="pill pill-f">{meal.fat_g}g</span></td>
-                            <td>{meal.kcal}</td>
-                            <td className={styles.actionCell}>
-                                <button
-                                    className={`${styles.starBtn} ${meal.is_recurring ? styles.starBtnActive : ''}`}
-                                    onClick={() => onToggleRecurring(meal)}
-                                    title={meal.is_recurring ? t('Unsave daily') : t('Save daily')}
-                                >
-                                    {meal.is_recurring ? '★' : '☆'}
-                                </button>
-                                <button className={styles.editBtn} onClick={() => onEdit(meal)} title={t('Edit')}>✏️</button>
-                                <button className={styles.deleteBtn} onClick={() => onDelete(meal.id)} title={t('Delete')}>🗑</button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                ))}
+            </tbody>
+        </table>
     )
 }
 
