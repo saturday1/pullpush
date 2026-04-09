@@ -21,6 +21,7 @@ export default function Vikt(): React.JSX.Element {
   const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()!
   const [weightInput,   setWeightInput]   = useState<string>('')
   const [loggingWeight, setLoggingWeight] = useState<boolean>(false)
+  const [showWeightModal, setShowWeightModal] = useState<boolean>(false)
   const [barsVisible,   setBarsVisible]   = useState<boolean>(false)
 
   const loading: boolean = weightLoading || profileLoading
@@ -141,23 +142,31 @@ export default function Vikt(): React.JSX.Element {
         </div>
       </Reveal>
 
-      <Reveal>
-        <div className={styles.inputsCard}>
-          <div className={styles.inputsCardTitle}>{t('Log new weight')}</div>
-          <form onSubmit={handleLogWeight} className={styles.logForm}>
-            <input
-              type="number" step="0.1"
-              placeholder={t('Current ({{weight}} kg)', { weight })}
-              value={weightInput}
-              onChange={e => setWeightInput(e.target.value)}
-              className={styles.logInput}
-            />
-            <button type="submit" disabled={loggingWeight} className={styles.logBtn}>
-              {loggingWeight ? '…' : t('Save')}
-            </button>
-          </form>
+      <button className={styles.weightFab} onClick={() => setShowWeightModal(true)}>+</button>
+
+      {showWeightModal && (
+        <div className={styles.weightOverlay} onClick={() => setShowWeightModal(false)}>
+          <div className={styles.weightModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.weightModalTitle}>{t('Log new weight')}</div>
+            <form onSubmit={(e) => { handleLogWeight(e); setShowWeightModal(false) }} className={styles.logForm}>
+              <input
+                type="number" step="0.1"
+                placeholder={t('Current ({{weight}} kg)', { weight })}
+                value={weightInput}
+                onChange={e => setWeightInput(e.target.value)}
+                className={styles.logInput}
+                autoFocus
+              />
+              <div className={styles.weightModalActions}>
+                <button type="button" className={styles.weightModalCancel} onClick={() => setShowWeightModal(false)}>{t('Cancel')}</button>
+                <button type="submit" disabled={loggingWeight} className={styles.logBtn}>
+                  {loggingWeight ? '…' : t('Save')}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </Reveal>
+      )}
     </section>
   )
 }
