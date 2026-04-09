@@ -1452,16 +1452,16 @@
   &::before, &::after, & > * { display: none; }
 
   // 6 dots via box-shadow
-  height: 3px;
+  height: 4px;
   background: var(--muted);
   border-radius: 50%;
   box-shadow:
-    5px 0 0 var(--muted),
-    0 5px 0 var(--muted),
-    5px 5px 0 var(--muted),
-    0 10px 0 var(--muted),
-    5px 10px 0 var(--muted);
-  width: 3px;
+    7px 0 0 var(--muted),
+    0 7px 0 var(--muted),
+    7px 7px 0 var(--muted),
+    0 14px 0 var(--muted),
+    7px 14px 0 var(--muted);
+  width: 4px;
 }
 
 .exerciseCardBody {
