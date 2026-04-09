@@ -691,6 +691,7 @@ export default function Traning(): React.JSX.Element {
   const [timerMinimized,   setTimerMinimized]   = useState<boolean>(false)
   const [autoplay,         setAutoplay]         = useState<boolean>(() => localStorage.getItem('pullpush_autoplay') === 'true')
   const autoplayRef = useRef(autoplay)
+  const completedSetsRef = useRef(completedSets)
   const pausedRemainRef = useRef<number>(0)
   const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
   const timerEndRef = useRef<number>(0)
@@ -784,7 +785,7 @@ export default function Traning(): React.JSX.Element {
     setTimerMinimized(false)
     const log = logs[ex.id]
     const indPlans = individualSets[ex.id]
-    const currentSet = (completedSets[ex.id] ?? 0) + 1
+    const currentSet = (completedSetsRef.current[ex.id] ?? 0) + 1
 
     // Per-set data: use individual plans if available, otherwise global log
     const setInfo = indPlans?.[currentSet - 1]
@@ -1136,6 +1137,10 @@ export default function Traning(): React.JSX.Element {
     localStorage.setItem('pullpush_autoplay', String(autoplay))
     autoplayRef.current = autoplay
   }, [autoplay])
+
+  useEffect(() => {
+    completedSetsRef.current = completedSets
+  }, [completedSets])
 
   async function loadAll(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
