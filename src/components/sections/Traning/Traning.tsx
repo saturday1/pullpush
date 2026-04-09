@@ -5,6 +5,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import { Minimize2, Maximize2, ListRestart } from 'lucide-react'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 
 interface RestTimerPlugin {
@@ -1456,7 +1457,7 @@ export default function Traning(): React.JSX.Element {
     if (timerSet < exSets) return `Set ${timerSet + 1} — ${timerExercise.name}`
     const idx = currentExercises.findIndex(ex => ex.id === timerExId)
     const nextEx = currentExercises[idx + 1]
-    if (nextEx) return `${nextEx.name}`
+    if (nextEx) return `${nextEx.name} — Set 1`
     return t('Done')
   })()
 
@@ -1702,8 +1703,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
           </div>
         </div>
       )}
@@ -1726,8 +1727,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
           </div>
         </div>
       )}
@@ -1743,8 +1744,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
           </div>
         </div>
       )}
@@ -1756,7 +1757,7 @@ export default function Traning(): React.JSX.Element {
           <div className={styles.blobPurple} />
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>{t('Rest')}</div>
-            <div className={styles.overlayExName}>{nextUpLabel}</div>
+            <div className={styles.overlayExName}>{t('Next')}: {nextUpLabel}</div>
             <div className={styles.overlayTime}>
               {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
             </div>
@@ -1766,8 +1767,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
           </div>
         </div>
       )}
