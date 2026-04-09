@@ -148,18 +148,19 @@ export default function Vikt(): React.JSX.Element {
         <div className={styles.weightOverlay} onClick={() => setShowWeightModal(false)}>
           <div className={styles.weightModal} onClick={e => e.stopPropagation()}>
             <div className={styles.weightModalTitle}>{t('Log new weight')}</div>
-            <form onSubmit={(e) => { handleLogWeight(e); setShowWeightModal(false) }} className={styles.logForm}>
+            <form onSubmit={(e) => { handleLogWeight(e); setShowWeightModal(false) }}>
               <input
                 type="number" step="0.1"
                 placeholder={t('Current ({{weight}} kg)', { weight })}
                 value={weightInput}
                 onChange={e => setWeightInput(e.target.value)}
                 className={styles.logInput}
+                style={{ width: '100%', marginBottom: 16 }}
                 autoFocus
               />
               <div className={styles.weightModalActions}>
                 <button type="button" className={styles.weightModalCancel} onClick={() => setShowWeightModal(false)}>{t('Cancel')}</button>
-                <button type="submit" disabled={loggingWeight} className={styles.logBtn}>
+                <button type="submit" disabled={loggingWeight} className={styles.logBtn} style={{ flex: 1 }}>
                   {loggingWeight ? '…' : t('Save')}
                 </button>
               </div>
