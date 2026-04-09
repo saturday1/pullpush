@@ -1499,7 +1499,7 @@ export default function Traning(): React.JSX.Element {
                   }, 0)
                   const mins = Math.floor(totalSec / 60)
                   const secs = totalSec % 60
-                  return `${t('Total time')}: ~${mins} min ${secs} sek`
+                  return `${t('Estimated time')}: ~${mins} min ${secs} sek`
                 })()}
               </div>
             )}
