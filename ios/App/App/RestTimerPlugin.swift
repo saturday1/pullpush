@@ -13,6 +13,8 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin {
 
     override public func load() {
         print("🟡 RestTimerPlugin loaded!")
+        // Reset idle timer on app start
+        DispatchQueue.main.async { UIApplication.shared.isIdleTimerDisabled = false }
         // Clean up any stale Live Activities from previous app sessions
         if #available(iOS 16.2, *) {
             Task {
