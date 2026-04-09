@@ -1228,3 +1228,122 @@
   color: var(--muted);
   line-height: 1.4;
 }
+
+/* ─── Mobile optimizations for the meal modal ──────────────── */
+@media (max-width: 600px) {
+  .overlay {
+    padding: 0;
+    align-items: flex-end; // bottom-sheet style
+  }
+
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 92vh;
+    padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 18px 18px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    animation: modalSlideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    // Little drag handle at the top
+    &::before {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      margin: -6px auto 14px;
+    }
+  }
+
+  .modalClosing {
+    animation: modalSlideDown 0.2s ease both;
+  }
+
+  @keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes modalSlideDown {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(100%); }
+  }
+
+  .modalTitle {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .searchSection {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+  }
+
+  // Stack search + scan + grams more compactly. Keep them on one row
+  // but let the search shrink and give grams less width.
+  .searchRow {
+    gap: 6px;
+  }
+
+  .searchInput {
+    font-size: 16px; // prevent iOS zoom on focus
+    height: 44px;
+    padding: 0 12px 0 36px;
+  }
+
+  .gramsWrap {
+    height: 44px;
+  }
+
+  .gramsInput {
+    font-size: 16px;
+    height: 44px;
+    width: 68px;
+    padding: 0 30px 0 10px;
+  }
+
+  .scanBtn {
+    height: 44px;
+    width: 44px;
+  }
+
+  .modalFields {
+    gap: 12px;
+  }
+
+  .modalInput, .modalTextarea {
+    font-size: 16px; // prevent iOS zoom
+    padding: 11px 12px;
+  }
+
+  .modalTextarea {
+    min-height: 70px;
+  }
+
+  .macroInputRow {
+    gap: 8px;
+  }
+
+  .modalActions {
+    margin-top: 18px;
+    position: sticky;
+    bottom: calc(-18px - env(safe-area-inset-bottom));
+    background: var(--card);
+    padding-top: 12px;
+    margin-left: -18px;
+    margin-right: -18px;
+    padding-left: 18px;
+    padding-right: 18px;
+    padding-bottom: calc(2px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+  }
+
+  .cancelBtn, .saveBtn {
+    padding: 13px;
+    font-size: 14px;
+  }
+}
