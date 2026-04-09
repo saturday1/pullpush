@@ -1434,7 +1434,7 @@ export default function Traning(): React.JSX.Element {
     if (timerSet < exSets) return `Set ${timerSet + 1} — ${timerExercise.name}`
     const idx = currentExercises.findIndex(ex => ex.id === timerExId)
     const nextEx = currentExercises[idx + 1]
-    if (nextEx) return `${nextEx.name}`
+    if (nextEx) return `${nextEx.name} — Set 1`
     return t('Done')
   })()
 
@@ -1734,7 +1734,7 @@ export default function Traning(): React.JSX.Element {
           <div className={styles.blobPurple} />
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>{t('Rest')}</div>
-            <div className={styles.overlayExName}>{nextUpLabel}</div>
+            <div className={styles.overlayExName}>{t('Next')}: {nextUpLabel}</div>
             <div className={styles.overlayTime}>
               {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
             </div>
