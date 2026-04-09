@@ -689,6 +689,9 @@ export default function Traning(): React.JSX.Element {
   const [countdownOverlay, setCountdownOverlay] = useState<number | null>(null)
   const [paused,           setPaused]           = useState<boolean>(false)
   const [timerMinimized,   setTimerMinimized]   = useState<boolean>(false)
+  const [autoplay,         setAutoplay]         = useState<boolean>(() => localStorage.getItem('pullpush_autoplay') === 'true')
+  const autoplayRef = useRef(autoplay)
+  const completedSetsRef = useRef(completedSets)
   const pausedRemainRef = useRef<number>(0)
   const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
   const timerEndRef = useRef<number>(0)
@@ -782,7 +785,7 @@ export default function Traning(): React.JSX.Element {
     setTimerMinimized(false)
     const log = logs[ex.id]
     const indPlans = individualSets[ex.id]
-    const currentSet = (completedSets[ex.id] ?? 0) + 1
+    const currentSet = (completedSetsRef.current[ex.id] ?? 0) + 1
 
     // Per-set data: use individual plans if available, otherwise global log
     const setInfo = indPlans?.[currentSet - 1]
@@ -836,13 +839,30 @@ export default function Traning(): React.JSX.Element {
 
   function runTimerStep(plan: { phase: TimerPhase; duration: number }[], step: number, exId: string, currentSet: number, setsTotal: number, kg: number | null, reps: number, wId: string | null): void {
     if (step >= plan.length) {
-      // Set done — stop and wait for next play
+      // Set done
       if (timerRef.current) clearInterval(timerRef.current)
       timerRef.current = null
       setTimerPhase(null)
       setTimerExId(null)
       setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
       try { RestTimer?.stop() } catch {}
+
+      // Autoplay: start next set or next exercise
+      if (autoplayRef.current) {
+        const exList = exercises[activeTab!] ?? []
+        const indPlans = individualSets[exId]
+        const totalSets = indPlans ? indPlans.length : (setsTotal)
+        if (currentSet < totalSets) {
+          // More sets on same exercise
+          const ex = exList.find(e => e.id === exId)
+          if (ex) setTimeout(() => startExerciseTimer(ex), 300)
+        } else {
+          // Next exercise
+          const idx = exList.findIndex(e => e.id === exId)
+          const nextEx = exList[idx + 1]
+          if (nextEx) setTimeout(() => startExerciseTimer(nextEx), 300)
+        }
+      }
       return
     }
 
@@ -1112,6 +1132,15 @@ export default function Traning(): React.JSX.Element {
   useEffect(() => {
     if (activeTab) localStorage.setItem('pullpush_activeTab', activeTab)
   }, [activeTab])
+
+  useEffect(() => {
+    localStorage.setItem('pullpush_autoplay', String(autoplay))
+    autoplayRef.current = autoplay
+  }, [autoplay])
+
+  useEffect(() => {
+    completedSetsRef.current = completedSets
+  }, [completedSets])
 
   async function loadAll(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
@@ -1651,6 +1680,7 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
             <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
           </div>
         </div>
@@ -1674,6 +1704,7 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
             <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
           </div>
         </div>
@@ -1690,6 +1721,7 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
             <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
           </div>
         </div>
@@ -1712,6 +1744,7 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}>⏩</button>
             <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}>▼</button>
           </div>
         </div>
