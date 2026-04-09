@@ -1425,12 +1425,32 @@
 // ── Exercise card layout ────────────────────────────────────
 
 .exerciseCard {
-  padding: 18px 16px;
+  display: flex;
   border-bottom: 1px solid var(--border);
   background: var(--card);
   cursor: pointer;
 
   &:last-child { border-bottom: none; }
+}
+
+.dragStrip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 2px;
+  user-select: none;
+  border-right: 1px solid var(--border);
+}
+
+.exerciseCardBody {
+  flex: 1;
+  min-width: 0;
+  padding: 18px 16px;
 }
 
 .exerciseCardHeader {

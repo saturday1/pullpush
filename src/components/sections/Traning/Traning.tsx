@@ -594,6 +594,8 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMod
   }
   return (
     <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''}`} onClick={() => editMode ? onName(ex) : onPlay(ex)} {...(editMode ? { ...attributes, ...listeners } : {})}>
+      {editMode && <div className={styles.dragStrip}>⋮⋮</div>}
+      <div className={styles.exerciseCardBody}>
       <div className={styles.exerciseCardHeader}>
         <span className={styles.exNameText}>
           {allDone && !editMode && <span className={styles.exDoneCheck}>✓</span>}
@@ -626,6 +628,7 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onUndo, editMod
             <span className={styles.metaItem}>{log?.kg ?? '–'} kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs</span>
           </div>
         )}
+      </div>
       </div>
     </div>
   )
