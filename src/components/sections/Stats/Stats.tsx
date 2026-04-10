@@ -51,6 +51,7 @@ interface RawWorkout {
     completed_at: string | null
     started_at: string | null
     session_id: number | null
+    session_name: string | null
 }
 
 interface RawSet {
@@ -132,7 +133,7 @@ export default function Stats(): React.JSX.Element {
             const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
                 supabase
                     .from('workouts')
-                    .select('id, completed_at, started_at, session_id')
+                    .select('id, completed_at, started_at, session_id, session_name')
                     .eq('user_id', user.id)
                     .not('completed_at', 'is', null)
                     .order('completed_at', { ascending: false }),
@@ -261,7 +262,7 @@ export default function Stats(): React.JSX.Element {
                         completed_at: w.completed_at!,
                         started_at: w.started_at,
                         session_id: w.session_id,
-                        session_name: w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null,
+                        session_name: w.session_name ?? (w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null),
                         set_count: agg?.setCount ?? 0,
                         total_kg: agg?.totalKg ?? 0,
                         exercises,
@@ -512,7 +513,16 @@ export default function Stats(): React.JSX.Element {
                             {openWorkout.session_name ?? '–'}
                         </div>
                         <div className={styles.modalSubtitle}>
-                            {formatDisplayDate(openWorkout.completed_at)} · {formatDisplayTime(openWorkout.completed_at)}
+                            {(() => {
+                                if (!openWorkout.started_at) {
+                                    return `${formatDisplayDate(openWorkout.completed_at)} · ${formatDisplayTime(openWorkout.completed_at)}`
+                                }
+                                const sameDay = formatDisplayDate(openWorkout.started_at) === formatDisplayDate(openWorkout.completed_at)
+                                if (sameDay) {
+                                    return `${formatDisplayDate(openWorkout.completed_at)} · ${formatDisplayTime(openWorkout.started_at)} – ${formatDisplayTime(openWorkout.completed_at)}`
+                                }
+                                return `${formatDisplayDate(openWorkout.started_at)} ${formatDisplayTime(openWorkout.started_at)} – ${formatDisplayDate(openWorkout.completed_at)} ${formatDisplayTime(openWorkout.completed_at)}`
+                            })()}
                         </div>
 
                         {openWorkout.pr_count > 0 && (

@@ -835,9 +835,12 @@ export default function Traning(): React.JSX.Element {
       // Clean up old unfinished workouts
       await supabase.from('workouts').delete().eq('user_id', userId).is('completed_at', null)
 
+      // Snapshot session name so renames don't change history
+      const currentSession = sessions.find((s: TrainingSession) => s.id === activeTab)
       const { data, error } = await supabase.from('workouts').insert({
         user_id: userId,
         session_id: activeTab,
+        session_name: currentSession?.name ?? null,
         program_id: activeProgramId,
       }).select('id').single()
       if (error || !data) {
@@ -1144,7 +1147,8 @@ export default function Traning(): React.JSX.Element {
   async function undoLastSet(exId: string): Promise<void> {
     const prev = completedSets[exId] ?? 0
     if (prev <= 0) return
-    setCompletedSets(p => ({ ...p, [exId]: prev - 1 }))
+    const next = { ...completedSets, [exId]: prev - 1 }
+    setCompletedSets(next)
     // Delete from database
     if (workoutId) {
       const { error } = await supabase.from('workout_sets')
@@ -1153,6 +1157,14 @@ export default function Traning(): React.JSX.Element {
         .eq('exercise_id', exId)
         .eq('set_number', prev)
       if (error) console.error('workout_sets delete failed', error)
+
+      // If no sets remain across the entire workout, delete the workout instance
+      const totalSetsRemaining = Object.values(next).reduce((sum, n) => sum + n, 0)
+      if (totalSetsRemaining === 0) {
+        await supabase.from('workouts').delete().eq('id', workoutId)
+        setWorkoutId(null)
+        setWorkoutSessionId(null)
+      }
     }
   }
 
@@ -1232,7 +1244,7 @@ export default function Traning(): React.JSX.Element {
     // Resume unfinished workout if exists
     try {
       const { data: openWorkouts, error: wErr } = await supabase.from('workouts')
-        .select('id, session_id')
+        .select('id, session_id, started_at')
         .eq('user_id', user.id)
         .is('completed_at', null)
         .order('started_at', { ascending: false })
@@ -1240,7 +1252,7 @@ export default function Traning(): React.JSX.Element {
       if (wErr) console.error('open workouts query failed', wErr)
 
       if (openWorkouts && openWorkouts.length > 0) {
-        const openWorkout = openWorkouts[0] as { id: string; session_id: string | null }
+        const openWorkout = openWorkouts[0] as { id: string; session_id: string | null; started_at: string | null }
         const { data: sets, error: sErr } = await supabase.from('workout_sets')
           .select('exercise_id, set_number')
           .eq('workout_id', openWorkout.id)
@@ -1257,11 +1269,6 @@ export default function Traning(): React.JSX.Element {
         // Jump to the session the workout belongs to — otherwise new sets
         // would be saved against the wrong session (Pull-sets bookings as Push etc.)
         if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
-        // Reset started_at to "now" — otherwise duration would include all the
-        // time the app was closed, giving absurd values like 23h for a 5s workout.
-        void supabase.from('workouts')
-          .update({ started_at: new Date().toISOString() })
-          .eq('id', openWorkout.id)
       }
     } finally {
       setRestoreComplete(true)
