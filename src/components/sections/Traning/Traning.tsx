@@ -732,6 +732,30 @@ export default function Traning(): React.JSX.Element {
     return () => { if (restIntervalRef.current) clearInterval(restIntervalRef.current) }
   }, [])
 
+  // Re-sync timer when screen wakes / app returns to foreground
+  useEffect(() => {
+    function resync(): void {
+      if (document.hidden) return
+      if (paused) return
+      if (timerEndRef.current === 0) return
+      const remaining = Math.ceil((timerEndRef.current - Date.now()) / 1000)
+      if (remaining < 0) return
+      if (countdownOverlay !== null) {
+        setCountdownOverlay(Math.max(0, remaining))
+      } else if (timerPhase) {
+        setTimerSecs(Math.max(0, remaining))
+      }
+    }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('focus', resync)
+    window.addEventListener('pageshow', resync)
+    return () => {
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('focus', resync)
+      window.removeEventListener('pageshow', resync)
+    }
+  }, [paused, countdownOverlay, timerPhase])
+
   async function startRest(): Promise<void> {
     if (restIntervalRef.current) clearInterval(restIntervalRef.current)
     const endTime: number = Date.now() + restSeconds * 1000
@@ -842,7 +866,7 @@ export default function Traning(): React.JSX.Element {
 
     // Start Live Activity with total time (countdown + work + rest)
     const totalTime = plan.reduce((sum, p) => sum + p.duration, 0)
-    const label = `${reps} × ${ex.name}${setKg ? ` ${setKg}kg` : ''} + ${t('Rest').toLowerCase()}`
+    const label = `Set ${currentSet}/${sets} • ${reps} reps\n${ex.name}${setKg ? `\n${setKg} kg / ${toLbs(setKg)} lbs` : ''}`
     if (RestTimer) RestTimer.start({ seconds: totalTime, label }).catch(() => {})
 
     runTimerStep(plan, 0, ex.id, currentSet, sets, setKg, reps, wId)
@@ -1019,9 +1043,12 @@ export default function Traning(): React.JSX.Element {
 
     // Restart Live Activity with remaining time
     const remainingTotal = plan.slice(step).reduce((sum, p) => sum + p.duration, 0) - (plan[step].duration - remain)
-    const resumeLabel = ctx.exId ? (currentExercises.find(e => e.id === ctx.exId)?.name ?? 'PULLPUSH') : 'PULLPUSH'
+    const resumeName = ctx.exId ? (currentExercises.find(e => e.id === ctx.exId)?.name ?? 'PULLPUSH') : 'PULLPUSH'
     const resumeReps = ctx.reps ?? 0
-    const resumeLabelFull = resumeReps > 0 ? `${resumeReps} × ${resumeLabel} + ${t('Rest').toLowerCase()}` : resumeLabel
+    const resumeKg = ctx.kg
+    const resumeLabelFull = resumeReps > 0
+      ? `Set ${ctx.currentSet}/${ctx.setsTotal} • ${resumeReps} reps\n${resumeName}${resumeKg ? `\n${resumeKg} kg / ${toLbs(resumeKg)} lbs` : ''}`
+      : resumeName
     if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(remainingTotal)), label: resumeLabelFull }).catch(() => {})
 
     timerRef.current = setInterval(() => {

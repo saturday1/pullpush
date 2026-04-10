@@ -16,15 +16,15 @@ struct RestTimerLiveActivity: Widget {
                     Image("PullPushLogo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 56, height: 56)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(context.attributes.label.uppercased())
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary.opacity(0.85))
+                            .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
 
                         Text(timerInterval: Date()...context.state.endTime, countsDown: true)
                             .font(.system(size: 32, weight: .bold, design: .rounded))

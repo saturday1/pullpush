@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
+import { X } from 'lucide-react'
 import {
     Bar,
     BarChart,
@@ -505,7 +506,7 @@ export default function Stats(): React.JSX.Element {
                             onClick={() => setOpenWorkout(null)}
                             aria-label={t('Close')}
                         >
-                            ✕
+                            <X size={20} strokeWidth={2.5} />
                         </button>
                         <div className={styles.modalTitle}>
                             {openWorkout.session_name ?? '–'}
