@@ -1448,15 +1448,14 @@ export default function Traning(): React.JSX.Element {
   const timerExLog = timerExId ? logs[timerExId] : undefined
 
   // Find next exercise/set for rest overlay preview
-  const nextUpLabel = (() => {
-    if (!timerExercise) return ''
+  const nextUp: { setLabel: string; name: string } | { setLabel: ''; name: string } = (() => {
+    if (!timerExercise) return { setLabel: '', name: '' }
     const exSets = timerExLog?.sets ?? 3
-    const done = completedSets[timerExercise.id] ?? 0
-    if (timerSet < exSets) return `Set ${timerSet + 1} — ${timerExercise.name}`
+    if (timerSet < exSets) return { setLabel: `Set ${timerSet + 1}`, name: timerExercise.name }
     const idx = currentExercises.findIndex(ex => ex.id === timerExId)
     const nextEx = currentExercises[idx + 1]
-    if (nextEx) return `${nextEx.name} — Set 1`
-    return t('Done')
+    if (nextEx) return { setLabel: 'Set 1', name: nextEx.name }
+    return { setLabel: '', name: t('Done') }
   })()
 
   const setupStep: number | null = (!programsLoading && programs.length === 0) ? 1
@@ -1718,7 +1717,7 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayReps}>{Math.ceil(timerSecs / secPerRep)}x</div>
+            <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
             {timerExLog?.kg != null && (
               <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg | {toLbs(timerExLog.kg)} lbs</div>
             )}
@@ -1754,14 +1753,17 @@ export default function Traning(): React.JSX.Element {
           <div className={styles.blobPink} />
           <div className={styles.blobPurple} />
           <div className={styles.overlayContent}>
-            <div className={styles.overlaySetLabel}>{t('Rest')}</div>
-            <div className={styles.overlayExName}>{t('Next')}: {nextUpLabel}</div>
+            <div className={styles.overlaySetLabel}>SET {timerSet} — {t('Rest')}</div>
+            {timerExercise && <div className={styles.overlayExName}>{timerExercise.name}</div>}
             <div className={styles.overlayTime}>
               {Math.floor(timerSecs / 60)}:{String(timerSecs % 60).padStart(2, '0')}
             </div>
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
+            <div className={styles.overlayNextLabel}>{t('Next')}</div>
+            {nextUp.setLabel && <div className={styles.overlayNextValue}>{nextUp.setLabel}</div>}
+            <div className={styles.overlayNextValue}>{nextUp.name}</div>
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
