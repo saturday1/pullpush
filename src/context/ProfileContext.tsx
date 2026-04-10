@@ -38,6 +38,7 @@ interface ProfileState {
   weightLoading: boolean
   sessionsLoading: boolean
   programsLoading: boolean
+  exercisesLoading: boolean
   firstName: string | null
   lastName: string | null
   birthDate: string | null
@@ -95,6 +96,7 @@ interface ProfileContextValue extends ProfileState {
   renameProgram: (id: string, name: string) => Promise<void>
   deleteProgram: (id: string) => Promise<void>
   load: () => Promise<void>
+  setExercisesLoading: (loading: boolean) => void
 }
 
 function calcMacros(weight: number, height: number, age: number): Macros {
@@ -139,6 +141,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     weightLoading: true,
     sessionsLoading: true,
     programsLoading: true,
+    exercisesLoading: true,
     firstName: null,
     lastName: null,
     birthDate: null,
@@ -377,8 +380,12 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     await load(true)
   }
 
+  function setExercisesLoading(loading: boolean): void {
+    setState(prev => ({ ...prev, exercisesLoading: loading }))
+  }
+
   return (
-    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load }}>
+    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load, setExercisesLoading }}>
       {children}
     </ProfileContext.Provider>
   )

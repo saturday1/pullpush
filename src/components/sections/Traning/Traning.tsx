@@ -5,7 +5,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { Capacitor, registerPlugin } from '@capacitor/core'
-import { Minimize2, Maximize2, ListRestart } from 'lucide-react'
+import { Shrink, Expand, RotateCcw } from 'lucide-react'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 
 interface RestTimerPlugin {
@@ -659,14 +659,13 @@ export default function Traning(): React.JSX.Element {
   const { t } = useTranslation()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
-  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
   const [activeTab,        setActiveTab]        = useState<string | null>(() => localStorage.getItem('pullpush_activeTab'))
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
-  const [exercisesLoading, setExercisesLoading] = useState<boolean>(false)
   const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
   const [editMode,         setEditMode]         = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
@@ -1203,8 +1202,6 @@ export default function Traning(): React.JSX.Element {
       }
     }
 
-    setExercisesLoading(false)
-
     // Resume unfinished workout if exists
     try {
       const { data: openWorkouts, error: wErr } = await supabase.from('workouts')
@@ -1241,6 +1238,7 @@ export default function Traning(): React.JSX.Element {
       }
     } finally {
       setRestoreComplete(true)
+      setExercisesLoading(false)
     }
   }
 
@@ -1703,8 +1701,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
           </div>
         </div>
       )}
@@ -1727,8 +1725,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
           </div>
         </div>
       )}
@@ -1744,8 +1742,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
           </div>
         </div>
       )}
@@ -1767,8 +1765,8 @@ export default function Traning(): React.JSX.Element {
           </div>
           <div className={styles.overlayHintRow}>
             <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><ListRestart size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Minimize2 size={18} /></button>
+            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
+            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
           </div>
         </div>
       )}
@@ -1799,6 +1797,7 @@ export default function Traning(): React.JSX.Element {
                 : (timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0)
             }%` }} />
           </div>
+          <Expand size={18} className={styles.miniTimerExpand} />
         </div>
       )}
 
