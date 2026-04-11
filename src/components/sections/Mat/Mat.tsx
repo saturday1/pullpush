@@ -768,7 +768,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                 <div className={styles.modalFields}>
                     <label className={styles.modalField}>
                         <span className={styles.modalLabel}>{t('Time')}</span>
-                        <input className={styles.modalInput} value={form.time_label} onChange={e => set('time_label', e.target.value)} placeholder={t('e.g. 07:00 or After workout')} />
+                        <input className={styles.modalInput} value={form.time_label} onChange={e => set('time_label', e.target.value)} placeholder={t('e.g. 0700 or after workout')} />
                     </label>
                     <label className={styles.modalField}>
                         <span className={styles.modalLabel}>{t('Label')}</span>

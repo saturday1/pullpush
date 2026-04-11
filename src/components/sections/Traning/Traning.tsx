@@ -43,6 +43,12 @@ interface ExerciseLog {
   unilateral: boolean
 }
 
+interface ExerciseLastDone {
+  date: string
+  reps: number
+  kg: number | null
+}
+
 interface TrainingSession {
   id: string
   name: string
@@ -80,6 +86,21 @@ interface SessionData {
 const KG_TO_LBS: number = 2.20462
 const toKg  = (lbs: number): number => +(lbs / KG_TO_LBS).toFixed(2)
 const toLbs = (kg: number): number  => +(kg  * KG_TO_LBS).toFixed(1)
+
+function formatRelativeDate(iso: string, t: (k: string, opts?: object) => string): string {
+  const then = new Date(iso)
+  const now = new Date()
+  const diffMs = now.getTime() - then.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return `(${t('today')})`
+  if (diffDays === 1) return `(${t('yesterday')})`
+  if (diffDays < 7) return `(${t('{{n}} days ago', { n: diffDays })})`
+  if (diffDays < 14) return `(${t('1 week ago')})`
+  const weeks = Math.floor(diffDays / 7)
+  if (diffDays < 60) return `(${t('{{n}} weeks ago', { n: weeks })})`
+  const months = Math.floor(diffDays / 30)
+  return `(${t('{{n}} months ago', { n: months })})`
+}
 
 // --- Sub-components ---
 
@@ -581,6 +602,7 @@ function SetupGuide({ step, onCreateProgram, onAddSession }: SetupGuideProps): R
 interface SortableRowProps {
   ex: Exercise
   log: ExerciseLog | undefined
+  lastDone?: ExerciseLastDone
   setPlans: SetPlan[]
   onName: (ex: Exercise) => void
   onLog: (ex: Exercise) => void
@@ -593,7 +615,7 @@ interface SortableRowProps {
   completedSets: number
 }
 
-function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets }: SortableRowProps): React.JSX.Element {
+function SortableRow({ ex, log, lastDone, setPlans, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets }: SortableRowProps): React.JSX.Element {
   const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
   const hasIndividual = setPlans.length > 0
@@ -650,6 +672,11 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onMaximize, onU
             <span className={styles.metaItem}>{log?.kg ?? '–'} kg / <span className="lbsLight">{log?.kg != null ? toLbs(log.kg) : '–'} lbs</span></span>
           </div>
         )}
+        {lastDone && !editMode && (
+          <div className={styles.lastDoneRow}>
+            {t('Latest')}: {lastDone.reps} × {lastDone.kg ?? '–'} kg {formatRelativeDate(lastDone.date, t)}
+          </div>
+        )}
       </div>
       </div>
     </div>
@@ -669,6 +696,7 @@ export default function Traning(): React.JSX.Element {
   const [activeTab,        setActiveTab]        = useState<string | null>(() => localStorage.getItem('pullpush_activeTab'))
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
+  const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
   const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
   const [editMode,         setEditMode]         = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
@@ -1226,6 +1254,27 @@ export default function Traning(): React.JSX.Element {
       }
       setLogs(latest)
     }
+
+    // Latest "done" date per exercise from workout_sets joined with workouts
+    const { data: lastDoneData } = await supabase
+      .from('workout_sets')
+      .select('exercise_id, reps, kg, workouts!inner(completed_at, user_id)')
+      .eq('workouts.user_id', user.id)
+      .not('workouts.completed_at', 'is', null)
+      .order('workout_id', { ascending: false })
+      .limit(2000)
+    if (lastDoneData) {
+      const map: Record<string, ExerciseLastDone> = {}
+      for (const row of lastDoneData as Array<{ exercise_id: string; reps: number; kg: number | null; workouts: { completed_at: string } }>) {
+        const exId = String(row.exercise_id)
+        const date = row.workouts?.completed_at
+        if (!date) continue
+        if (!map[exId] || date > map[exId].date) {
+          map[exId] = { date, reps: row.reps, kg: row.kg }
+        }
+      }
+      setLastDone(map)
+    }
     // Load individual set plans
     const allExIds = Object.values(grouped).flat().map(e => e.id)
     if (allExIds.length > 0) {
@@ -1622,7 +1671,7 @@ export default function Traning(): React.JSX.Element {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onMaximize={() => setTimerMinimized(false)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} timerRunning={timerMinimized && !!(timerPhase || countdownOverlay !== null)} completedSets={completedSets[ex.id] ?? 0} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} lastDone={lastDone[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onMaximize={() => setTimerMinimized(false)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} timerRunning={timerMinimized && !!(timerPhase || countdownOverlay !== null)} completedSets={completedSets[ex.id] ?? 0} />
                     ))}
                   </SortableContext>
                 </DndContext>
@@ -1887,6 +1936,14 @@ export default function Traning(): React.JSX.Element {
       {paused && !timerMinimized && (timerPhase || countdownOverlay !== null) && (
         <div className={styles.pauseOverlay}>
           <div className={styles.overlayContent}>
+            {timerExercise && (
+              <>
+                <div className={styles.overlaySetLabel}>
+                  SET {timerSet} — {countdownOverlay !== null ? t('Countdown') : timerPhase === 'work' ? t('Reps') : timerPhase === 'side_pause' ? t('Switch side') : t('Rest')}
+                </div>
+                <div className={styles.overlayExName}>{timerExercise.name}</div>
+              </>
+            )}
             <div className={styles.pauseTitle}>{t('Paused')}</div>
             <div className={styles.overlayTime}>
               {countdownOverlay !== null
@@ -1896,7 +1953,7 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.endDialogActions}>
               <button className={styles.pauseResumeBtn} onClick={resumeExerciseTimer}>{t('Continue')}</button>
               <button className={styles.pauseStopBtn} onClick={() => saveSetAndStop(true)}>{t('Save & end')}</button>
-              <button className={styles.pauseStopBtn} onClick={() => saveSetAndStop(false)}>{t('End without saving')}</button>
+              <button className={`${styles.pauseStopBtn} ${styles.pauseStopBtnDanger}`} onClick={() => saveSetAndStop(false)}>{t('End without saving')}</button>
             </div>
           </div>
         </div>
@@ -1908,7 +1965,7 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.pauseTitle}>{t('End workout?')}</div>
             <div className={styles.endDialogActions}>
               <button className={styles.pauseResumeBtn} onClick={() => finishWorkout(true)}>{t('Save & end')}</button>
-              <button className={styles.pauseStopBtn} onClick={() => finishWorkout(false)}>{t('End without saving')}</button>
+              <button className={`${styles.pauseStopBtn} ${styles.pauseStopBtnDanger}`} onClick={() => finishWorkout(false)}>{t('End without saving')}</button>
               <button className={styles.pauseStopBtn} onClick={() => setShowEndDialog(false)}>{t('Cancel')}</button>
             </div>
           </div>

@@ -826,6 +826,16 @@
   cursor: pointer;
 }
 
+.pauseStopBtnDanger {
+  border-color: rgba(220, 38, 38, 0.7);
+  color: #fca5a5;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.15);
+    border-color: rgba(220, 38, 38, 1);
+  }
+}
+
 .endDialogActions {
   display: flex;
   flex-direction: column;
@@ -1616,8 +1626,40 @@
   border-bottom: 1px solid var(--border);
   background: var(--card);
   cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+
+  // Accent stripe on the left — only in flow mode (not edit mode)
+  &:not(:has(.dragStrip))::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0.7;
+    transition: opacity 0.15s, width 0.15s;
+  }
+
+  &:hover {
+    background: var(--bg2, var(--bg));
+
+    &::before { opacity: 1; width: 4px; }
+  }
 
   &:last-child { border-bottom: none; }
+}
+
+.exerciseActive::before {
+  background: var(--accent) !important;
+  opacity: 1 !important;
+  width: 5px !important;
+}
+
+.exerciseDisabled::before {
+  background: var(--border) !important;
+  opacity: 0.5 !important;
 }
 
 .dragStrip {
@@ -1685,6 +1727,14 @@
   font-weight: 700;
   color: var(--text);
   min-width: 42px;
+}
+
+.lastDoneRow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-style: italic;
 }
 
 .metaItem {
