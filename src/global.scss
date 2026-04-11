@@ -98,6 +98,12 @@ input[type=number]::-webkit-outer-spin-button {
 }
 input[type=number] { -moz-appearance: textfield; }
 
+// Secondary unit (lbs) — lighter weight when shown next to bold kg
+.lbsLight {
+  font-weight: 400 !important;
+  font-style: inherit;
+}
+
 // Macro pills
 .pill {
   display: inline-block;

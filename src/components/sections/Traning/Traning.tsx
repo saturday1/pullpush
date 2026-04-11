@@ -5,8 +5,11 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { Capacitor, registerPlugin } from '@capacitor/core'
-import { Shrink, Expand, RotateCcw } from 'lucide-react'
 import SectionHeader from '../../SectionHeader/SectionHeader'
+import AutoplayIcon from '../../icons/Normal/AutoplayIcon'
+import CirclePauseIcon from '../../icons/Normal/CirclePauseIcon'
+import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
+import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string }): Promise<void>
@@ -637,14 +640,14 @@ function SortableRow({ ex, log, setPlans, onName, onLog, onPlay, onMaximize, onU
             <div key={i} className={styles.metaRow}>
               <span className={styles.metaLabel}>Set {i + 1}</span>
               <span className={styles.metaItem}>{p.reps} reps</span>
-              <span className={styles.metaItem}>{p.weight_kg ?? '–'} kg / {p.weight_kg ? toLbs(p.weight_kg) : '–'} lbs</span>
+              <span className={styles.metaItem}>{p.weight_kg ?? '–'} kg / <span className="lbsLight">{p.weight_kg ? toLbs(p.weight_kg) : '–'} lbs</span></span>
             </div>
           ))
         ) : (
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>{log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'}</span>
             <span className={styles.metaItem}>{log?.reps ?? '–'} reps{log?.unilateral ? ` ${t('per side')}` : ''}</span>
-            <span className={styles.metaItem}>{log?.kg ?? '–'} kg / {log?.kg != null ? toLbs(log.kg) : '–'} lbs</span>
+            <span className={styles.metaItem}>{log?.kg ?? '–'} kg / <span className="lbsLight">{log?.kg != null ? toLbs(log.kg) : '–'} lbs</span></span>
           </div>
         )}
       </div>
@@ -1719,7 +1722,7 @@ export default function Traning(): React.JSX.Element {
         />
       )}
       {countdownOverlay !== null && timerExercise && !paused && !timerMinimized && (
-        <div className={styles.countdownOverlay} onClick={pauseCountdown}>
+        <div className={styles.countdownOverlay}>
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>SET {timerSet}</div>
             <div className={styles.overlayExName}>{timerExercise.name}</div>
@@ -1729,19 +1732,30 @@ export default function Traning(): React.JSX.Element {
             </div>
             <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
             {timerExLog?.kg != null && (
-              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg | {toLbs(timerExLog.kg)} lbs</div>
+              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg / {toLbs(timerExLog.kg)} lbs</div>
             )}
           </div>
-          <div className={styles.overlayHintRow}>
-            <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
+          <div className={styles.overlayActions}>
+            <div className={styles.flowActionRow}>
+              <button className={styles.flowActionBtn} onClick={pauseCountdown}>
+                <CirclePauseIcon size={18} />
+                <span>{t('Pause')}</span>
+              </button>
+              <button className={styles.flowActionBtn} onClick={() => setTimerMinimized(true)}>
+                <MinimizeIcon size={18} />
+                <span>{t('Minimize')}</span>
+              </button>
+            </div>
+            <button className={`${styles.flowToggleBtn} ${autoplay ? styles.flowToggleBtnActive : ''}`} onClick={() => setAutoplay(a => !a)}>
+              <AutoplayIcon size={18} />
+              <span>{t('Start next set after rest')}</span>
+            </button>
           </div>
         </div>
       )}
 
       {timerPhase === 'work' && timerExercise && !paused && !timerMinimized && (
-        <div className={styles.workOverlay} onClick={pauseExerciseTimer}>
+        <div className={styles.workOverlay}>
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>SET {timerSet}</div>
             <div className={styles.overlayExName}>{timerExercise.name}</div>
@@ -1753,19 +1767,30 @@ export default function Traning(): React.JSX.Element {
             </div>
             <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
             {timerExLog?.kg != null && (
-              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg | {toLbs(timerExLog.kg)} lbs</div>
+              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg / {toLbs(timerExLog.kg)} lbs</div>
             )}
           </div>
-          <div className={styles.overlayHintRow}>
-            <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
+          <div className={styles.overlayActions}>
+            <div className={styles.flowActionRow}>
+              <button className={styles.flowActionBtn} onClick={pauseExerciseTimer}>
+                <CirclePauseIcon size={18} />
+                <span>{t('Pause')}</span>
+              </button>
+              <button className={styles.flowActionBtn} onClick={() => setTimerMinimized(true)}>
+                <MinimizeIcon size={18} />
+                <span>{t('Minimize')}</span>
+              </button>
+            </div>
+            <button className={`${styles.flowToggleBtn} ${autoplay ? styles.flowToggleBtnActive : ''}`} onClick={() => setAutoplay(a => !a)}>
+              <AutoplayIcon size={18} />
+              <span>{t('Start next set after rest')}</span>
+            </button>
           </div>
         </div>
       )}
 
       {timerPhase === 'side_pause' && !paused && !timerMinimized && (
-        <div className={styles.countdownOverlay} onClick={pauseExerciseTimer}>
+        <div className={styles.countdownOverlay}>
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>{t('Switch side')}</div>
             <div className={styles.overlayTime}>{timerSecs}</div>
@@ -1773,16 +1798,27 @@ export default function Traning(): React.JSX.Element {
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
           </div>
-          <div className={styles.overlayHintRow}>
-            <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
+          <div className={styles.overlayActions}>
+            <div className={styles.flowActionRow}>
+              <button className={styles.flowActionBtn} onClick={pauseExerciseTimer}>
+                <CirclePauseIcon size={18} />
+                <span>{t('Pause')}</span>
+              </button>
+              <button className={styles.flowActionBtn} onClick={() => setTimerMinimized(true)}>
+                <MinimizeIcon size={18} />
+                <span>{t('Minimize')}</span>
+              </button>
+            </div>
+            <button className={`${styles.flowToggleBtn} ${autoplay ? styles.flowToggleBtnActive : ''}`} onClick={() => setAutoplay(a => !a)}>
+              <AutoplayIcon size={18} />
+              <span>{t('Start next set after rest')}</span>
+            </button>
           </div>
         </div>
       )}
 
       {timerPhase === 'rest' && !paused && !timerMinimized && (
-        <div className={styles.restOverlay} onClick={pauseExerciseTimer}>
+        <div className={styles.restOverlay}>
           <div className={styles.blobOrange} />
           <div className={styles.blobPink} />
           <div className={styles.blobPurple} />
@@ -1799,10 +1835,21 @@ export default function Traning(): React.JSX.Element {
             {nextUp.setLabel && <div className={styles.overlayNextValue}>{nextUp.setLabel}</div>}
             <div className={styles.overlayNextValue}>{nextUp.name}</div>
           </div>
-          <div className={styles.overlayHintRow}>
-            <span>{t('Tap to pause or end')}</span>
-            <button className={`${styles.autoplayBtn} ${autoplay ? styles.autoplayActive : ''}`} onClick={(e) => { e.stopPropagation(); setAutoplay(a => !a) }}><RotateCcw size={18} /></button>
-            <button className={styles.minimizeBtn} onClick={(e) => { e.stopPropagation(); setTimerMinimized(true) }}><Shrink size={18} /></button>
+          <div className={styles.overlayActions}>
+            <div className={styles.flowActionRow}>
+              <button className={styles.flowActionBtn} onClick={pauseExerciseTimer}>
+                <CirclePauseIcon size={18} />
+                <span>{t('Pause')}</span>
+              </button>
+              <button className={styles.flowActionBtn} onClick={() => setTimerMinimized(true)}>
+                <MinimizeIcon size={18} />
+                <span>{t('Minimize')}</span>
+              </button>
+            </div>
+            <button className={`${styles.flowToggleBtn} ${autoplay ? styles.flowToggleBtnActive : ''}`} onClick={() => setAutoplay(a => !a)}>
+              <AutoplayIcon size={18} />
+              <span>{t('Start next set after rest')}</span>
+            </button>
           </div>
         </div>
       )}
@@ -1817,6 +1864,7 @@ export default function Traning(): React.JSX.Element {
             </>
           )}
           <div className={styles.miniTimerInfo}>
+            <MaximizeIcon size={20} className={styles.miniTimerExpandLeft} />
             <span className={styles.miniTimerPhase}>
               {countdownOverlay !== null ? `Set ${timerSet} — ${t('Countdown')}` : timerPhase === 'work' ? `Set ${timerSet} — ${t('Reps')}` : timerPhase === 'side_pause' ? `Set ${timerSet} — ${t('Switch side')}` : `Set ${timerSet} — ${t('Rest')}`}
             </span>
@@ -1833,7 +1881,6 @@ export default function Traning(): React.JSX.Element {
                 : (timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0)
             }%` }} />
           </div>
-          <Expand size={18} className={styles.miniTimerExpand} />
         </div>
       )}
 

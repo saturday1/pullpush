@@ -360,7 +360,8 @@
 .modalTitle {
   font-family: 'Barlow Condensed', sans-serif;
   font-style: italic;
-  font-size: 24px;
+  font-weight: 700;
+  font-size: 28px;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--text);
@@ -408,6 +409,15 @@
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.modalStatIcon {
+  flex-shrink: 0;
+  color: var(--text);
 }
 
 .modalExerciseList {

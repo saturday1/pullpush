@@ -16,6 +16,9 @@ interface MacroBar {
   barWidth: string
 }
 
+const KG_TO_LBS = 2.20462
+const toLbs = (kg: number): number => +(kg * KG_TO_LBS).toFixed(1)
+
 export default function Vikt(): React.JSX.Element {
   const { t } = useTranslation()
   const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()!
@@ -65,15 +68,15 @@ export default function Vikt(): React.JSX.Element {
 
       <Reveal className={styles.section}>
         <CardGrid>
-          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : `${start} kg`} />
-          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : `${weight} kg`} valueStyle={{ color: 'var(--accent)' }} />
-          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : `${goal} kg`}   valueStyle={{ color: 'var(--green)' }} />
+          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : <>{start} kg<br /><span className="lbsLight">{toLbs(start)} lbs</span></>} />
+          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : <>{weight} kg<br /><span className="lbsLight">{toLbs(weight)} lbs</span></>} valueStyle={{ color: 'var(--accent)' }} />
+          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : <>{goal} kg<br /><span className="lbsLight">{toLbs(goal)} lbs</span></>}   valueStyle={{ color: 'var(--green)' }} />
           <CardGridItem
             label={t('Change')}
-            value={loading ? <Skeleton width={60} height={18} /> : `${diff > 0 ? '+' : ''}${diff} kg`}
+            value={loading ? <Skeleton width={60} height={18} /> : <>{diff > 0 ? '+' : ''}{diff} kg<br /><span className="lbsLight">{diff > 0 ? '+' : diff < 0 ? '−' : ''}{toLbs(Math.abs(diff))} lbs</span></>}
             valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
           />
-          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : `−${kvar} kg`} valueStyle={{ color: 'var(--orange)' }} />
+          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : <>−{kvar} kg<br /><span className="lbsLight">−{toLbs(parseFloat(kvar))} lbs</span></>} valueStyle={{ color: 'var(--orange)' }} />
         </CardGrid>
       </Reveal>
 

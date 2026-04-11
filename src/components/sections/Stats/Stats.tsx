@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { X } from 'lucide-react'
+import ClockIcon from '../../icons/Normal/ClockIcon'
+import WeightIcon from '../../icons/Normal/WeightIcon'
 import {
     Bar,
     BarChart,
@@ -542,13 +544,13 @@ export default function Stats(): React.JSX.Element {
                             <div className={styles.modalStat}>
                                 <div className={styles.modalStatLabel}>{t('Duration')}</div>
                                 <div className={styles.modalStatValue}>
-                                    ⏱ {formatDuration(openWorkout.started_at, openWorkout.completed_at, t)}
+                                    <ClockIcon size={20} className={styles.modalStatIcon} /> {formatDuration(openWorkout.started_at, openWorkout.completed_at, t)}
                                 </div>
                             </div>
                             <div className={styles.modalStat}>
                                 <div className={styles.modalStatLabel}>{t('Total')}</div>
                                 <div className={styles.modalStatValue}>
-                                    ⚖ {formatTotalKg(openWorkout.total_kg)}
+                                    <WeightIcon size={20} className={styles.modalStatIcon} /> {formatTotalKg(openWorkout.total_kg)}
                                 </div>
                             </div>
                         </div>

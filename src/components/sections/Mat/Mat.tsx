@@ -801,7 +801,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                             <input className={styles.modalInput} type="number" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
-                            <span className={styles.modalLabel}>Kcal</span>
+                            <span className={styles.modalLabel}>{t('Kcal')}</span>
                             <input className={styles.modalInput} type="number" min="0" value={form.kcal} onChange={e => set('kcal', e.target.value)} />
                         </label>
                     </div>
@@ -1116,10 +1116,10 @@ export default function Mat(): React.JSX.Element {
                         {profile?.macros ? (
                             <div className={styles.macroRings}>
                                 {([
-                                    { key: 'kcal', label: 'KCAL', current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
-                                    { key: 'protein', label: 'PROT', current: totals.protein_g, target: profile.macros.protein, unit: 'g', color: '#f97316' },
-                                    { key: 'carbs', label: 'CARBS', current: totals.carbs_g, target: profile.macros.carbs, unit: 'g', color: '#60a5fa' },
-                                    { key: 'fat', label: 'FAT', current: totals.fat_g, target: profile.macros.fat, unit: 'g', color: '#22c55e' },
+                                    { key: 'kcal', label: t('KCAL'), current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
+                                    { key: 'protein', label: t('PROT'), current: totals.protein_g, target: profile.macros.protein, unit: 'g', color: '#f97316' },
+                                    { key: 'carbs', label: t('CARBS'), current: totals.carbs_g, target: profile.macros.carbs, unit: 'g', color: '#60a5fa' },
+                                    { key: 'fat', label: t('FAT'), current: totals.fat_g, target: profile.macros.fat, unit: 'g', color: '#22c55e' },
                                 ] as const).map(row => {
                                     const pct = row.target > 0 ? Math.min(100, (row.current / row.target) * 100) : 0
                                     return (
