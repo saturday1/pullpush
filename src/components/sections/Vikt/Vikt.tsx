@@ -76,7 +76,7 @@ export default function Vikt(): React.JSX.Element {
             value={loading ? <Skeleton width={60} height={18} /> : <>{diff > 0 ? '+' : ''}{diff} kg<br /><span className="lbsLight">{diff > 0 ? '+' : diff < 0 ? '−' : ''}{toLbs(Math.abs(diff))} lbs</span></>}
             valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
           />
-          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : <>−{kvar} kg<br /><span className="lbsLight">−{toLbs(parseFloat(kvar))} lbs</span></>} valueStyle={{ color: 'var(--orange)' }} />
+          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : <>−{kvar} kg / <span className="lbsLight">−{toLbs(parseFloat(kvar))} lbs</span></>} valueStyle={{ color: 'var(--orange)' }} />
         </CardGrid>
       </Reveal>
 
