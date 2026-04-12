@@ -1,10 +1,28 @@
 .tabBar {
+    --timeout: 300ms;
+    position: relative;
     display: flex;
-    gap: 6px;
     margin-bottom: 24px;
     background: var(--bg2);
     border-radius: 12px;
     padding: 4px;
+    isolation: isolate;
+    list-style: none;
+
+    &::after {
+        content: '';
+        z-index: -1;
+        position: absolute;
+        position-anchor: --active-tab;
+        left: anchor(left);
+        right: anchor(right);
+        top: anchor(top);
+        bottom: anchor(bottom);
+        transition: var(--timeout) cubic-bezier(0.25, 1, 0.5, 1);
+        border-radius: 10px;
+        background: var(--card);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
 }
 
 .tabBtn {
@@ -18,13 +36,13 @@
     background: transparent;
     color: var(--muted);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: color var(--timeout, 300ms);
+    text-align: center;
 }
 
 .tabBtnActive {
-    background: var(--card);
+    anchor-name: --active-tab;
     color: var(--text);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .card {
