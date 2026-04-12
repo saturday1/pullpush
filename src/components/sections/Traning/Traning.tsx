@@ -29,6 +29,7 @@ import styles from './Traning.module.scss'
 interface Exercise {
   id: string
   name: string
+  note?: string | null
   session_id: string
   user_id: string
   sort_order: number
@@ -114,13 +115,15 @@ interface ExerciseModalProps {
   onRename: (exercise: Exercise, name: string) => Promise<void>
   onLog: (exerciseId: string, kg: number, sets: number | null, reps: number, unilateral: boolean) => Promise<void>
   onSaveSetPlans: (exerciseId: string, plans: SetPlan[]) => Promise<void>
+  onSaveNote: (exerciseId: string, note: string) => Promise<void>
   onDelete: (exercise: Exercise) => Promise<void>
   onClose: () => void
 }
 
-function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSetPlans, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
+function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSetPlans, onSaveNote, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
   const { t } = useTranslation()
   const [name,       setName]       = useState<string>(exercise.name)
+  const [note,       setNote]       = useState<string>(exercise.note ?? '')
   const [kg,         setKg]         = useState<string>(current?.kg?.toString() ?? '')
   const [lbs,        setLbs]        = useState<string>(current?.kg ? toLbs(current.kg).toString() : '')
   const [sets,       setSets]       = useState<string>(current?.sets?.toString() ?? '3')
@@ -175,6 +178,7 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
     if (!trimmed) return
     setSaving(true)
     if (trimmed !== exercise.name) await onRename(exercise, trimmed)
+    if (note !== (exercise.note ?? '')) await onSaveNote(exercise.id, note)
 
     if (individualMode && indSets.length > 0) {
       const plans: SetPlan[] = indSets.map((s, i) => ({
@@ -224,6 +228,10 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
               <label className={styles.modalField}>
                 <span className={styles.modalLabel}>{t('Name')}</span>
                 <input className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} autoFocus />
+              </label>
+              <label className={styles.modalField}>
+                <span className={styles.modalLabel}>{t('Note')}</span>
+                <input className={styles.modalInput} type="text" value={note} onChange={e => setNote(e.target.value)} placeholder={t('e.g. bar weighs 20kg')} />
               </label>
 
               {!individualMode ? (
@@ -657,6 +665,9 @@ function SortableRow({ ex, log, lastDone, setPlans, onName, onLog, onPlay, onMax
           </span>
         )}
       </div>
+      {ex.note && !editMode && (
+        <div className={styles.exerciseNote}>{ex.note}</div>
+      )}
       <div className={styles.exerciseCardSets}>
         {hasIndividual ? (
           setPlans.map((p, i) => (
@@ -1340,6 +1351,17 @@ export default function Traning(): React.JSX.Element {
     setLogging(null)
   }
 
+  async function handleSaveNote(exerciseId: string, noteText: string): Promise<void> {
+    await supabase.from('exercises').update({ note: noteText || null }).eq('id', exerciseId)
+    setExercises(prev => {
+      const next = { ...prev }
+      for (const key of Object.keys(next)) {
+        next[key] = next[key].map(ex => ex.id === exerciseId ? { ...ex, note: noteText || null } : ex)
+      }
+      return next
+    })
+  }
+
   async function handleSaveSetPlans(exerciseId: string, plans: SetPlan[]): Promise<void> {
     await supabase.from('exercise_set_plans').delete().eq('exercise_id', exerciseId)
     if (plans.length > 0) {
@@ -1738,6 +1760,7 @@ export default function Traning(): React.JSX.Element {
           onRename={handleRename}
           onLog={handleLogSave}
           onSaveSetPlans={handleSaveSetPlans}
+          onSaveNote={handleSaveNote}
           onDelete={handleDelete}
           onClose={() => { setLogging(null); setNaming(null) }}
         />

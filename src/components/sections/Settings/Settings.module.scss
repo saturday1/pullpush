@@ -1,3 +1,32 @@
+.tabBar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 24px;
+    background: var(--bg2);
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.tabBtn {
+    flex: 1;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tabBtnActive {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
 .card {
     background: var(--card);
     border: 1px solid var(--border);
