@@ -623,7 +623,7 @@ function SortableRow({ ex, log, lastDone, setPlans, onName, onLog, onPlay, onMax
   const configuredSets = hasIndividual ? setPlans.length : (log?.sets ?? 3)
   const totalDots = Math.max(configuredSets, completedSets)
   const allDone = completedSets >= configuredSets
-  const isDisabled = timerRunning && !isTimerActive
+  const isDisabled = !editMode && timerRunning && !isTimerActive
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
