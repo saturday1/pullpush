@@ -1648,6 +1648,20 @@
   &:last-child { border-bottom: none; }
 }
 
+.playStrip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  flex-shrink: 0;
+  color: var(--accent);
+  opacity: 0.45;
+}
+
+.exerciseActive .playStrip {
+  display: none;
+}
+
 .exerciseActive::before {
   background: var(--accent) !important;
   opacity: 1 !important;

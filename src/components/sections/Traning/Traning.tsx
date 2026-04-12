@@ -10,6 +10,7 @@ import AutoplayIcon from '../../icons/Normal/AutoplayIcon'
 import CirclePauseIcon from '../../icons/Normal/CirclePauseIcon'
 import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
+import PlayIcon from '../../icons/Normal/PlayIcon'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string }): Promise<void>
@@ -679,6 +680,11 @@ function SortableRow({ ex, log, lastDone, setPlans, onName, onLog, onPlay, onMax
         )}
       </div>
       </div>
+      {!editMode && !allDone && !isTimerActive && (
+        <div className={styles.playStrip}>
+          <PlayIcon size={22} />
+        </div>
+      )}
     </div>
   )
 }
