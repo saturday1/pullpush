@@ -790,19 +790,19 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                     <div className={styles.macroInputRow}>
                         <label className={styles.modalField}>
                             <span className={styles.modalLabel} style={{ color: '#f97316' }}>{t('Protein (g)')}</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.protein_g} onChange={e => set('protein_g', e.target.value)} />
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.protein_g} onChange={e => set('protein_g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
                             <span className={styles.modalLabel} style={{ color: '#60a5fa' }}>{t('Carbs (g)')}</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.carbs_g} onChange={e => set('carbs_g', e.target.value)} />
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.carbs_g} onChange={e => set('carbs_g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
                             <span className={styles.modalLabel} style={{ color: '#22c55e' }}>{t('Fat (g)')}</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
                             <span className={styles.modalLabel}>{t('Kcal')}</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.kcal} onChange={e => set('kcal', e.target.value)} />
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.kcal} onChange={e => set('kcal', e.target.value)} />
                         </label>
                     </div>
                 </div>

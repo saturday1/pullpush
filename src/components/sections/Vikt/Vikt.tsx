@@ -23,6 +23,7 @@ export default function Vikt(): React.JSX.Element {
   const { t } = useTranslation()
   const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()!
   const [weightInput,   setWeightInput]   = useState<string>('')
+  const [lbsInput,      setLbsInput]      = useState<string>('')
   const [loggingWeight, setLoggingWeight] = useState<boolean>(false)
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false)
   const [barsVisible,   setBarsVisible]   = useState<boolean>(false)
@@ -152,15 +153,25 @@ export default function Vikt(): React.JSX.Element {
           <div className={styles.weightModal} onClick={e => e.stopPropagation()}>
             <div className={styles.weightModalTitle}>{t('Log new weight')}</div>
             <form onSubmit={(e) => { handleLogWeight(e); setShowWeightModal(false) }}>
-              <input
-                type="number" step="0.1"
-                placeholder={t('Current ({{weight}} kg)', { weight })}
-                value={weightInput}
-                onChange={e => setWeightInput(e.target.value)}
-                className={styles.logInput}
-                style={{ width: '100%', marginBottom: 8 }}
-                autoFocus
-              />
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  type="number" step="0.1" inputMode="decimal"
+                  placeholder={`${weight} kg`}
+                  value={weightInput}
+                  onChange={e => { setWeightInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setLbsInput(!isNaN(n) ? toLbs(n).toString() : '') }}
+                  className={styles.logInput}
+                  style={{ flex: 1 }}
+                  autoFocus
+                />
+                <input
+                  type="number" step="0.1" inputMode="decimal"
+                  placeholder={`${toLbs(weight)} lbs`}
+                  value={lbsInput}
+                  onChange={e => { setLbsInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setWeightInput(!isNaN(n) ? (n / KG_TO_LBS).toFixed(1) : '') }}
+                  className={styles.logInput}
+                  style={{ flex: 1 }}
+                />
+              </div>
               <div className={styles.weightModalActions}>
                 <button type="button" className={styles.weightModalCancel} onClick={() => setShowWeightModal(false)}>{t('Cancel')}</button>
                 <button type="submit" disabled={loggingWeight} className={`${styles.logBtn} ${styles.weightModalSave}`}>

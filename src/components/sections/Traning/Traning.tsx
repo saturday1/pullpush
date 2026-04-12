@@ -231,11 +231,11 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
                   <div className={styles.modalRow}>
                     <label className={styles.modalField}>
                       <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
-                      <input className={styles.modalInput} type="number" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
+                      <input className={styles.modalInput} type="number" inputMode="decimal" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
                     </label>
                     <label className={styles.modalField}>
                       <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
-                      <input className={styles.modalInput} type="number" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+                      <input className={styles.modalInput} type="number" inputMode="decimal" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
                     </label>
                   </div>
                   <div className={styles.modalRow}>
@@ -277,8 +277,8 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
                       <div key={i} className={styles.indSetRow}>
                         <span className={styles.indSetLabel}>Set {i + 1}</span>
                         <input className={styles.modalInput} type="number" placeholder={t('Reps')} value={s.reps} onChange={e => updateIndSetReps(i, e.target.value)} />
-                        <input className={styles.modalInput} type="number" step="0.5" placeholder="kg" value={s.kg} onChange={e => updateIndSetKg(i, e.target.value)} />
-                        <input className={styles.modalInput} type="number" step="1" placeholder="lbs" value={s.lbs} onChange={e => updateIndSetLbs(i, e.target.value)} />
+                        <input className={styles.modalInput} type="number" inputMode="decimal" step="0.5" placeholder="kg" value={s.kg} onChange={e => updateIndSetKg(i, e.target.value)} />
+                        <input className={styles.modalInput} type="number" inputMode="decimal" step="1" placeholder="lbs" value={s.lbs} onChange={e => updateIndSetLbs(i, e.target.value)} />
                         <button className={styles.indSetRemove} type="button" onClick={() => removeIndSet(i)}>✕</button>
                       </div>
                     ))}

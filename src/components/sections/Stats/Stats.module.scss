@@ -290,6 +290,45 @@
   margin: 0;
 }
 
+// ── Personal Records ─────────────────────────────────────────
+
+.prList {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.prRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+
+  &:last-child { border-bottom: none; }
+}
+
+.prName {
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.prValue {
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 // ── Workout detail modal ──────────────────────────────────────
 
 .overlay {
