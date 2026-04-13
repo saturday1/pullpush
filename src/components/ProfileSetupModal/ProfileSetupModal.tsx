@@ -115,7 +115,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
     const g = goalW ? parseFloat(goalW.replace(',', '.')) : null
     const h = parseFloat(height.replace(',', '.'))
 
-    await Promise.all([
+    const [profileOk] = await Promise.all([
       updateProfile({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -132,6 +132,9 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
       }),
       logWeight(w),
     ])
+    if (!profileOk) {
+      setError(t('Something went wrong. Please try again.'))
+    }
     setSaving(false)
   }
 
