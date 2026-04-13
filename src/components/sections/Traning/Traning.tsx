@@ -2249,7 +2249,8 @@ export default function Traning(): React.JSX.Element {
               await supabase.from('exercises').delete().eq('session_id', id)
               await supabase.from('training_sessions').delete().eq('id', id)
               if (activeTab === id) setActiveTab(null)
-              await loadProfile()
+              setExercises(prev => { const next = { ...prev }; delete next[id]; return next })
+              await loadProfile(true)
             }}>{t('Delete')}</button>
           </div>
         </div>
