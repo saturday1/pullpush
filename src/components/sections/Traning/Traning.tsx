@@ -1534,12 +1534,17 @@ export default function Traning(): React.JSX.Element {
   const [showNewSession, setShowNewSession] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')
 
-  // Auto-set activeTab to today's session if not manually overridden
+  // Auto-set activeTab based on today's plan (runs once on mount)
+  const hasInitRef = useRef(false)
   useEffect(() => {
-    if (todaySessionId && !activeTab) {
+    if (hasInitRef.current || sessionsLoading) return
+    hasInitRef.current = true
+    if (todaySessionId) {
       setActiveTab(todaySessionId)
+    } else if (isRestDay) {
+      setActiveTab(null)
     }
-  }, [todaySessionId])
+  }, [todaySessionId, sessionsLoading])
 
   const currentExercises: Exercise[] = exercises[activeTab!] ?? []
 
