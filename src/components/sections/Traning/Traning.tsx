@@ -1634,13 +1634,15 @@ export default function Traning(): React.JSX.Element {
           {/* Today's session or session picker */}
           <Reveal>
             {activeTab ? (
-              <div className={styles.todayPassHeader}>
-                <div>
-                  <div className={styles.todayPassLabel}>{isRestDay ? t('Rest day') : todaySession && activeTab === todaySessionId ? t("Today's workout") : t('Selected workout')}</div>
-                  <div className={styles.todayPassName}>{currentSession?.name ?? '–'}</div>
+              <button className={styles.todayPassHeader} onClick={() => setShowLibrary(true)}>
+                <div className={styles.todayPassLabel}>
+                  {todaySession && activeTab === todaySessionId ? `${dayFull[todayDow - 1]} — ${t("Today's workout")}` : t('Selected workout')}
                 </div>
-                <button className={styles.choosePassBtn} onClick={() => setShowLibrary(true)}>{t('Change')}</button>
-              </div>
+                <div className={styles.todayPassName}>
+                  {currentSession?.name ?? '–'}
+                  <span className={styles.todayPassChevron}>›</span>
+                </div>
+              </button>
             ) : isRestDay ? (
               <div className={styles.restDayCard}>
                 <div className={styles.restDayIcon}>💤</div>

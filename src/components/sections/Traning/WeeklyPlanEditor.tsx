@@ -47,12 +47,16 @@ export default function WeeklyPlanEditor({ plans, days, activePlanId, sessions, 
   const [pickingDay, setPickingDay] = useState<number | null>(null)
 
   function addDay(dow: number, sessionId: string): void {
-    setLocalDays(prev => [...prev.filter(d => d.day_of_week !== dow), { day_of_week: dow, session_id: sessionId }])
+    setLocalDays(prev => [...prev, { day_of_week: dow, session_id: sessionId }])
     setPickingDay(null)
   }
 
-  function removeDay(dow: number): void {
-    setLocalDays(prev => prev.filter(d => d.day_of_week !== dow))
+  function removeDay(dow: number, sessionId: string): void {
+    setLocalDays(prev => {
+      const idx = prev.findIndex(d => d.day_of_week === dow && d.session_id === sessionId)
+      if (idx === -1) return prev
+      return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
+    })
   }
 
   async function handleSave(): Promise<void> {
@@ -123,17 +127,19 @@ export default function WeeklyPlanEditor({ plans, days, activePlanId, sessions, 
         {/* Days */}
         <div className={styles.dayList}>
           {[1, 2, 3, 4, 5, 6, 7].map(dow => {
-            const assigned = localDays.find(d => d.day_of_week === dow)
-            const session = assigned ? sessions.find(s => s.id === assigned.session_id) : null
+            const assigned = localDays.filter(d => d.day_of_week === dow)
+            const assignedSessions = assigned.map(a => ({ ...a, session: sessions.find(s => s.id === a.session_id) })).filter(a => a.session)
             return (
               <div key={dow} className={styles.dayRow}>
                 <span className={styles.dayLabel}>{dayNames[dow - 1]}</span>
-                {session ? (
-                  <div className={styles.daySession}>
-                    <span className={styles.daySessionName}>{session.name}</span>
-                    <button className={styles.dayRemoveBtn} onClick={() => removeDay(dow)}>✕</button>
-                  </div>
-                ) : pickingDay === dow ? (
+                <div className={styles.dayContent}>
+                  {assignedSessions.map((a, i) => (
+                    <div key={i} className={styles.daySession}>
+                      <span className={styles.daySessionName}>{a.session!.name}</span>
+                      <button className={styles.dayRemoveBtn} onClick={() => removeDay(dow, a.session_id)}>✕</button>
+                    </div>
+                  ))}
+                  {pickingDay === dow ? (
                   <div className={styles.dayPicker}>
                     {sessions.map(s => (
                       <button key={s.id} className={styles.dayPickerItem} onClick={() => addDay(dow, s.id)}>{s.name}</button>
@@ -143,6 +149,7 @@ export default function WeeklyPlanEditor({ plans, days, activePlanId, sessions, 
                 ) : (
                   <button className={styles.addDayBtn} onClick={() => setPickingDay(dow)}>+ {t('Add')}</button>
                 )}
+                </div>
               </div>
             )
           })}
