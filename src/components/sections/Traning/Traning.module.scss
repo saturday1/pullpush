@@ -1307,6 +1307,27 @@
   &:hover { color: var(--text); }
 }
 
+.addExerciseFab {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  right: 24px;
+  z-index: 100;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 300;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(232, 25, 125, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 .addBtn {
   margin-top: 12px;
   display: block;

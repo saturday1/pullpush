@@ -1794,7 +1794,7 @@ export default function Traning(): React.JSX.Element {
             </div>
 
             {editMode && !adding && (
-              <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
+              <button className={styles.addExerciseFab} onClick={() => setAdding(true)} title={t('+ Add exercise')}>+</button>
             )}
 
             {!editMode && workoutId && !allSessionDone && completedSetsInSession > 0 && (
