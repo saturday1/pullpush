@@ -161,6 +161,17 @@
   gap: 4px;
   padding: 6px 2px;
   min-width: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:disabled { cursor: default; opacity: 0.5; }
+}
+
+.weekOverviewActive {
+  .weekOverviewDot {
+    transform: scale(1.4);
+  }
 }
 
 .weekOverviewToday {

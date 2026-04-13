@@ -1709,11 +1709,17 @@ export default function Traning(): React.JSX.Element {
           {[1, 2, 3, 4, 5, 6, 7].map(dow => {
             const session = sessions.find(s => s.day_of_week === dow)
             const isToday = dow === (new Date().getDay() || 7)
+            const isActive = session && session.id === activeTab
             return (
-              <div key={dow} className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''}`}>
+              <button
+                key={dow}
+                className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''} ${isActive ? styles.weekOverviewActive : ''}`}
+                onClick={() => { if (session) setActiveTab(session.id) }}
+                disabled={!session}
+              >
                 <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
                 <span className={session ? styles.weekOverviewDot : styles.weekOverviewDotRest} />
-              </div>
+              </button>
             )
           })}
         </div>
