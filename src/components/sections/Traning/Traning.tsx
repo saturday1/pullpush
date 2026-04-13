@@ -1438,16 +1438,21 @@ export default function Traning(): React.JSX.Element {
           .eq('workout_id', openWorkout.id)
         if (sErr) console.error('workout_sets query failed', sErr)
 
-        const restored: Record<string, number> = {}
-        for (const s of (sets ?? []) as Array<{ exercise_id: string | number; set_number: number }>) {
-          const key = String(s.exercise_id)
-          restored[key] = Math.max(restored[key] ?? 0, s.set_number)
+        if (sets && sets.length > 0) {
+          // Has actual sets — restore workout state
+          const restored: Record<string, number> = {}
+          for (const s of sets as Array<{ exercise_id: string | number; set_number: number }>) {
+            const key = String(s.exercise_id)
+            restored[key] = Math.max(restored[key] ?? 0, s.set_number)
+          }
+          setCompletedSets(restored)
+          setWorkoutId(openWorkout.id)
+          setWorkoutSessionId(openWorkout.session_id)
+          if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
+        } else {
+          // Empty workout (0 sets) — clean up stale row
+          await supabase.from('workouts').delete().eq('id', openWorkout.id)
         }
-        setCompletedSets(restored)
-        setWorkoutId(openWorkout.id)
-        setWorkoutSessionId(openWorkout.session_id)
-        // Active workout overrides today's auto-select
-        if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
       }
     } finally {
       setRestoreComplete(true)
