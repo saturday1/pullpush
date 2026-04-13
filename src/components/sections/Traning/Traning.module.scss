@@ -1830,9 +1830,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
+  width: 40px;
   flex-shrink: 0;
   user-select: none;
+  cursor: grab;
+
+  &:active { cursor: grabbing; }
 }
 
 .dragGrip {
