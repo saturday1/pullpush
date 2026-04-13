@@ -1372,22 +1372,22 @@
 .setupStep    { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px;
                 border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); transition: opacity .2s; }
 
-.setupActive  { border-color: var(--accent); }
+.setupActive  { border-color: var(--pink, #e8197d); }
 .setupDone    { opacity: .55; }
 .setupLocked  { opacity: .3; pointer-events: none; }
 
 .setupNum     { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
                 display: flex; align-items: center; justify-content: center;
-                font-family: 'Barlow Condensed'; font-size: 14px; flex-shrink: 0; }
-.setupActive .setupNum { background: var(--accent); color: #fff; border-color: var(--accent); }
-.setupDone .setupNum   { background: #2a2a2a; color: var(--accent); border-color: var(--accent); }
+                font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.setupActive .setupNum { background: var(--gradient); color: #fff; border-color: transparent; }
+.setupDone .setupNum   { background: var(--bg2); color: var(--text); border-color: var(--border); }
 
 .setupContent { display: flex; flex-direction: column; gap: 6px; }
-.setupTitle   { font-family: 'Barlow Condensed'; font-size: 16px; letter-spacing: .5px; }
-.setupDesc    { font-size: 13px; color: var(--text-muted); }
-.setupCta     { align-self: flex-start; margin-top: 4px; padding: 9px 20px; border-radius: 8px;
-                background: var(--accent-gradient, var(--accent)); color: #fff;
-                font-family: 'Barlow Condensed'; font-size: 16px; letter-spacing: .5px; border: none; cursor: pointer; }
+.setupTitle   { font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 16px; letter-spacing: .5px; }
+.setupDesc    { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--muted); }
+.setupCta     { align-self: flex-start; margin-top: 4px; padding: 10px 24px; border-radius: 10px;
+                background: var(--gradient); color: #fff;
+                font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; border: none; cursor: pointer; }
 
 // ── Log modal ─────────────────────────────────────────────
 
