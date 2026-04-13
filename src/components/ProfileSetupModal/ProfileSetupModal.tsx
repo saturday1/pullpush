@@ -139,19 +139,17 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.modal}>
-        {/* Animated step content */}
-        <div className={styles.stepContent}>
-          <AnimatePresence mode="wait" custom={dir}>
-            <motion.div
-              key={step}
-              custom={dir}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
-            >
+      <AnimatePresence mode="wait" custom={dir}>
+        <motion.div
+          key={step}
+          className={styles.modal}
+          custom={dir}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+        >
               {step === 1 && (
                 <>
                   <h2 className={styles.title}>{t('About you')}</h2>
@@ -255,10 +253,8 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                   </div>
                 </form>
               )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }
