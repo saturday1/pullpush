@@ -1458,7 +1458,11 @@ export default function Traning(): React.JSX.Element {
       .insert({ user_id: userId, session_id: activeTab, name: trimmed, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId ?? null })
       .select().single()
     if (error) { console.error('handleAdd error:', error); return }
-    if (data) setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), data as Exercise] }))
+    const newEx = data as Exercise
+    if (newEx) {
+      setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), newEx] }))
+      setLogging(newEx)
+    }
     setNewName('')
     setSelectedCatalogId(null)
     setAdding(false)
