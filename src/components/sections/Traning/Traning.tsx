@@ -11,6 +11,7 @@ import CirclePauseIcon from '../../icons/Normal/CirclePauseIcon'
 import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 import PlayIcon from '../../icons/Normal/PlayIcon'
+import WeeklyPlanEditor from './WeeklyPlanEditor'
 import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
 
 interface RestTimerPlugin {
@@ -1528,6 +1529,7 @@ export default function Traning(): React.JSX.Element {
   const todaySession = todaySessionId ? sessions.find(s => s.id === todaySessionId) : null
   const isRestDay = !todaySession && sessions.length > 0 && weeklyPlans.length > 0
   const [showLibrary, setShowLibrary] = useState(false)
+  const [showPlanEditor, setShowPlanEditor] = useState(false)
 
   // Auto-set activeTab to today's session if not manually overridden
   useEffect(() => {
@@ -1665,6 +1667,26 @@ export default function Traning(): React.JSX.Element {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Weekly plan edit button */}
+          <Reveal>
+            <button className={styles.editPlanBtn} onClick={() => setShowPlanEditor(true)}>✎ {t('Edit weekly plan')}</button>
+          </Reveal>
+
+          {showPlanEditor && (
+            <WeeklyPlanEditor
+              plans={weeklyPlans}
+              days={weeklyPlanDays}
+              activePlanId={activePlanId}
+              sessions={sessions}
+              onSaveDays={setWeeklyPlanDays}
+              onCreatePlan={createWeeklyPlan}
+              onSwitchPlan={switchWeeklyPlan}
+              onRenamePlan={renameWeeklyPlan}
+              onDeletePlan={deleteWeeklyPlan}
+              onClose={() => setShowPlanEditor(false)}
+            />
           )}
 
           <Reveal>

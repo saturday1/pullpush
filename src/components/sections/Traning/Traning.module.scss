@@ -1449,6 +1449,18 @@
   color: var(--muted);
 }
 
+.editPlanBtn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 8px;
+}
+
 .setupGuide   { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 
 .setupStep    { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px;
