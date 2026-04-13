@@ -705,27 +705,43 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
 
 // --- New Exercise Modal (all fields at once) ---
 
-function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>; onClose: () => void }): React.JSX.Element {
+function NewExerciseModal({ t, onSave, onLookup, onClose }: { t: (k: string) => string; onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>; onLookup: (name: string) => { kg: number | null; sets: number | null; reps: number | null } | null; onClose: () => void }): React.JSX.Element {
   const [name, setName] = useState('')
   const [kg, setKg] = useState('')
   const [lbs, setLbs] = useState('')
   const [sets, setSets] = useState('3')
   const [reps, setReps] = useState('')
   const [saving, setSaving] = useState(false)
-  const [allCatalog, setAllCatalog] = useState<CatalogItem[]>([])
-  const [picked, setPicked] = useState(false)
+  const [catalogResults, setCatalogResults] = useState<CatalogItem[]>([])
+  const [showDrop, setShowDrop] = useState(false)
+  const selectedRef = useRef(false)
   const nameRef = useRef<HTMLInputElement>(null)
   useEffect(() => { nameRef.current?.focus() }, [])
 
-  // Load full catalog once
   useEffect(() => {
-    supabase.from('exercise_catalog').select('id, name, muscle_group').order('name').limit(200)
-      .then(({ data }) => setAllCatalog((data ?? []) as CatalogItem[]))
-  }, [])
+    if (selectedRef.current) { selectedRef.current = false; return }
+    if (name.length < 2) { setCatalogResults([]); setShowDrop(false); return }
+    const timeout = setTimeout(async () => {
+      const { data } = await supabase.from('exercise_catalog').select('id, name, muscle_group').ilike('name', `%${name}%`).limit(8)
+      setCatalogResults((data ?? []) as CatalogItem[])
+      setShowDrop(true)
+    }, 200)
+    return () => clearTimeout(timeout)
+  }, [name])
 
-  const filtered = name.length > 0
-    ? allCatalog.filter(c => c.name.toLowerCase().includes(name.toLowerCase()))
-    : allCatalog
+  function selectFromCatalog(itemName: string): void {
+    selectedRef.current = true
+    setName(itemName)
+    setCatalogResults([])
+    setShowDrop(false)
+    // Auto-fill from last log
+    const last = onLookup(itemName)
+    if (last) {
+      if (last.kg != null) { setKg(String(last.kg)); setLbs(String(toLbs(last.kg))) }
+      if (last.sets != null) setSets(String(last.sets))
+      if (last.reps != null) setReps(String(last.reps))
+    }
+  }
 
   function handleKgChange(val: string): void { setKg(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setLbs(toLbs(n).toString()) }
   function handleLbsChange(val: string): void { setLbs(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setKg(toKg(n).toString()) }
@@ -735,20 +751,20 @@ function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; on
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.modalTitle}>{t('New exercise')}</div>
         <div className={styles.modalFields}>
-          <label className={styles.modalField}>
+          <label className={styles.modalField} style={{ position: 'relative' }}>
             <span className={styles.modalLabel}>{t('Name')}</span>
-            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setPicked(false) }} placeholder={t('Search or create new…')} />
+            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} onBlur={() => setTimeout(() => setShowDrop(false), 150)} placeholder={t('Search or create new…')} />
+            {showDrop && catalogResults.length > 0 && (
+              <div className={styles.catalogDropdown}>
+                {catalogResults.map(item => (
+                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => selectFromCatalog(item.name)}>
+                    <span className={styles.catalogItemName}>{item.name}</span>
+                    {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </label>
-          {!picked && filtered.length > 0 && (
-            <div className={styles.exercisePickerList}>
-              {filtered.slice(0, 12).map(item => (
-                <button key={item.id} className={styles.exercisePickerItem} type="button" onClick={() => { setName(item.name); setPicked(true) }}>
-                  <span>{item.name}</span>
-                  {item.muscle_group && <span className={styles.exercisePickerMuscle}>{item.muscle_group}</span>}
-                </button>
-              ))}
-            </div>
-          )}
           <div className={styles.modalRow}>
             <label className={styles.modalField}>
               <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
@@ -2218,6 +2234,14 @@ export default function Traning(): React.JSX.Element {
     {addingExercise && (
       <NewExerciseModal
         t={t}
+        onLookup={(exName: string) => {
+          // Find any exercise with this name and return its latest log
+          for (const sessionExs of Object.values(exercises)) {
+            const ex = sessionExs.find(e => e.name.toLowerCase() === exName.toLowerCase())
+            if (ex && logs[ex.id]) return logs[ex.id]
+          }
+          return null
+        }}
         onSave={async (name, kg, sets, reps) => {
           const sortOrder = (exercises[activeTab!] ?? []).length
           let catalogId: number | null = null
