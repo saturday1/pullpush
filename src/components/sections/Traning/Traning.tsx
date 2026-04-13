@@ -1592,6 +1592,22 @@ export default function Traning(): React.JSX.Element {
         )}
       </div>
 
+      {/* Week overview */}
+      {sessions.length > 0 && (
+        <div className={styles.weekOverview}>
+          {[1, 2, 3, 4, 5, 6, 7].map(dow => {
+            const session = sessions.find(s => s.day_of_week === dow)
+            const isToday = dow === (new Date().getDay() || 7)
+            return (
+              <div key={dow} className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''}`}>
+                <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
+                <span className={session ? styles.weekOverviewDot : styles.weekOverviewDotRest} />
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {setupStep === 1 && (
         <Reveal>
           <SetupGuide step={1} onCreateProgram={() => setCreatingProgram(true)} />
@@ -1660,20 +1676,6 @@ export default function Traning(): React.JSX.Element {
                 <button className={styles.editProgramBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>✎</button>
               )}
               <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>
-            </div>
-
-            {/* Week overview */}
-            <div className={styles.weekOverview}>
-              {[1, 2, 3, 4, 5, 6, 7].map(dow => {
-                const session = sessions.find(s => s.day_of_week === dow)
-                const isToday = dow === (new Date().getDay() || 7)
-                return (
-                  <div key={dow} className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''}`}>
-                    <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
-                    <span className={session ? styles.weekOverviewDot : styles.weekOverviewDotRest} />
-                  </div>
-                )
-              })}
             </div>
 
             {currentExercises.length > 0 && (
