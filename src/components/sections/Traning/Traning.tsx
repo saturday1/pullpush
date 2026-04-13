@@ -761,20 +761,21 @@ function NewExerciseModal({ t, onSave, onLookup, knownExercises, onClose }: { t:
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.modalTitle}>{t('New exercise')}</div>
         <div className={styles.modalFields}>
-          <label className={styles.modalField} style={{ position: 'relative' }}>
+          <label className={styles.modalField}>
             <span className={styles.modalLabel}>{t('Name')}</span>
-            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} onBlur={() => setTimeout(() => setShowDrop(false), 150)} placeholder={t('Search or create new…')} />
-            {showDrop && catalogResults.length > 0 && (
-              <div className={styles.catalogDropdown}>
-                {catalogResults.map(item => (
-                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => selectFromCatalog(item.name)}>
-                    <span className={styles.catalogItemName}>{item.name}</span>
-                    {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
+            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('Search or create new…')} />
           </label>
+          {knownExercises.length > 0 && (
+            <label className={styles.modalField}>
+              <select className={styles.modalInput} value="" onChange={e => { if (e.target.value) selectFromCatalog(e.target.value) }}>
+                <option value="">{t('Choose from existing exercises')}</option>
+                {(name.length > 0
+                  ? knownExercises.filter(n => n.toLowerCase().includes(name.toLowerCase()))
+                  : knownExercises
+                ).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          )}
           <div className={styles.modalRow}>
             <label className={styles.modalField}>
               <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
