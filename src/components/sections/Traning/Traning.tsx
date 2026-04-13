@@ -1631,28 +1631,16 @@ export default function Traning(): React.JSX.Element {
             </Reveal>
           )}
 
-          {/* Today's session or session picker */}
-          <Reveal>
-            {activeTab ? (
-              <button className={styles.todayPassHeader} onClick={() => setShowLibrary(true)}>
-                <div className={styles.todayPassLabel}>
-                  {todaySession && activeTab === todaySessionId ? `${dayFull[todayDow - 1]} — ${t("Today's workout")}` : t('Selected workout')}
-                </div>
-                <div className={styles.todayPassName}>
-                  {currentSession?.name ?? '–'}
-                  <span className={styles.todayPassChevron}>›</span>
-                </div>
-              </button>
-            ) : isRestDay ? (
+          {/* Rest day fallback if no session selected */}
+          {!activeTab && isRestDay && (
+            <Reveal>
               <div className={styles.restDayCard}>
                 <div className={styles.restDayIcon}>💤</div>
                 <div className={styles.restDayText}>{t('No workout scheduled today')}</div>
                 <button className={styles.choosePassBtn} onClick={() => setShowLibrary(true)}>{t('Choose a workout')}</button>
               </div>
-            ) : (
-              <button className={styles.choosePassBtn} onClick={() => setShowLibrary(true)}>{t('Choose a workout')}</button>
-            )}
-          </Reveal>
+            </Reveal>
+          )}
 
           {/* Library picker modal */}
           {showLibrary && (
@@ -1715,6 +1703,13 @@ export default function Traning(): React.JSX.Element {
               onDeletePlan={deleteWeeklyPlan}
               onClose={() => setShowPlanEditor(false)}
             />
+          )}
+
+          {/* Active session title */}
+          {currentSession && (
+            <Reveal>
+              <h3 className={styles.activePassTitle}>{currentSession.name}</h3>
+            </Reveal>
           )}
 
           <Reveal>

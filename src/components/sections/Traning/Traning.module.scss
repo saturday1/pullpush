@@ -1543,6 +1543,17 @@
   color: var(--faint, var(--muted));
 }
 
+.activePassTitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--text);
+  line-height: 1;
+  margin: 0 0 8px;
+}
+
 .weekEditLink {
   display: block;
   margin-top: 8px;
