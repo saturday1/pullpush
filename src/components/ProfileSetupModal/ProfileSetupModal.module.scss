@@ -175,8 +175,14 @@
     box-shadow: 0 0 0 3px rgba(232, 25, 125, 0.08);
   }
 
-  // Date input color fix
-  &[type="date"] { color-scheme: dark; }
+  // Date input — force consistent height on iOS
+  &[type="date"] {
+    color-scheme: dark;
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 46px;
+    max-height: 46px;
+  }
 }
 
 select.input {
