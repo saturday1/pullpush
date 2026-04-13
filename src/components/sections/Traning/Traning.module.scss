@@ -1478,90 +1478,82 @@
   cursor: pointer;
 }
 
-// ── Week strip ─────────────────────────────────────────
+// ── Week overview ──────────────────────────────────────
 
-.weekStrip {
-  display: flex;
-  gap: 0;
-  align-items: stretch;
+.weekList {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden;
+  padding: 8px 16px;
   margin-bottom: 16px;
 }
 
-.weekDay {
-  flex: 1;
+.weekRow {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 10px 2px;
-  background: none;
-  border: none;
-  border-right: 1px solid var(--border);
-  cursor: pointer;
-  min-width: 0;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
 
-  &:last-of-type { border-right: none; }
+  &:last-of-type { border-bottom: none; }
 }
 
-.weekDayToday {
-  background: rgba(255, 92, 53, 0.06);
+.weekRowToday {
+  .weekRowDay { color: var(--accent); }
 }
 
-.weekDaySelected {
-  background: rgba(232, 25, 125, 0.08);
-}
-
-.weekDayLabel {
+.weekRowDay {
   font-family: 'DM Sans', sans-serif;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--muted);
+  min-width: 32px;
 }
 
-.weekDayToday .weekDayLabel {
-  color: var(--accent);
+.weekRowSessions {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.weekDayName {
+.weekRowSession {
   font-family: 'DM Sans', sans-serif;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  cursor: pointer;
+
+  &:active { background: var(--bg2); }
 }
 
-.weekDayRest {
-  font-size: 10px;
+.weekRowSessionActive {
+  background: var(--gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+.weekRowRest {
+  font-size: 12px;
   color: var(--faint, var(--muted));
 }
 
-.weekDayMore {
+.weekEditLink {
+  display: block;
+  margin-top: 8px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 8px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
-}
-
-.weekEditBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
   background: none;
   border: none;
-  border-left: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 14px;
   cursor: pointer;
-  flex-shrink: 0;
+  padding: 0;
 }
 
 .editPlanBtn {
