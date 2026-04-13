@@ -160,23 +160,23 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                   <div className={styles.form}>
                     <div className={styles.row2}>
                       <label className={styles.field}>
-                        <span className={styles.label}>{t('First name *')}</span>
-                        <input className={styles.input} type="text" value={firstName} onChange={(e: ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)} placeholder={t('First name')} autoFocus />
+                        <span className={styles.label}>{t('First name')}</span>
+                        <input className={styles.input} type="text" value={firstName} onChange={(e: ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)} autoFocus />
                       </label>
                       <label className={styles.field}>
-                        <span className={styles.label}>{t('Last name *')}</span>
-                        <input className={styles.input} type="text" value={lastName} onChange={(e: ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)} placeholder={t('Last name')} />
+                        <span className={styles.label}>{t('Last name')}</span>
+                        <input className={styles.input} type="text" value={lastName} onChange={(e: ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)} />
                       </label>
                     </div>
                     <div className={styles.row2}>
                       <label className={styles.field}>
-                        <span className={styles.label}>{t('Birthday *')}</span>
+                        <span className={styles.label}>{t('Birthday')}</span>
                         <input className={styles.input} type="date" value={birthDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setBirthDate(e.target.value)} />
                       </label>
                       <label className={styles.field}>
-                        <span className={styles.label}>{t('Gender *')}</span>
+                        <span className={styles.label}>{t('Gender')}</span>
                         <select className={styles.input} value={gender} onChange={(e) => setGender(e.target.value as 'male' | 'female' | 'unspecified' | 'unset')}>
-                          <option value="unset" disabled>{t('Select...')}</option>
+                          <option value="unset" disabled>{t('Select')}</option>
                           <option value="male">{t('Male')}</option>
                           <option value="female">{t('Female')}</option>
                           <option value="unspecified">{t('Prefer not to say')}</option>
@@ -184,8 +184,8 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                       </label>
                     </div>
                     <label className={styles.field}>
-                      <span className={styles.label}>{t('Phone')}</span>
-                      <input className={styles.input} type="tel" value={phone} onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)} placeholder={t('Optional')} />
+                      <span className={styles.label}>{t('Phone (optional)')}</span>
+                      <input className={styles.input} type="tel" value={phone} onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)} />
                     </label>
                     {error && <p className={styles.error}>{error}</p>}
                     <button type="button" className={styles.btn} onClick={goNext}>{t('Next')}</button>
@@ -200,16 +200,16 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                   <div className={styles.form}>
                     <div className={styles.row3}>
                       <label className={styles.field}>
-                        <span className={styles.label}>{t('Weight (kg) *')}</span>
-                        <input className={styles.input} type="number" inputMode="decimal" step="0.1" value={weight} onChange={(e: ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)} placeholder="kg" autoFocus />
+                        <span className={styles.label}>{t('Weight (kg)')}</span>
+                        <input className={styles.input} type="number" inputMode="decimal" step="0.1" value={weight} onChange={(e: ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)} autoFocus />
                       </label>
                       <label className={styles.field}>
                         <span className={styles.label}>{t('Goal weight (optional)')}</span>
-                        <input className={styles.input} type="number" inputMode="decimal" step="0.1" value={goalW} onChange={(e: ChangeEvent<HTMLInputElement>) => setGoalW(e.target.value)} placeholder="kg" />
+                        <input className={styles.input} type="number" inputMode="decimal" step="0.1" value={goalW} onChange={(e: ChangeEvent<HTMLInputElement>) => setGoalW(e.target.value)} />
                       </label>
                       <label className={styles.field}>
-                        <span className={styles.label}>{t('Height *')}</span>
-                        <input className={styles.input} type="number" value={height} onChange={(e: ChangeEvent<HTMLInputElement>) => setHeight(e.target.value)} placeholder="cm" />
+                        <span className={styles.label}>{t('Height (cm)')}</span>
+                        <input className={styles.input} type="number" value={height} onChange={(e: ChangeEvent<HTMLInputElement>) => setHeight(e.target.value)} />
                       </label>
                     </div>
                     {error && <p className={styles.error}>{error}</p>}
