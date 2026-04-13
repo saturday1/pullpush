@@ -61,7 +61,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
   const [lastName, setLastName] = useState(existingLast ?? '')
   const [birthDate, setBirthDate] = useState(existingBirth ?? '')
   const [phone, setPhone] = useState(existingPhone ?? '')
-  const [gender, setGender] = useState<'male' | 'female' | 'unspecified' | 'unset'>(existingGender ?? 'unset')
+  const [gender, setGender] = useState<string>(existingGender ?? '')
 
   // Step 2: Weights
   const [weight, setWeight] = useState('')
@@ -80,7 +80,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
         setError(t('Please fill in first name, last name and birthday.'))
         return
       }
-      if (gender === 'unset') {
+      if (!gender) {
         setError(t('Please select a gender.'))
         return
       }
@@ -121,7 +121,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
         last_name: lastName.trim(),
         birth_date: birthDate,
         phone: phone.trim() || null,
-        gender: gender === 'male' ? 'male' : gender === 'female' ? 'female' : null,
+        gender: (gender === 'male' || gender === 'female') ? gender : null,
         goal_weight: g && !isNaN(g) ? g : null,
         start_weight: w,
         height_cm: h,
@@ -175,8 +175,8 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                       </label>
                       <label className={styles.field}>
                         <span className={styles.label}>{t('Gender')}</span>
-                        <select className={styles.input} value={gender} onChange={(e) => setGender(e.target.value as 'male' | 'female' | 'unspecified' | 'unset')}>
-                          <option value="unset" disabled>{t('Select')}</option>
+                        <select className={styles.input} value={gender} onChange={(e) => setGender(e.target.value)}>
+                          <option value="">{t('Select')}</option>
                           <option value="male">{t('Male')}</option>
                           <option value="female">{t('Female')}</option>
                           <option value="unspecified">{t('Prefer not to say')}</option>
