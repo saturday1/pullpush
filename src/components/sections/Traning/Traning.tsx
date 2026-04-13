@@ -702,6 +702,91 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
   )
 }
 
+// --- New Exercise Modal ---
+
+function NewExerciseModal({ t, knownExercises, onLookup, onSave, onClose }: {
+  t: (k: string) => string
+  knownExercises: string[]
+  onLookup: (name: string) => { kg: number | null; sets: number | null; reps: number | null } | null
+  onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>
+  onClose: () => void
+}): React.JSX.Element {
+  const [name, setName] = useState('')
+  const [kg, setKg] = useState('')
+  const [lbs, setLbs] = useState('')
+  const [sets, setSets] = useState('3')
+  const [reps, setReps] = useState('')
+  const [saving, setSaving] = useState(false)
+  const nameRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { nameRef.current?.focus() }, [])
+
+  function handleKgChange(val: string): void { setKg(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setLbs(toLbs(n).toString()) }
+  function handleLbsChange(val: string): void { setLbs(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setKg(toKg(n).toString()) }
+
+  function selectExisting(exName: string): void {
+    setName(exName)
+    const last = onLookup(exName)
+    if (last) {
+      if (last.kg != null) { setKg(String(last.kg)); setLbs(String(toLbs(last.kg))) }
+      if (last.sets != null) setSets(String(last.sets))
+      if (last.reps != null) setReps(String(last.reps))
+    }
+  }
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalTitle}>{t('New exercise')}</div>
+        <div className={styles.modalFields}>
+          <label className={styles.modalField}>
+            <span className={styles.modalLabel}>{t('Name')}</span>
+            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('Exercise name…')} />
+          </label>
+          {knownExercises.length > 0 && (
+            <label className={styles.modalField}>
+              <select className={styles.modalInput} value="" onChange={e => { if (e.target.value) selectExisting(e.target.value) }}>
+                <option value="">{t('Or choose existing')}</option>
+                {(name.length > 0 ? knownExercises.filter(n => n.toLowerCase().includes(name.toLowerCase())) : knownExercises).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          )}
+          <div className={styles.modalRow}>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
+              <input className={styles.modalInput} type="number" inputMode="decimal" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
+            </label>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
+              <input className={styles.modalInput} type="number" inputMode="decimal" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+            </label>
+          </div>
+          <div className={styles.modalRow}>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Sets')}</span>
+              <input className={styles.modalInput} type="number" value={sets} onChange={e => setSets(e.target.value)} />
+            </label>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Reps')}</span>
+              <input className={styles.modalInput} type="number" value={reps} onChange={e => setReps(e.target.value)} />
+            </label>
+          </div>
+        </div>
+        <div className={styles.modalActions}>
+          <button className={styles.cancelBtn} type="button" onClick={onClose}>{t('Cancel')}</button>
+          <button className={styles.saveBtn} disabled={!name.trim() || saving} onClick={async () => {
+            setSaving(true)
+            const kgVal = parseFloat(kg.replace(',', '.'))
+            const setsVal = parseInt(sets)
+            const repsVal = parseInt(reps)
+            await onSave(name.trim(), isNaN(kgVal) ? null : kgVal, isNaN(setsVal) ? null : setsVal, isNaN(repsVal) ? null : repsVal)
+            setSaving(false)
+          }}>{saving ? '…' : t('Save')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // --- Main component ---
 
 export default function Traning(): React.JSX.Element {
@@ -719,6 +804,7 @@ export default function Traning(): React.JSX.Element {
   const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
   const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
   const [editMode,         setEditMode]         = useState<boolean>(false)
+  const [addingExercise,   setAddingExercise]   = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [workoutSessionId, setWorkoutSessionId] = useState<string | null>(null)
   const [showEndDialog,    setShowEndDialog]    = useState<boolean>(false)
@@ -1680,7 +1766,7 @@ export default function Traning(): React.JSX.Element {
             </div>
 
             {currentExercises.length === 0 && activeTab && (
-              <button className={styles.emptyPassBtn} onClick={() => { setEditMode(true); setAdding(true) }}>
+              <button className={styles.emptyPassBtn} onClick={() => setAddingExercise(true)}>
                 + {t('Add your first exercise')}
               </button>
             )}
@@ -2062,8 +2148,49 @@ export default function Traning(): React.JSX.Element {
       })()}
     </section>
 
-    {editMode && activeTab && !adding && (
-      <button className={styles.addExerciseFab} onClick={() => setAdding(true)} title={t('+ Add exercise')}>+</button>
+    {editMode && activeTab && !adding && !addingExercise && (
+      <button className={styles.addExerciseFab} onClick={() => setAddingExercise(true)} title={t('+ Add exercise')}>+</button>
+    )}
+
+    {addingExercise && (
+      <NewExerciseModal
+        t={t}
+        knownExercises={(() => {
+          const names = new Set<string>()
+          for (const exs of Object.values(exercises)) for (const ex of exs) names.add(ex.name)
+          return Array.from(names).sort()
+        })()}
+        onLookup={(exName: string) => {
+          for (const sessionExs of Object.values(exercises)) {
+            const ex = sessionExs.find(e => e.name.toLowerCase() === exName.toLowerCase())
+            if (ex && logs[ex.id]) return logs[ex.id]
+          }
+          return null
+        }}
+        onSave={async (name, kg, sets, reps) => {
+          const sortOrder = (exercises[activeTab!] ?? []).length
+          let catalogId: number | null = null
+          const { data: existing } = await supabase.from('exercise_catalog').select('id').ilike('name', name).maybeSingle()
+          if (existing) catalogId = (existing as { id: number }).id
+          else {
+            const { data: inserted } = await supabase.from('exercise_catalog').insert({ name }).select().single()
+            if (inserted) catalogId = (inserted as { id: number }).id
+          }
+          const { data } = await supabase.from('exercises')
+            .insert({ user_id: userId, session_id: activeTab, name, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId })
+            .select().single()
+          if (data) {
+            const ex = data as Exercise
+            setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), ex] }))
+            if (kg != null && reps != null) {
+              await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: ex.id, weight_kg: kg, sets, reps })
+              setLogs(prev => ({ ...prev, [ex.id]: { kg, sets, reps, unilateral: false } }))
+            }
+          }
+          setAddingExercise(false)
+        }}
+        onClose={() => setAddingExercise(false)}
+      />
     )}
   </>
   )
