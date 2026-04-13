@@ -1583,11 +1583,13 @@ export default function Traning(): React.JSX.Element {
     <section id="traning">
       <div className={styles.sectionHeaderRow}>
         <h2 className={styles.sectionTitle}>{t('Training sessions')}</h2>
-        <label className={styles.flowSwitch}>
-          <input type="checkbox" checked={!editMode} onChange={() => setEditMode(m => !m)} />
-          <span className={styles.flowSlider} />
-          <span className={styles.flowLabel}>Flow-mode</span>
-        </label>
+        {currentExercises.length > 0 && (
+          <label className={styles.flowSwitch}>
+            <input type="checkbox" checked={!editMode} onChange={() => setEditMode(m => !m)} />
+            <span className={styles.flowSlider} />
+            <span className={styles.flowLabel}>Flow-mode</span>
+          </label>
+        )}
       </div>
 
       {setupStep === 1 && (
