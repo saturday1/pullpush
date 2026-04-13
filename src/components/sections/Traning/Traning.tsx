@@ -1723,10 +1723,14 @@ export default function Traning(): React.JSX.Element {
                 >
                   <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
                   <span className={styles.weekOverviewDots}>
-                    {daySessions.length > 0
-                      ? daySessions.slice(0, 3).map((s, i) => <span key={i} className={styles.weekOverviewDot} />)
-                      : <span className={styles.weekOverviewDotRest} />
-                    }
+                    {daySessions.length > 0 ? (
+                      <>
+                        <span className={styles.weekOverviewDot} />
+                        {daySessions.length > 1 && <span className={styles.weekOverviewCount}>{daySessions.length}</span>}
+                      </>
+                    ) : (
+                      <span className={styles.weekOverviewDotRest} />
+                    )}
                   </span>
                 </button>
                 {pickerDay === dow && daySessions.length > 1 && (
