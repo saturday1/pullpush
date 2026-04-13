@@ -11,6 +11,7 @@ import CirclePauseIcon from '../../icons/Normal/CirclePauseIcon'
 import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 import PlayIcon from '../../icons/Normal/PlayIcon'
+import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string }): Promise<void>
@@ -613,6 +614,7 @@ interface SortableRowProps {
   log: ExerciseLog | undefined
   lastDone?: ExerciseLastDone
   setPlans: SetPlan[]
+  weightUnit: import('../../../hooks/useWeightUnit').WeightUnit
   onName: (ex: Exercise) => void
   onLog: (ex: Exercise) => void
   onPlay: (ex: Exercise) => void
@@ -624,7 +626,7 @@ interface SortableRowProps {
   completedSets: number
 }
 
-function SortableRow({ ex, log, lastDone, setPlans, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets }: SortableRowProps): React.JSX.Element {
+function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets }: SortableRowProps): React.JSX.Element {
   const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
   const hasIndividual = setPlans.length > 0
@@ -674,19 +676,19 @@ function SortableRow({ ex, log, lastDone, setPlans, onName, onLog, onPlay, onMax
             <div key={i} className={styles.metaRow}>
               <span className={styles.metaLabel}>Set {i + 1}</span>
               <span className={styles.metaItem}>{p.reps} reps</span>
-              <span className={styles.metaItem}>{p.weight_kg ?? '–'} kg / <span className="lbsLight">{p.weight_kg ? toLbs(p.weight_kg) : '–'} lbs</span></span>
+              <span className={styles.metaItem}>{p.weight_kg != null ? formatWeight(p.weight_kg, weightUnit) : '–'}</span>
             </div>
           ))
         ) : (
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>{log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'}</span>
             <span className={styles.metaItem}>{log?.reps ?? '–'} reps{log?.unilateral ? ` ${t('per side')}` : ''}</span>
-            <span className={styles.metaItem}>{log?.kg ?? '–'} kg / <span className="lbsLight">{log?.kg != null ? toLbs(log.kg) : '–'} lbs</span></span>
+            <span className={styles.metaItem}>{log?.kg != null ? formatWeight(log.kg, weightUnit) : '–'}</span>
           </div>
         )}
         {lastDone && !editMode && (
           <div className={styles.lastDoneRow}>
-            {t('Latest')}: {lastDone.reps} × {lastDone.kg ?? '–'} kg {formatRelativeDate(lastDone.date, t)}
+            {t('Latest')}: {lastDone.reps} × {lastDone.kg != null ? formatWeight(lastDone.kg, weightUnit) : '–'} {formatRelativeDate(lastDone.date, t)}
           </div>
         )}
       </div>
@@ -704,6 +706,7 @@ function SortableRow({ ex, log, lastDone, setPlans, onName, onLog, onPlay, onMax
 
 export default function Traning(): React.JSX.Element {
   const { t } = useTranslation()
+  const [weightUnit] = useWeightUnit()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
   const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
@@ -917,7 +920,7 @@ export default function Traning(): React.JSX.Element {
 
     // Start Live Activity with total time (countdown + work + rest)
     const totalTime = plan.reduce((sum, p) => sum + p.duration, 0)
-    const label = `Set ${currentSet}/${sets} • ${reps} reps\n${ex.name}${setKg ? `\n${setKg} kg / ${toLbs(setKg)} lbs` : ''}`
+    const label = `Set ${currentSet}/${sets} • ${reps} reps\n${ex.name}${setKg ? `\n${formatWeight(setKg, weightUnit)}` : ''}`
     if (RestTimer) RestTimer.start({ seconds: totalTime, label }).catch(() => {})
 
     runTimerStep(plan, 0, ex.id, currentSet, sets, setKg, reps, wId)
@@ -1098,7 +1101,7 @@ export default function Traning(): React.JSX.Element {
     const resumeReps = ctx.reps ?? 0
     const resumeKg = ctx.kg
     const resumeLabelFull = resumeReps > 0
-      ? `Set ${ctx.currentSet}/${ctx.setsTotal} • ${resumeReps} reps\n${resumeName}${resumeKg ? `\n${resumeKg} kg / ${toLbs(resumeKg)} lbs` : ''}`
+      ? `Set ${ctx.currentSet}/${ctx.setsTotal} • ${resumeReps} reps\n${resumeName}${resumeKg ? `\n${formatWeight(resumeKg, weightUnit)}` : ''}`
       : resumeName
     if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(remainingTotal)), label: resumeLabelFull }).catch(() => {})
 
@@ -1699,7 +1702,7 @@ export default function Traning(): React.JSX.Element {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} lastDone={lastDone[ex.id]} setPlans={individualSets[ex.id] ?? []} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onMaximize={() => setTimerMinimized(false)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} timerRunning={timerMinimized && !!(timerPhase || countdownOverlay !== null)} completedSets={completedSets[ex.id] ?? 0} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} lastDone={lastDone[ex.id]} setPlans={individualSets[ex.id] ?? []} weightUnit={weightUnit} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onMaximize={() => setTimerMinimized(false)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} timerRunning={timerMinimized && !!(timerPhase || countdownOverlay !== null)} completedSets={completedSets[ex.id] ?? 0} />
                     ))}
                   </SortableContext>
                 </DndContext>
@@ -1810,7 +1813,7 @@ export default function Traning(): React.JSX.Element {
             </div>
             <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
             {timerExLog?.kg != null && (
-              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg / {toLbs(timerExLog.kg)} lbs</div>
+              <div className={styles.overlayWeightBelow}>{formatWeight(timerExLog.kg, weightUnit)}</div>
             )}
           </div>
           <div className={styles.overlayActions}>
@@ -1845,7 +1848,7 @@ export default function Traning(): React.JSX.Element {
             </div>
             <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
             {timerExLog?.kg != null && (
-              <div className={styles.overlayWeightBelow}>{timerExLog.kg} kg / {toLbs(timerExLog.kg)} lbs</div>
+              <div className={styles.overlayWeightBelow}>{formatWeight(timerExLog.kg, weightUnit)}</div>
             )}
           </div>
           <div className={styles.overlayActions}>

@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom'
 import { X } from 'lucide-react'
 import ClockIcon from '../../icons/Normal/ClockIcon'
 import WeightIcon from '../../icons/Normal/WeightIcon'
+import { useWeightUnit, formatWeight } from '../../../hooks/useWeightUnit'
 import {
     Bar,
     BarChart,
@@ -119,6 +120,7 @@ export default function Stats(): React.JSX.Element {
     const { pathname } = useLocation()
     const isActive = pathname === '/stats'
     interface PersonalRecord { name: string; kg: number; lbs: number }
+    const [weightUnit] = useWeightUnit()
     const [loading, setLoading] = useState(true)
     const [workouts, setWorkouts] = useState<CompletedWorkout[]>([])
     const [openWorkout, setOpenWorkout] = useState<CompletedWorkout | null>(null)
@@ -451,7 +453,7 @@ export default function Stats(): React.JSX.Element {
                 </div>
                 <div className={styles.summaryCard}>
                     <div className={styles.summaryLabel}>{t('Total volume')}</div>
-                    <div className={styles.summaryValueSmall}>{formatTotalKgLbs(totalVolume)}</div>
+                    <div className={styles.summaryValueSmall}>{formatWeight(Math.round(totalVolume), weightUnit)}</div>
                 </div>
                 <div className={styles.summaryCard}>
                     <div className={styles.summaryLabel}>{t('Most trained')}</div>
@@ -559,7 +561,7 @@ export default function Stats(): React.JSX.Element {
                         {personalRecords.map((pr, i) => (
                             <div key={i} className={styles.prRow}>
                                 <span className={styles.prName}>{pr.name}</span>
-                                <span className={styles.prValue}>{pr.kg} kg / <span className="lbsLight">{pr.lbs} lbs</span></span>
+                                <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
                             </div>
                         ))}
                     </div>
@@ -655,7 +657,7 @@ export default function Stats(): React.JSX.Element {
                             <div className={styles.modalStat}>
                                 <div className={styles.modalStatLabel}>{t('Total')}</div>
                                 <div className={styles.modalStatValue}>
-                                    <WeightIcon size={20} className={styles.modalStatIcon} /> {formatTotalKgLbs(openWorkout.total_kg)}
+                                    <WeightIcon size={20} className={styles.modalStatIcon} /> {formatWeight(Math.round(openWorkout.total_kg), weightUnit)}
                                 </div>
                             </div>
                         </div>
@@ -680,7 +682,7 @@ export default function Stats(): React.JSX.Element {
                                                     {t('Set')} {s.set_number}
                                                 </span>
                                                 <span className={styles.modalSetValue}>
-                                                    {s.reps ?? '–'} {t('reps')} × {s.kg ?? '–'} kg / <span className="lbsLight">{s.kg != null ? toLbs(s.kg) : '–'} lbs</span>
+                                                    {s.reps ?? '–'} {t('reps')} × {s.kg != null ? formatWeight(s.kg, weightUnit) : '–'}
                                                 </span>
                                             </div>
                                         ))}

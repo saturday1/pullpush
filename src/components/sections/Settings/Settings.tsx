@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '../../../context/ThemeContext'
+import { useWeightUnit, type WeightUnit } from '../../../hooks/useWeightUnit'
 import { supabase } from '../../../supabase'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
@@ -16,6 +17,7 @@ export default function Settings(): React.ReactElement {
     const theme = themeCtx?.theme ?? 'light'
     const toggle = themeCtx?.toggle ?? (() => {})
     const [tab, setTab] = useState<SettingsTab>('profile')
+    const [weightUnit, setWeightUnit] = useWeightUnit()
 
     return (
         <section id="settings">
@@ -82,6 +84,23 @@ export default function Settings(): React.ReactElement {
                                 >
                                     🌙 {t('Dark')}
                                 </button>
+                            </div>
+                        </div>
+                    </Reveal>
+
+                    <Reveal>
+                        <div className={styles.card}>
+                            <div className={styles.cardTitle}>{t('Weight unit')}</div>
+                            <div className={styles.optionRow}>
+                                {(['both', 'kg', 'lbs'] as WeightUnit[]).map(u => (
+                                    <button
+                                        key={u}
+                                        className={`${styles.optionBtn} ${weightUnit === u ? styles.optionActive : ''}`}
+                                        onClick={() => setWeightUnit(u)}
+                                    >
+                                        {u === 'both' ? 'KG / LBS' : u.toUpperCase()}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </Reveal>

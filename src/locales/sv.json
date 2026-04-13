@@ -179,6 +179,7 @@
   "kcalOver": "Du har gått över med {{over}} kcal idag.",
   "proteinActionable": "{{current}}g av {{target}}g protein. Saknar {{remaining}}g — t.ex. en proteinshake.",
   "proteinOnTrack": "{{current}}g av {{target}}g protein — bra jobbat!",
+  "Weight unit": "Viktenhet",
   "Kcal": "Kcal",
   "KCAL": "KCAL",
   "PROT": "PROT",

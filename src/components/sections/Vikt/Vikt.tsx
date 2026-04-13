@@ -6,6 +6,7 @@ import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
 import Skeleton from '../../Skeleton/Skeleton'
 import { useProfile } from '../../../context/ProfileContext'
 import InfoModal from '../../InfoModal/InfoModal'
+import { useWeightUnit, formatWeightJsx } from '../../../hooks/useWeightUnit'
 import styles from './Vikt.module.scss'
 
 interface MacroBar {
@@ -22,6 +23,7 @@ const toLbs = (kg: number): number => +(kg * KG_TO_LBS).toFixed(1)
 export default function Vikt(): React.JSX.Element {
   const { t } = useTranslation()
   const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()!
+  const [weightUnit] = useWeightUnit()
   const [weightInput,   setWeightInput]   = useState<string>('')
   const [lbsInput,      setLbsInput]      = useState<string>('')
   const [loggingWeight, setLoggingWeight] = useState<boolean>(false)
@@ -69,15 +71,15 @@ export default function Vikt(): React.JSX.Element {
 
       <Reveal className={styles.section}>
         <CardGrid>
-          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : <>{start} kg<br /><span className="lbsLight">{toLbs(start)} lbs</span></>} />
-          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : <>{weight} kg<br /><span className="lbsLight">{toLbs(weight)} lbs</span></>} valueStyle={{ color: 'var(--accent)' }} />
-          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : <>{goal} kg<br /><span className="lbsLight">{toLbs(goal)} lbs</span></>}   valueStyle={{ color: 'var(--green)' }} />
+          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(start, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } />
+          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(weight, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } valueStyle={{ color: 'var(--accent)' }} />
+          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(goal, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() }   valueStyle={{ color: 'var(--green)' }} />
           <CardGridItem
             label={t('Change')}
-            value={loading ? <Skeleton width={60} height={18} /> : <>{diff > 0 ? '+' : ''}{diff} kg<br /><span className="lbsLight">{diff > 0 ? '+' : diff < 0 ? '−' : ''}{toLbs(Math.abs(diff))} lbs</span></>}
+            value={loading ? <Skeleton width={60} height={18} /> : (() => { const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''; const abs = Math.abs(diff); const [p, s] = formatWeightJsx(abs, weightUnit); const pSigned = `${sign}${p}`; return s ? <>{pSigned}<br /><span className="lbsLight">{sign}{s}</span></> : pSigned })() }
             valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
           />
-          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : <>−{kvar} kg / <span className="lbsLight">−{toLbs(parseFloat(kvar))} lbs</span></>} valueStyle={{ color: 'var(--orange)' }} />
+          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : (() => { const k = parseFloat(kvar); const [p, s] = formatWeightJsx(k, weightUnit); return s ? <>−{p} / <span className="lbsLight">−{s}</span></> : `−${p}` })() } valueStyle={{ color: 'var(--orange)' }} />
         </CardGrid>
       </Reveal>
 

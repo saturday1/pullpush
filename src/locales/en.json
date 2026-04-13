@@ -81,6 +81,7 @@
   "kcalOver": "You've gone over by {{over}} kcal today.",
   "proteinActionable": "{{current}}g of {{target}}g protein. Missing {{remaining}}g — e.g. a protein shake.",
   "proteinOnTrack": "{{current}}g of {{target}}g protein — great job!",
+  "Weight unit": "Weight unit",
   "Kcal": "Kcal",
   "KCAL": "KCAL",
   "PROT": "PROT",
