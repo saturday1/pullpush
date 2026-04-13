@@ -218,8 +218,8 @@
 
 .weekOverviewToday {
   .weekOverviewLabel {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    font-weight: 900;
+    color: var(--text);
   }
 }
 
