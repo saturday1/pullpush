@@ -1458,14 +1458,37 @@
 }
 .libraryItem {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--bg);
+  overflow: hidden;
+}
+
+.libraryItemBtn {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: none;
+  border: none;
   cursor: pointer;
   text-align: left;
+  min-width: 0;
+}
+
+.libraryItemDelete {
+  padding: 14px 14px;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:active { color: var(--red, #dc2626); background: rgba(220, 38, 38, 0.06); }
 }
 .libraryItemActive {
   border-color: var(--accent);

@@ -1738,10 +1738,19 @@ export default function Traning(): React.JSX.Element {
                 <div className={styles.modalTitle}>{t('Choose a workout')}</div>
                 <div className={styles.libraryList}>
                   {sessions.map(s => (
-                    <button key={s.id} className={`${styles.libraryItem} ${s.id === activeTab ? styles.libraryItemActive : ''}`} onClick={() => { setActiveTab(s.id); setShowLibrary(false) }}>
-                      <span className={styles.libraryItemName}>{s.name}</span>
-                      <span className={styles.libraryItemMeta}>{(exercises[s.id] ?? []).length} {t('exercises')}</span>
-                    </button>
+                    <div key={s.id} className={`${styles.libraryItem} ${s.id === activeTab ? styles.libraryItemActive : ''}`}>
+                      <button className={styles.libraryItemBtn} onClick={() => { setActiveTab(s.id); setShowLibrary(false) }}>
+                        <span className={styles.libraryItemName}>{s.name}</span>
+                        <span className={styles.libraryItemMeta}>{(exercises[s.id] ?? []).length} {t('exercises')}</span>
+                      </button>
+                      <button className={styles.libraryItemDelete} onClick={async () => {
+                        if (!confirm(t('Delete {{name}}?', { name: s.name }))) return
+                        await supabase.from('exercises').delete().eq('session_id', s.id)
+                        await supabase.from('training_sessions').delete().eq('id', s.id)
+                        if (activeTab === s.id) setActiveTab(null)
+                        await loadProfile()
+                      }}>✕</button>
+                    </div>
                   ))}
                 </div>
                 <button className={styles.newSessionBtn} onClick={() => { setShowLibrary(false); setShowNewSession(true) }}>+ {t('New workout')}</button>
