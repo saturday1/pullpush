@@ -739,7 +739,7 @@ function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; on
             {showDrop && catalogResults.length > 0 && (
               <div className={styles.catalogDropdown}>
                 {catalogResults.map(item => (
-                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => { setName(item.name); setShowDrop(false) }}>
+                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => { setName(item.name); setCatalogResults([]); setShowDrop(false) }}>
                     <span className={styles.catalogItemName}>{item.name}</span>
                     {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
                   </button>
