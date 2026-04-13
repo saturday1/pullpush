@@ -714,9 +714,13 @@ function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; on
   const [saving, setSaving] = useState(false)
   const [catalogResults, setCatalogResults] = useState<CatalogItem[]>([])
   const [showDrop, setShowDrop] = useState(false)
+  const selectedRef = useRef(false)
+  const nameRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { nameRef.current?.focus() }, [])
 
   useEffect(() => {
-    if (name.length < 2) { setCatalogResults([]); return }
+    if (selectedRef.current) { selectedRef.current = false; return }
+    if (name.length < 2) { setCatalogResults([]); setShowDrop(false); return }
     const timeout = setTimeout(async () => {
       const { data } = await supabase.from('exercise_catalog').select('id, name, muscle_group').ilike('name', `%${name}%`).limit(8)
       setCatalogResults((data ?? []) as CatalogItem[])
@@ -735,11 +739,11 @@ function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; on
         <div className={styles.modalFields}>
           <label className={styles.modalField} style={{ position: 'relative' }}>
             <span className={styles.modalLabel}>{t('Name')}</span>
-            <input className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} onBlur={() => setTimeout(() => setShowDrop(false), 150)} autoFocus />
+            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} onBlur={() => setTimeout(() => setShowDrop(false), 150)} />
             {showDrop && catalogResults.length > 0 && (
               <div className={styles.catalogDropdown}>
                 {catalogResults.map(item => (
-                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => { setName(item.name); setCatalogResults([]); setShowDrop(false) }}>
+                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => { selectedRef.current = true; setName(item.name); setCatalogResults([]); setShowDrop(false) }}>
                     <span className={styles.catalogItemName}>{item.name}</span>
                     {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
                   </button>
