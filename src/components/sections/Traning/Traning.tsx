@@ -1627,17 +1627,6 @@ export default function Traning(): React.JSX.Element {
             </Reveal>
           )}
 
-          {/* Rest day fallback if no session selected */}
-          {!activeTab && isRestDay && (
-            <Reveal>
-              <div className={styles.restDayCard}>
-                <div className={styles.restDayIcon}>💤</div>
-                <div className={styles.restDayText}>{t('No workout scheduled today')}</div>
-                <button className={styles.choosePassBtn} onClick={() => setShowLibrary(true)}>{t('Choose a workout')}</button>
-              </div>
-            </Reveal>
-          )}
-
           {/* Library picker modal */}
           {showLibrary && (
             <div className={styles.overlay} onClick={() => setShowLibrary(false)}>
@@ -1697,6 +1686,16 @@ export default function Traning(): React.JSX.Element {
               )}
             </div>
           </Reveal>
+
+          {/* Rest day info */}
+          {!activeTab && isRestDay && (
+            <Reveal>
+              <div className={styles.restDayCard}>
+                <div className={styles.restDayIcon}>💤</div>
+                <div className={styles.restDayText}>{t('No workout scheduled today')}</div>
+              </div>
+            </Reveal>
+          )}
 
           {showPlanEditor && (
             <WeeklyPlanEditor
