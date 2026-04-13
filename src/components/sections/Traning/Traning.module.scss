@@ -136,9 +136,10 @@
 }
 
 .weekOverviewToday {
-  background: rgba(255, 92, 53, 0.06);
-
-  .weekOverviewLabel { color: var(--accent); }
+  .weekOverviewLabel {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 .weekOverviewLabel {
