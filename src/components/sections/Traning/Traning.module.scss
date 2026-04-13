@@ -1379,7 +1379,7 @@
 .setupNum     { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
                 display: flex; align-items: center; justify-content: center;
                 font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 14px; flex-shrink: 0; }
-.setupActive .setupNum { background: var(--gradient); color: #fff; border-color: transparent; }
+.setupActive .setupNum { background: var(--bg2); color: var(--text); border-color: var(--border); }
 .setupDone .setupNum   { background: var(--bg2); color: var(--text); border-color: var(--border); }
 
 .setupContent { display: flex; flex-direction: column; gap: 6px; }
