@@ -3,9 +3,9 @@
   inset: 0;
   z-index: 500;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: calc(env(safe-area-inset-top, 0px) + 40px) 20px 20px;
 
   backdrop-filter: blur(10px) brightness(0.85);
   -webkit-backdrop-filter: blur(10px) brightness(0.85);

@@ -159,16 +159,14 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                         <input className={styles.input} type="text" value={lastName} onChange={(e: ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)} placeholder={t('Last name')} />
                       </label>
                     </div>
-                    <div className={styles.row2}>
-                      <label className={styles.field}>
-                        <span className={styles.label}>{t('Birthday *')}</span>
-                        <input className={styles.input} type="date" value={birthDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setBirthDate(e.target.value)} />
-                      </label>
-                      <label className={styles.field}>
-                        <span className={styles.label}>{t('Phone')}</span>
-                        <input className={styles.input} type="tel" value={phone} onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)} placeholder={t('Optional')} />
-                      </label>
-                    </div>
+                    <label className={styles.field}>
+                      <span className={styles.label}>{t('Birthday *')}</span>
+                      <input className={styles.input} type="date" value={birthDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setBirthDate(e.target.value)} />
+                    </label>
+                    <label className={styles.field}>
+                      <span className={styles.label}>{t('Phone')}</span>
+                      <input className={styles.input} type="tel" value={phone} onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)} placeholder={t('Optional')} />
+                    </label>
                     {error && <p className={styles.error}>{error}</p>}
                     <button type="button" className={styles.btn} onClick={goNext}>{t('Next')}</button>
                   </div>
