@@ -2238,7 +2238,6 @@ export default function Traning(): React.JSX.Element {
     {deletingSession && (
       <div className={styles.overlay} onClick={() => setDeletingSession(null)}>
         <div className={styles.modal} onClick={e => e.stopPropagation()}>
-          <div className={styles.deleteIcon}>🗑</div>
           <div className={styles.modalTitle}>{t('Delete workout')}</div>
           <p className={styles.deleteText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong> and all its exercises? This cannot be undone.', { name: deletingSession.name }) }} />
           <div className={styles.deleteActions}>
