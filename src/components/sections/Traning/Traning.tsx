@@ -709,7 +709,7 @@ export default function Traning(): React.JSX.Element {
   const [weightUnit] = useWeightUnit()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
-  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, weeklyPlans, weeklyPlanDays, activePlanId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, createWeeklyPlan, switchWeeklyPlan, renameWeeklyPlan, deleteWeeklyPlan, setWeeklyPlanDays, addSessionToLibrary, load: loadProfile } = useProfile()!
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
@@ -1520,6 +1520,22 @@ export default function Traning(): React.JSX.Element {
   }
 
   const currentSession: TrainingSession | undefined   = sessions.find((s: TrainingSession) => s.id === activeTab)
+  // Determine today's session from weekly plan
+  const todayDow = new Date().getDay() || 7 // 1=Mon..7=Sun
+  const activePlanDays = weeklyPlanDays.filter(d => d.plan_id === activePlanId)
+  const todayPlanDay = activePlanDays.find(d => d.day_of_week === todayDow)
+  const todaySessionId = todayPlanDay?.session_id ?? null
+  const todaySession = todaySessionId ? sessions.find(s => s.id === todaySessionId) : null
+  const isRestDay = !todaySession && sessions.length > 0 && weeklyPlans.length > 0
+  const [showLibrary, setShowLibrary] = useState(false)
+
+  // Auto-set activeTab to today's session if not manually overridden
+  useEffect(() => {
+    if (todaySessionId && !activeTab) {
+      setActiveTab(todaySessionId)
+    }
+  }, [todaySessionId])
+
   const currentExercises: Exercise[] = exercises[activeTab!] ?? []
 
   // Workout progress
@@ -1592,30 +1608,15 @@ export default function Traning(): React.JSX.Element {
         )}
       </div>
 
-      {setupStep === 1 && (
+      {/* Setup guide for new users */}
+      {sessions.length === 0 && !sessionsLoading && (
         <Reveal>
-          <SetupGuide step={1} onCreateProgram={() => setCreatingProgram(true)} />
+          <SetupGuide step={weeklyPlans.length === 0 ? 1 : 2} onCreateProgram={() => setCreatingProgram(true)} onAddSession={() => setAddingSession(true)} />
         </Reveal>
       )}
 
-      {setupStep === 2 && (
-        <>
-          <Reveal>
-            <div className={styles.programBar}>
-              <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
-                {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
-              </select>
-              <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
-              <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>
-            </div>
-          </Reveal>
-          <Reveal>
-            <SetupGuide step={2} onAddSession={() => setAddingSession(true)} />
-          </Reveal>
-        </>
-      )}
-
-      {setupStep === null && (
+      {/* Main training view */}
+      {sessions.length > 0 && (
         <>
           {completedSetsInSession > 0 && (
             <Reveal>
@@ -1628,39 +1629,45 @@ export default function Traning(): React.JSX.Element {
             </Reveal>
           )}
 
-
-          {programs.length > 0 && (
-            <Reveal>
-              <div className={styles.programBar}>
-                <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
-                  {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
-                </select>
-                <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
-                <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>
+          {/* Today's session or session picker */}
+          <Reveal>
+            {activeTab ? (
+              <div className={styles.todayPassHeader}>
+                <div>
+                  <div className={styles.todayPassLabel}>{isRestDay ? t('Rest day') : todaySession && activeTab === todaySessionId ? t("Today's workout") : t('Selected workout')}</div>
+                  <div className={styles.todayPassName}>{currentSession?.name ?? '–'}</div>
+                </div>
+                <button className={styles.choosePassBtn} onClick={() => setShowLibrary(true)}>{t('Change')}</button>
               </div>
-            </Reveal>
+            ) : isRestDay ? (
+              <div className={styles.restDayCard}>
+                <div className={styles.restDayIcon}>💤</div>
+                <div className={styles.restDayText}>{t('No workout scheduled today')}</div>
+                <button className={styles.choosePassBtn} onClick={() => setShowLibrary(true)}>{t('Choose a workout')}</button>
+              </div>
+            ) : (
+              <button className={styles.choosePassBtn} onClick={() => setShowLibrary(true)}>{t('Choose a workout')}</button>
+            )}
+          </Reveal>
+
+          {/* Library picker modal */}
+          {showLibrary && (
+            <div className={styles.overlay} onClick={() => setShowLibrary(false)}>
+              <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                <div className={styles.modalTitle}>{t('Choose a workout')}</div>
+                <div className={styles.libraryList}>
+                  {sessions.map(s => (
+                    <button key={s.id} className={`${styles.libraryItem} ${s.id === activeTab ? styles.libraryItemActive : ''}`} onClick={() => { setActiveTab(s.id); setShowLibrary(false) }}>
+                      <span className={styles.libraryItemName}>{s.name}</span>
+                      <span className={styles.libraryItemMeta}>{(exercises[s.id] ?? []).length} {t('exercises')}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
 
           <Reveal>
-            <div className={styles.topRow}>
-              {sessions.length > 0 && (
-                <select
-                  className={styles.sessionDropdown}
-                  value={String(activeTab ?? sessions[0]?.id ?? '')}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setActiveTab(e.target.value); setAdding(false) }}
-                >
-                  {sessions.map((s: TrainingSession) => (
-                    <option key={s.id} value={String(s.id)}>
-                      {dayAbbrev[s.day_of_week - 1]} — {s.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {currentSession && (
-                <button className={styles.editProgramBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>✎</button>
-              )}
-              <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>
-            </div>
             {currentExercises.length > 0 && (
               <div className={styles.estimatedTime}>
                 {(() => {

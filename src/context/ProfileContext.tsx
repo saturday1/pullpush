@@ -32,6 +32,21 @@ interface TrainingProgram {
   [key: string]: unknown
 }
 
+interface WeeklyPlan {
+  id: string
+  user_id: string
+  name: string
+  is_active: boolean
+  created_at: string
+}
+
+interface WeeklyPlanDay {
+  id: string
+  plan_id: string
+  day_of_week: number
+  session_id: string
+}
+
 interface ProfileState {
   loading: boolean
   profileLoading: boolean
@@ -53,6 +68,9 @@ interface ProfileState {
   sessions: TrainingSession[]
   programs: TrainingProgram[]
   activeProgramId: string | null
+  weeklyPlans: WeeklyPlan[]
+  weeklyPlanDays: WeeklyPlanDay[]
+  activePlanId: string | null
   restSeconds: number
   secPerRep: number
   countdownSeconds: number
@@ -97,6 +115,12 @@ interface ProfileContextValue extends ProfileState {
   switchProgram: (id: string) => Promise<void>
   renameProgram: (id: string, name: string) => Promise<void>
   deleteProgram: (id: string) => Promise<void>
+  createWeeklyPlan: (name: string) => Promise<void>
+  switchWeeklyPlan: (id: string) => Promise<void>
+  renameWeeklyPlan: (id: string, name: string) => Promise<void>
+  deleteWeeklyPlan: (id: string) => Promise<void>
+  setWeeklyPlanDays: (planId: string, days: { day_of_week: number; session_id: string }[]) => Promise<void>
+  addSessionToLibrary: (name: string) => Promise<TrainingSession | null>
   load: () => Promise<void>
   setExercisesLoading: (loading: boolean) => void
 }
@@ -159,6 +183,9 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     sessions: [],
     programs: [],
     activeProgramId: null,
+    weeklyPlans: [],
+    weeklyPlanDays: [],
+    activePlanId: null,
     restSeconds: 90,
     secPerRep: 4,
     countdownSeconds: 10,
@@ -210,6 +237,16 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       .eq('user_id', user.id)
       .order('created_at')
 
+    const weeklyPlansPromise = supabase
+      .from('weekly_plans')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at')
+
+    const weeklyPlanDaysPromise = supabase
+      .from('weekly_plan_days')
+      .select('*')
+
     // Weight data resolves independently
     Promise.all([latestLogPromise, firstLogPromise]).then(([{ data: latestLog }, { data: firstLog }]) => {
       const currentWeight: number | null = latestLog?.weight_kg ?? null
@@ -234,6 +271,14 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
         newState.loading = !prev.profileLoading && !prev.weightLoading && !prev.sessionsLoading ? false : prev.loading
         return newState
       })
+    })
+
+    // Weekly plans resolve independently
+    Promise.all([weeklyPlansPromise, weeklyPlanDaysPromise]).then(([{ data: plansData }, { data: daysData }]) => {
+      const plans = (plansData ?? []) as WeeklyPlan[]
+      const days = (daysData ?? []) as WeeklyPlanDay[]
+      const activePlan = plans.find(p => p.is_active) ?? plans[0] ?? null
+      setState(prev => ({ ...prev, weeklyPlans: plans, weeklyPlanDays: days, activePlanId: activePlan?.id ?? null }))
     })
 
     // Profile + sessions: sessions depend on activeProgramId from profile
@@ -268,24 +313,12 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
         return newState
       })
 
-      // If no active program, try to use the first available one
-      let resolvedProgramId = activeProgramId
-      if (!resolvedProgramId) {
-        const { data: progs } = await supabase.from('training_programs').select('id').eq('user_id', user.id).order('created_at').limit(1)
-        if (progs?.[0]) {
-          resolvedProgramId = progs[0].id
-          await supabase.from('profile').upsert({ user_id: user.id, active_program_id: resolvedProgramId }, { onConflict: 'user_id' })
-        }
-      }
-
-      // Now fetch sessions based on activeProgramId
-      const { data: sessionsData } = resolvedProgramId
-        ? await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', resolvedProgramId).order('day_of_week')
-        : { data: [] as TrainingSession[] }
+      // Fetch ALL sessions for user (no longer filtered by program)
+      const { data: sessionsData } = await supabase.from('training_sessions').select('*').eq('user_id', user.id).order('sort_order')
 
       setState(prev => {
         const sessions: TrainingSession[] = sessionsData ?? []
-        const newState: ProfileState = { ...prev, sessions, sessionsLoading: false, activeProgramId: resolvedProgramId ?? prev.activeProgramId }
+        const newState: ProfileState = { ...prev, sessions, sessionsLoading: false, activeProgramId }
         newState.loading = !prev.profileLoading && !prev.weightLoading && !prev.programsLoading ? false : prev.loading
         return newState
       })
@@ -390,8 +423,60 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     setState(prev => ({ ...prev, exercisesLoading: loading }))
   }
 
+  // --- Weekly plan functions ---
+
+  async function createWeeklyPlan(name: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    // Deactivate others, create new active
+    await supabase.from('weekly_plans').update({ is_active: false }).eq('user_id', user.id)
+    await supabase.from('weekly_plans').insert({ user_id: user.id, name, is_active: true })
+    await load(true)
+  }
+
+  async function switchWeeklyPlan(id: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('weekly_plans').update({ is_active: false }).eq('user_id', user.id)
+    await supabase.from('weekly_plans').update({ is_active: true }).eq('id', id)
+    setState(prev => ({ ...prev, activePlanId: id }))
+    await load(true)
+  }
+
+  async function renameWeeklyPlan(id: string, name: string): Promise<void> {
+    await supabase.from('weekly_plans').update({ name }).eq('id', id)
+    await load(true)
+  }
+
+  async function deleteWeeklyPlan(id: string): Promise<void> {
+    await supabase.from('weekly_plans').delete().eq('id', id)
+    await load(true)
+  }
+
+  async function setWeeklyPlanDays(planId: string, days: { day_of_week: number; session_id: string }[]): Promise<void> {
+    await supabase.from('weekly_plan_days').delete().eq('plan_id', planId)
+    if (days.length > 0) {
+      await supabase.from('weekly_plan_days').insert(days.map(d => ({ plan_id: planId, ...d })))
+    }
+    await load(true)
+  }
+
+  async function addSessionToLibrary(name: string): Promise<TrainingSession | null> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const maxSort = state.sessions.reduce((m, s) => Math.max(m, s.sort_order ?? 0), 0)
+    const { data } = await supabase.from('training_sessions').insert({
+      user_id: user.id,
+      name,
+      day_of_week: 1,
+      sort_order: maxSort + 1,
+    }).select().single()
+    if (data) await load(true)
+    return (data as TrainingSession | null) ?? null
+  }
+
   return (
-    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load, setExercisesLoading }}>
+    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, addSession, createProgram, switchProgram, renameProgram, deleteProgram, createWeeklyPlan, switchWeeklyPlan, renameWeeklyPlan, deleteWeeklyPlan, setWeeklyPlanDays, addSessionToLibrary, load, setExercisesLoading }}>
       {children}
     </ProfileContext.Provider>
   )

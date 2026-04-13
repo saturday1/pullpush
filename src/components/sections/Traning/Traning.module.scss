@@ -1367,6 +1367,88 @@
 
 // ── Setup guide ───────────────────────────────────────────
 
+// ── Today's workout header ──────────────────────────────
+.todayPassHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.todayPassLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.todayPassName {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--text);
+  line-height: 1.1;
+  margin-top: 4px;
+}
+.choosePassBtn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+  cursor: pointer;
+}
+.restDayCard {
+  text-align: center;
+  padding: 40px 20px;
+}
+.restDayIcon { font-size: 40px; margin-bottom: 12px; }
+.restDayText {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.libraryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.libraryItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  text-align: left;
+}
+.libraryItemActive {
+  border-color: var(--accent);
+  background: rgba(255, 92, 53, 0.05);
+}
+.libraryItemName {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.libraryItemMeta {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .setupGuide   { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 
 .setupStep    { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px;
