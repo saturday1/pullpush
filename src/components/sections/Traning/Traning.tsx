@@ -1679,6 +1679,12 @@ export default function Traning(): React.JSX.Element {
               <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>
             </div>
 
+            {currentExercises.length === 0 && activeTab && (
+              <button className={styles.emptyPassBtn} onClick={() => { setEditMode(true); setAdding(true) }}>
+                + {t('Add your first exercise')}
+              </button>
+            )}
+
             {currentExercises.length > 0 && (
               <div className={styles.estimatedTime}>
                 {(() => {
