@@ -1692,7 +1692,7 @@ export default function Traning(): React.JSX.Element {
                           {s.name}
                         </button>
                       )) : (
-                        <span className={styles.weekRowRest}>—</span>
+                        <span className={styles.weekRowRest}>{t('Rest day')}</span>
                       )}
                     </div>
                   </div>
