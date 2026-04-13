@@ -146,7 +146,6 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
             >
               {step === 1 && (
                 <>
-                  <div className={styles.badge}>{t('Step 1')}</div>
                   <h2 className={styles.title}>{t('About you')}</h2>
                   <p className={styles.sub}>{t('This information is used to calculate calories, macros and weight goals.')}</p>
                   <div className={styles.form}>
@@ -178,7 +177,6 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
 
               {step === 2 && (
                 <>
-                  <div className={styles.badge}>{initialStep === 1 ? t('Step 2') : t('Step 1')}</div>
                   <h2 className={styles.title}>{t('Your body')}</h2>
                   <p className={styles.sub}>{t('Used to calculate BMR, TDEE and macro targets.')}</p>
                   <div className={styles.form}>
@@ -207,7 +205,6 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
 
               {step === 3 && (
                 <form onSubmit={handleFinish}>
-                  <div className={styles.badge}>{initialStep === 1 ? t('Step 3') : t('Step 2')}</div>
                   <h2 className={styles.title}>{t('Workout timers')}</h2>
                   <p className={styles.sub}>{t('You can change these later in settings.')}</p>
                   <div className={styles.form}>
