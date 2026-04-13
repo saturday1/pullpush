@@ -2056,7 +2056,7 @@ export default function Traning(): React.JSX.Element {
       })()}
     </section>
 
-    {activeTab && !adding && (
+    {editMode && activeTab && !adding && (
       <button className={styles.addExerciseFab} onClick={() => setAdding(true)} title={t('+ Add exercise')}>+</button>
     )}
   </>
