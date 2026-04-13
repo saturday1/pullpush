@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, closestCenter, type DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -12,7 +11,6 @@ import CirclePauseIcon from '../../icons/Normal/CirclePauseIcon'
 import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 import PlayIcon from '../../icons/Normal/PlayIcon'
-import WeeklyPlanEditor from './WeeklyPlanEditor'
 import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
 
 interface RestTimerPlugin {
@@ -704,115 +702,6 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
   )
 }
 
-// --- New Exercise Modal (all fields at once) ---
-
-function NewExerciseModal({ t, onSave, onLookup, knownExercises, onClose }: { t: (k: string) => string; onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>; onLookup: (name: string) => { kg: number | null; sets: number | null; reps: number | null } | null; knownExercises: string[]; onClose: () => void }): React.JSX.Element {
-  const [name, setName] = useState('')
-  const [kg, setKg] = useState('')
-  const [lbs, setLbs] = useState('')
-  const [sets, setSets] = useState('3')
-  const [reps, setReps] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [catalogResults, setCatalogResults] = useState<CatalogItem[]>([])
-  const [showDrop, setShowDrop] = useState(false)
-  const selectedRef = useRef(false)
-  const nameRef = useRef<HTMLInputElement>(null)
-  useEffect(() => { nameRef.current?.focus() }, [])
-
-  useEffect(() => {
-    if (selectedRef.current) { selectedRef.current = false; return }
-    if (name.length < 2) { setCatalogResults([]); setShowDrop(false); return }
-    const timeout = setTimeout(() => {
-      const q = name.toLowerCase()
-      // Show user's own exercises first, deduped
-      const seen = new Set<string>()
-      const results: CatalogItem[] = []
-      for (const n of knownExercises) {
-        if (n.toLowerCase().includes(q) && !seen.has(n.toLowerCase())) {
-          seen.add(n.toLowerCase())
-          results.push({ id: results.length, name: n, muscle_group: null })
-        }
-      }
-      setCatalogResults(results.slice(0, 10))
-      setShowDrop(results.length > 0)
-    }, 100)
-    return () => clearTimeout(timeout)
-  }, [name, knownExercises])
-
-  function selectFromCatalog(itemName: string): void {
-    selectedRef.current = true
-    setName(itemName)
-    setCatalogResults([])
-    setShowDrop(false)
-    // Auto-fill from last log
-    const last = onLookup(itemName)
-    if (last) {
-      if (last.kg != null) { setKg(String(last.kg)); setLbs(String(toLbs(last.kg))) }
-      if (last.sets != null) setSets(String(last.sets))
-      if (last.reps != null) setReps(String(last.reps))
-    }
-  }
-
-  function handleKgChange(val: string): void { setKg(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setLbs(toLbs(n).toString()) }
-  function handleLbsChange(val: string): void { setLbs(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setKg(toKg(n).toString()) }
-
-  return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalTitle}>{t('New exercise')}</div>
-        <div className={styles.modalFields}>
-          <label className={styles.modalField}>
-            <span className={styles.modalLabel}>{t('Name')}</span>
-            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('Search or create new…')} />
-          </label>
-          {knownExercises.length > 0 && (
-            <label className={styles.modalField}>
-              <select className={styles.modalInput} value="" onChange={e => { if (e.target.value) selectFromCatalog(e.target.value) }}>
-                <option value="">{t('Choose from existing exercises')}</option>
-                {(name.length > 0
-                  ? knownExercises.filter(n => n.toLowerCase().includes(name.toLowerCase()))
-                  : knownExercises
-                ).map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </label>
-          )}
-          <div className={styles.modalRow}>
-            <label className={styles.modalField}>
-              <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
-              <input className={styles.modalInput} type="number" inputMode="decimal" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
-            </label>
-            <label className={styles.modalField}>
-              <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
-              <input className={styles.modalInput} type="number" inputMode="decimal" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
-            </label>
-          </div>
-          <div className={styles.modalRow}>
-            <label className={styles.modalField}>
-              <span className={styles.modalLabel}>{t('Sets')}</span>
-              <input className={styles.modalInput} type="number" value={sets} onChange={e => setSets(e.target.value)} />
-            </label>
-            <label className={styles.modalField}>
-              <span className={styles.modalLabel}>{t('Reps')}</span>
-              <input className={styles.modalInput} type="number" value={reps} onChange={e => setReps(e.target.value)} />
-            </label>
-          </div>
-        </div>
-        <div className={styles.modalActions}>
-          <button className={styles.cancelBtn} type="button" onClick={onClose}>{t('Cancel')}</button>
-          <button className={styles.saveBtn} disabled={!name.trim() || saving} onClick={async () => {
-            setSaving(true)
-            const kgVal = parseFloat(kg.replace(',', '.'))
-            const setsVal = parseInt(sets)
-            const repsVal = parseInt(reps)
-            await onSave(name.trim(), isNaN(kgVal) ? null : kgVal, isNaN(setsVal) ? null : setsVal, isNaN(repsVal) ? null : repsVal)
-            setSaving(false)
-          }}>{saving ? '…' : t('Save')}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // --- Main component ---
 
 export default function Traning(): React.JSX.Element {
@@ -820,11 +709,11 @@ export default function Traning(): React.JSX.Element {
   const [weightUnit] = useWeightUnit()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
-  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, weeklyPlans, weeklyPlanDays, activePlanId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, createWeeklyPlan, switchWeeklyPlan, renameWeeklyPlan, deleteWeeklyPlan, setWeeklyPlanDays, addSessionToLibrary, load: loadProfile } = useProfile()!
+  const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
-  const [activeTab,        setActiveTab]        = useState<string | null>(null)
+  const [activeTab,        setActiveTab]        = useState<string | null>(() => localStorage.getItem('pullpush_activeTab'))
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
@@ -1334,6 +1223,17 @@ export default function Traning(): React.JSX.Element {
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [])
 
+  useEffect(() => {
+    if (sessions.length > 0 && (activeTab === null || !sessions.find((s: TrainingSession) => s.id === activeTab))) {
+      const saved = localStorage.getItem('pullpush_activeTab')
+      const match = saved && sessions.find((s: TrainingSession) => s.id === saved)
+      setActiveTab(match ? saved : sessions[0].id)
+    }
+  }, [sessions])
+
+  useEffect(() => {
+    if (activeTab) localStorage.setItem('pullpush_activeTab', activeTab)
+  }, [activeTab])
 
   useEffect(() => {
     localStorage.setItem('pullpush_autoplay', String(autoplay))
@@ -1568,11 +1468,7 @@ export default function Traning(): React.JSX.Element {
       .insert({ user_id: userId, session_id: activeTab, name: trimmed, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId ?? null })
       .select().single()
     if (error) { console.error('handleAdd error:', error); return }
-    const newEx = data as Exercise
-    if (newEx) {
-      setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), newEx] }))
-      setLogging(newEx)
-    }
+    if (data) setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), data as Exercise] }))
     setNewName('')
     setSelectedCatalogId(null)
     setAdding(false)
@@ -1624,31 +1520,6 @@ export default function Traning(): React.JSX.Element {
   }
 
   const currentSession: TrainingSession | undefined   = sessions.find((s: TrainingSession) => s.id === activeTab)
-  // Determine today's session from weekly plan
-  const todayDow = new Date().getDay() || 7 // 1=Mon..7=Sun
-  const activePlanDays = weeklyPlanDays.filter(d => d.plan_id === activePlanId)
-  const todayPlanDay = activePlanDays.find(d => d.day_of_week === todayDow)
-  const todaySessionId = todayPlanDay?.session_id ?? null
-  const todaySession = todaySessionId ? sessions.find(s => s.id === todaySessionId) : null
-  const isRestDay = !todaySession && sessions.length > 0 && weeklyPlans.length > 0
-  const [showLibrary, setShowLibrary] = useState(false)
-  const [showPlanEditor, setShowPlanEditor] = useState(false)
-  const [weekExpanded, setWeekExpanded] = useState(false)
-  const [showNewSession, setShowNewSession] = useState(false)
-  const [addingExercise, setAddingExercise] = useState(false)
-  const [newSessionName, setNewSessionName] = useState('')
-  const [deletingSession, setDeletingSession] = useState<{ id: string; name: string } | null>(null)
-
-  // Set activeTab to today's session whenever plan data changes
-  useEffect(() => {
-    if (sessionsLoading || sessions.length === 0) return
-    // Only auto-set if user hasn't manually picked something
-    if (activeTab && sessions.find(s => s.id === activeTab)) return
-    if (todaySessionId) {
-      setActiveTab(todaySessionId)
-    }
-  }, [todaySessionId, sessionsLoading, sessions])
-
   const currentExercises: Exercise[] = exercises[activeTab!] ?? []
 
   // Workout progress
@@ -1709,7 +1580,6 @@ export default function Traning(): React.JSX.Element {
     : null
 
   return (
-  <>
     <section id="traning">
       <div className={styles.sectionHeaderRow}>
         <h2 className={styles.sectionTitle}>{t('Training sessions')}</h2>
@@ -1722,15 +1592,30 @@ export default function Traning(): React.JSX.Element {
         )}
       </div>
 
-      {/* Setup guide for new users */}
-      {sessions.length === 0 && !sessionsLoading && (
+      {setupStep === 1 && (
         <Reveal>
-          <SetupGuide step={weeklyPlans.length === 0 ? 1 : 2} onCreateProgram={() => setCreatingProgram(true)} onAddSession={() => setAddingSession(true)} />
+          <SetupGuide step={1} onCreateProgram={() => setCreatingProgram(true)} />
         </Reveal>
       )}
 
-      {/* Main training view */}
-      {sessions.length > 0 && (
+      {setupStep === 2 && (
+        <>
+          <Reveal>
+            <div className={styles.programBar}>
+              <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
+                {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+              </select>
+              <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
+              <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>
+            </div>
+          </Reveal>
+          <Reveal>
+            <SetupGuide step={2} onAddSession={() => setAddingSession(true)} />
+          </Reveal>
+        </>
+      )}
+
+      {setupStep === null && (
         <>
           {completedSetsInSession > 0 && (
             <Reveal>
@@ -1743,112 +1628,39 @@ export default function Traning(): React.JSX.Element {
             </Reveal>
           )}
 
-          {/* Library picker modal */}
-          {showLibrary && (
-            <div className={styles.overlay} onClick={() => setShowLibrary(false)}>
-              <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalTitle}>{t('Choose a workout')}</div>
-                <div className={styles.libraryList}>
-                  <AnimatePresence>
-                    {sessions.map(s => (
-                      <motion.div
-                        key={s.id}
-                        layout
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
-                        className={`${styles.libraryItem} ${s.id === activeTab ? styles.libraryItemActive : ''}`}
-                      >
-                        <button className={styles.libraryItemBtn} onClick={() => { setActiveTab(s.id); setShowLibrary(false) }}>
-                          <span className={styles.libraryItemName}>{s.name}</span>
-                          <span className={styles.libraryItemMeta}>{(exercises[s.id] ?? []).length} {t('exercises')}</span>
-                        </button>
-                        <button className={styles.libraryItemDelete} onClick={() => setDeletingSession({ id: s.id, name: s.name })}>✕</button>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-                <button className={styles.newSessionBtn} onClick={() => { setShowLibrary(false); setShowNewSession(true) }}>+ {t('New workout')}</button>
+
+          {programs.length > 0 && (
+            <Reveal>
+              <div className={styles.programBar}>
+                <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
+                  {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                </select>
+                <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
+                <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>
               </div>
-            </div>
+            </Reveal>
           )}
 
-          {/* Weekly overview — collapsible */}
           <Reveal>
-            <div className={styles.weekList}>
-              {/* Collapsed: compact bar */}
-              <div className={styles.weekBar}>
-                <button className={styles.weekBarSession} onClick={() => setShowLibrary(true)}>
-                  <span className={styles.weekBarDay}>{dayAbbrev[todayDow - 1]}</span>
-                  <span className={styles.weekBarName}>{currentSession?.name ?? t('Choose a workout')}</span>
-                </button>
-                <button className={styles.weekBarAdd} onClick={() => setShowNewSession(true)}>+</button>
-                <button className={styles.weekBarToggle} onClick={() => setWeekExpanded(e => !e)}>
-                  {weekExpanded ? '▴' : '▾'} {t('Week')}
-                </button>
-              </div>
-
-              {/* Expanded: full week */}
-              {weekExpanded && (
-                <>
-                  {[1, 2, 3, 4, 5, 6, 7].map(dow => {
-                    const daySessions = activePlanDays.filter(d => d.day_of_week === dow).map(d => sessions.find(s => s.id === d.session_id)).filter(Boolean) as typeof sessions
-                    const isToday = dow === todayDow
-                    return (
-                      <div key={dow} className={`${styles.weekRow} ${isToday ? styles.weekRowToday : ''}`}>
-                        <span className={styles.weekRowDay}>{dayAbbrev[dow - 1]}</span>
-                        <div className={styles.weekRowSessions}>
-                          {daySessions.length > 0 ? daySessions.map(s => (
-                            <button key={s.id} className={`${styles.weekRowSession} ${s.id === activeTab ? styles.weekRowSessionActive : ''}`} onClick={() => setActiveTab(s.id)}>
-                              {s.name}
-                            </button>
-                          )) : (
-                            <span className={styles.weekRowRest}>{t('Rest day')}</span>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                  <button className={styles.weekEditLink} onClick={() => setShowPlanEditor(true)}>✎ {t('Edit weekly plan')}</button>
-                </>
+            <div className={styles.topRow}>
+              {sessions.length > 0 && (
+                <select
+                  className={styles.sessionDropdown}
+                  value={String(activeTab ?? sessions[0]?.id ?? '')}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setActiveTab(e.target.value); setAdding(false) }}
+                >
+                  {sessions.map((s: TrainingSession) => (
+                    <option key={s.id} value={String(s.id)}>
+                      {dayAbbrev[s.day_of_week - 1]} — {s.name}
+                    </option>
+                  ))}
+                </select>
               )}
+              {currentSession && (
+                <button className={styles.editProgramBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>✎</button>
+              )}
+              <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>
             </div>
-          </Reveal>
-
-          {/* Rest day info */}
-          {!activeTab && isRestDay && (
-            <Reveal>
-              <div className={styles.restDayCard}>
-                <div className={styles.restDayIcon}>💤</div>
-                <div className={styles.restDayText}>{t('No workout scheduled today')}</div>
-              </div>
-            </Reveal>
-          )}
-
-          {showPlanEditor && (
-            <WeeklyPlanEditor
-              plans={weeklyPlans}
-              days={weeklyPlanDays}
-              activePlanId={activePlanId}
-              sessions={sessions}
-              onSaveDays={setWeeklyPlanDays}
-              onCreatePlan={createWeeklyPlan}
-              onSwitchPlan={switchWeeklyPlan}
-              onRenamePlan={renameWeeklyPlan}
-              onDeletePlan={deleteWeeklyPlan}
-              onClose={() => setShowPlanEditor(false)}
-            />
-          )}
-
-          {/* Active session title */}
-          {currentSession && (
-            <Reveal>
-              <h3 className={styles.activePassTitle}>{currentSession.name}</h3>
-            </Reveal>
-          )}
-
-          <Reveal>
             {currentExercises.length > 0 && (
               <div className={styles.estimatedTime}>
                 {(() => {
@@ -1929,6 +1741,9 @@ export default function Traning(): React.JSX.Element {
               )}
             </div>
 
+            {editMode && !adding && (
+              <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
+            )}
 
             {!editMode && workoutId && !allSessionDone && completedSetsInSession > 0 && (
               <button className={styles.endWorkoutBtn} onClick={() => setShowEndDialog(true)}>{t('End workout')}</button>
@@ -2222,102 +2037,5 @@ export default function Traning(): React.JSX.Element {
         )
       })()}
     </section>
-
-    {editMode && !adding && !addingExercise && activeTab && (
-      <button className={styles.addExerciseFab} onClick={() => setAddingExercise(true)} title={t('+ Add exercise')}>+</button>
-    )}
-
-    {showNewSession && (
-      <div className={styles.overlay} onClick={() => { setShowNewSession(false); setNewSessionName('') }}>
-        <div className={styles.modal} onClick={e => e.stopPropagation()}>
-          <div className={styles.modalTitle}>{t('New workout')}</div>
-          <form onSubmit={async (e) => {
-            e.preventDefault()
-            if (!newSessionName.trim()) return
-            const s = await addSessionToLibrary(newSessionName.trim())
-            if (s) { setActiveTab(s.id); setEditMode(true) }
-            setShowNewSession(false)
-            setNewSessionName('')
-          }}>
-            <input
-              className={styles.newSessionInput}
-              type="text"
-              value={newSessionName}
-              onChange={e => setNewSessionName(e.target.value)}
-              placeholder={t('e.g. Push, Legs, Full body…')}
-              autoFocus
-            />
-            <div className={styles.newSessionActions}>
-              <button type="button" className={styles.newSessionCancel} onClick={() => { setShowNewSession(false); setNewSessionName('') }}>{t('Cancel')}</button>
-              <button type="submit" className={styles.newSessionSave} disabled={!newSessionName.trim()}>{t('Create')}</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )}
-
-    {deletingSession && (
-      <div className={styles.overlay} onClick={() => setDeletingSession(null)}>
-        <div className={styles.modal} onClick={e => e.stopPropagation()}>
-          <div className={styles.modalTitle}>{t('Delete workout')}</div>
-          <p className={styles.deleteText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong> and all its exercises? This cannot be undone.', { name: deletingSession.name }) }} />
-          <div className={styles.deleteActions}>
-            <button className={styles.newSessionCancel} onClick={() => setDeletingSession(null)}>{t('Cancel')}</button>
-            <button className={styles.deleteConfirmBtn} onClick={async () => {
-              const id = deletingSession.id
-              setDeletingSession(null)
-              await supabase.from('exercises').delete().eq('session_id', id)
-              await supabase.from('training_sessions').delete().eq('id', id)
-              if (activeTab === id) setActiveTab(null)
-              setExercises(prev => { const next = { ...prev }; delete next[id]; return next })
-              await loadProfile(true)
-            }}>{t('Delete')}</button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {addingExercise && (
-      <NewExerciseModal
-        t={t}
-        onLookup={(exName: string) => {
-          // Find any exercise with this name and return its latest log
-          for (const sessionExs of Object.values(exercises)) {
-            const ex = sessionExs.find(e => e.name.toLowerCase() === exName.toLowerCase())
-            if (ex && logs[ex.id]) return logs[ex.id]
-          }
-          return null
-        }}
-        knownExercises={(() => {
-          const names = new Set<string>()
-          for (const exs of Object.values(exercises)) for (const ex of exs) names.add(ex.name)
-          return Array.from(names).sort()
-        })()}
-        onSave={async (name, kg, sets, reps) => {
-          const sortOrder = (exercises[activeTab!] ?? []).length
-          let catalogId: number | null = null
-          const { data: existing } = await supabase.from('exercise_catalog').select('id').ilike('name', name).maybeSingle()
-          if (existing) catalogId = (existing as { id: number }).id
-          else {
-            const { data: inserted } = await supabase.from('exercise_catalog').insert({ name }).select().single()
-            if (inserted) catalogId = (inserted as { id: number }).id
-          }
-          const { data } = await supabase.from('exercises')
-            .insert({ user_id: userId, session_id: activeTab, name, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId })
-            .select().single()
-          if (data) {
-            const ex = data as Exercise
-            setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), ex] }))
-            if (kg != null && reps != null) {
-              await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: ex.id, weight_kg: kg, sets, reps })
-              setLogs(prev => ({ ...prev, [ex.id]: { kg, sets, reps, unilateral: false } }))
-            }
-          }
-          setAddingExercise(false)
-        }}
-        onClose={() => setAddingExercise(false)}
-      />
-    )}
-  </>
   )
 }
