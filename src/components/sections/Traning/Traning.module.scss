@@ -150,22 +150,18 @@
   color: var(--muted);
 }
 
-.weekOverviewSession {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 8px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  text-align: center;
+.weekOverviewDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
-.weekOverviewRest {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 8px;
-  color: var(--faint, var(--muted));
+.weekOverviewDotRest {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
 }
 
 // ── Section header with Flow toggle ─────────────────────────

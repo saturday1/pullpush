@@ -1670,9 +1670,7 @@ export default function Traning(): React.JSX.Element {
                 return (
                   <div key={dow} className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''}`}>
                     <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
-                    <span className={session ? styles.weekOverviewSession : styles.weekOverviewRest}>
-                      {session ? session.name : t('Rest')}
-                    </span>
+                    <span className={session ? styles.weekOverviewDot : styles.weekOverviewDotRest} />
                   </div>
                 )
               })}
