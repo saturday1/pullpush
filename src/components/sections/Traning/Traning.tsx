@@ -1677,9 +1677,34 @@ export default function Traning(): React.JSX.Element {
             </div>
           )}
 
-          {/* Weekly plan edit button */}
+          {/* Weekly strip */}
           <Reveal>
-            <button className={styles.editPlanBtn} onClick={() => setShowPlanEditor(true)}>✎ {t('Edit weekly plan')}</button>
+            <div className={styles.weekStrip}>
+              {[1, 2, 3, 4, 5, 6, 7].map(dow => {
+                const daySessions = activePlanDays.filter(d => d.day_of_week === dow)
+                const firstSession = daySessions.length > 0 ? sessions.find(s => s.id === daySessions[0].session_id) : null
+                const isToday = dow === todayDow
+                const isSelected = firstSession && activeTab === firstSession.id
+                return (
+                  <button
+                    key={dow}
+                    className={`${styles.weekDay} ${isToday ? styles.weekDayToday : ''} ${isSelected ? styles.weekDaySelected : ''}`}
+                    onClick={() => { if (firstSession) setActiveTab(firstSession.id); else if (daySessions.length === 0) setShowPlanEditor(true) }}
+                  >
+                    <span className={styles.weekDayLabel}>{dayAbbrev[dow - 1]}</span>
+                    {firstSession ? (
+                      <>
+                        <span className={styles.weekDayName}>{firstSession.name.length > 8 ? firstSession.name.slice(0, 7) + '…' : firstSession.name}</span>
+                        {daySessions.length > 1 && <span className={styles.weekDayMore}>+{daySessions.length - 1}</span>}
+                      </>
+                    ) : (
+                      <span className={styles.weekDayRest}>—</span>
+                    )}
+                  </button>
+                )
+              })}
+              <button className={styles.weekEditBtn} onClick={() => setShowPlanEditor(true)}>✎</button>
+            </div>
           </Reveal>
 
           {showPlanEditor && (

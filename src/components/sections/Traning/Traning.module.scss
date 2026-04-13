@@ -1478,6 +1478,92 @@
   cursor: pointer;
 }
 
+// ── Week strip ─────────────────────────────────────────
+
+.weekStrip {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.weekDay {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 2px;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  min-width: 0;
+
+  &:last-of-type { border-right: none; }
+}
+
+.weekDayToday {
+  background: rgba(255, 92, 53, 0.06);
+}
+
+.weekDaySelected {
+  background: rgba(232, 25, 125, 0.08);
+}
+
+.weekDayLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.weekDayToday .weekDayLabel {
+  color: var(--accent);
+}
+
+.weekDayName {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.weekDayRest {
+  font-size: 10px;
+  color: var(--faint, var(--muted));
+}
+
+.weekDayMore {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.weekEditBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .editPlanBtn {
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
