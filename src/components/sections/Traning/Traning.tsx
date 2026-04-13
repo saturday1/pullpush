@@ -703,6 +703,87 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
   )
 }
 
+// --- New Exercise Modal (all fields at once) ---
+
+function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>; onClose: () => void }): React.JSX.Element {
+  const [name, setName] = useState('')
+  const [kg, setKg] = useState('')
+  const [lbs, setLbs] = useState('')
+  const [sets, setSets] = useState('3')
+  const [reps, setReps] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [catalogResults, setCatalogResults] = useState<CatalogItem[]>([])
+  const [showDrop, setShowDrop] = useState(false)
+
+  useEffect(() => {
+    if (name.length < 2) { setCatalogResults([]); return }
+    const timeout = setTimeout(async () => {
+      const { data } = await supabase.from('exercise_catalog').select('id, name, muscle_group').ilike('name', `%${name}%`).limit(8)
+      setCatalogResults((data ?? []) as CatalogItem[])
+      setShowDrop(true)
+    }, 200)
+    return () => clearTimeout(timeout)
+  }, [name])
+
+  function handleKgChange(val: string): void { setKg(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setLbs(toLbs(n).toString()) }
+  function handleLbsChange(val: string): void { setLbs(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setKg(toKg(n).toString()) }
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalTitle}>{t('New exercise')}</div>
+        <div className={styles.modalFields}>
+          <label className={styles.modalField} style={{ position: 'relative' }}>
+            <span className={styles.modalLabel}>{t('Name')}</span>
+            <input className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} autoFocus />
+            {showDrop && catalogResults.length > 0 && (
+              <div className={styles.catalogDropdown}>
+                {catalogResults.map(item => (
+                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => { setName(item.name); setShowDrop(false) }}>
+                    <span className={styles.catalogItemName}>{item.name}</span>
+                    {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </label>
+          <div className={styles.modalRow}>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
+              <input className={styles.modalInput} type="number" inputMode="decimal" step="0.5" value={kg} onChange={e => handleKgChange(e.target.value)} />
+            </label>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Weight (lbs)')}</span>
+              <input className={styles.modalInput} type="number" inputMode="decimal" step="1" value={lbs} onChange={e => handleLbsChange(e.target.value)} />
+            </label>
+          </div>
+          <div className={styles.modalRow}>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Sets')}</span>
+              <input className={styles.modalInput} type="number" value={sets} onChange={e => setSets(e.target.value)} />
+            </label>
+            <label className={styles.modalField}>
+              <span className={styles.modalLabel}>{t('Reps')}</span>
+              <input className={styles.modalInput} type="number" value={reps} onChange={e => setReps(e.target.value)} />
+            </label>
+          </div>
+        </div>
+        <div className={styles.modalActions}>
+          <button className={styles.cancelBtn} type="button" onClick={onClose}>{t('Cancel')}</button>
+          <button className={styles.saveBtn} disabled={!name.trim() || saving} onClick={async () => {
+            setSaving(true)
+            const kgVal = parseFloat(kg.replace(',', '.'))
+            const setsVal = parseInt(sets)
+            const repsVal = parseInt(reps)
+            await onSave(name.trim(), isNaN(kgVal) ? null : kgVal, isNaN(setsVal) ? null : setsVal, isNaN(repsVal) ? null : repsVal)
+            setSaving(false)
+          }}>{saving ? '…' : t('Save')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // --- Main component ---
 
 export default function Traning(): React.JSX.Element {
@@ -1525,6 +1606,7 @@ export default function Traning(): React.JSX.Element {
   const [showPlanEditor, setShowPlanEditor] = useState(false)
   const [weekExpanded, setWeekExpanded] = useState(false)
   const [showNewSession, setShowNewSession] = useState(false)
+  const [addingExercise, setAddingExercise] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')
 
   // Set activeTab to today's session whenever plan data changes
@@ -2098,8 +2180,8 @@ export default function Traning(): React.JSX.Element {
       })()}
     </section>
 
-    {editMode && !adding && activeTab && (
-      <button className={styles.addExerciseFab} onClick={() => setAdding(true)} title={t('+ Add exercise')}>+</button>
+    {editMode && !adding && !addingExercise && activeTab && (
+      <button className={styles.addExerciseFab} onClick={() => setAddingExercise(true)} title={t('+ Add exercise')}>+</button>
     )}
 
     {showNewSession && (
@@ -2129,6 +2211,35 @@ export default function Traning(): React.JSX.Element {
           </form>
         </div>
       </div>
+    )}
+
+    {addingExercise && (
+      <NewExerciseModal
+        t={t}
+        onSave={async (name, kg, sets, reps) => {
+          const sortOrder = (exercises[activeTab!] ?? []).length
+          let catalogId: number | null = null
+          const { data: existing } = await supabase.from('exercise_catalog').select('id').ilike('name', name).maybeSingle()
+          if (existing) catalogId = (existing as { id: number }).id
+          else {
+            const { data: inserted } = await supabase.from('exercise_catalog').insert({ name }).select().single()
+            if (inserted) catalogId = (inserted as { id: number }).id
+          }
+          const { data } = await supabase.from('exercises')
+            .insert({ user_id: userId, session_id: activeTab, name, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId })
+            .select().single()
+          if (data) {
+            const ex = data as Exercise
+            setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), ex] }))
+            if (kg != null && reps != null) {
+              await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: ex.id, weight_kg: kg, sets, reps })
+              setLogs(prev => ({ ...prev, [ex.id]: { kg, sets, reps, unilateral: false } }))
+            }
+          }
+          setAddingExercise(false)
+        }}
+        onClose={() => setAddingExercise(false)}
+      />
     )}
   </>
   )
