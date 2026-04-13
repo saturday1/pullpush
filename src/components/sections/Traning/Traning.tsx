@@ -1446,6 +1446,8 @@ export default function Traning(): React.JSX.Element {
         setCompletedSets(restored)
         setWorkoutId(openWorkout.id)
         setWorkoutSessionId(openWorkout.session_id)
+        // Active workout overrides today's auto-select
+        if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
       }
     } finally {
       setRestoreComplete(true)
