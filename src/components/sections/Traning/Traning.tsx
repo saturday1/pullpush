@@ -763,7 +763,7 @@ function NewExerciseModal({ t, knownExercises, onLookup, onSave, onClose }: {
             <label className={styles.modalField}>
               <select className={styles.modalInput} value="" onChange={e => { if (e.target.value) selectExisting(e.target.value) }}>
                 <option value="">{t('Or choose existing')}</option>
-                {(name.length > 0 ? knownExercises.filter(n => n.toLowerCase().includes(name.toLowerCase())) : knownExercises).map(n => <option key={n} value={n}>{n}</option>)}
+                {knownExercises.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </label>
           )}
