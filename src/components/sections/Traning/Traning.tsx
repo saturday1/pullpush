@@ -706,7 +706,7 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
 
 // --- New Exercise Modal (all fields at once) ---
 
-function NewExerciseModal({ t, onSave, onLookup, onClose }: { t: (k: string) => string; onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>; onLookup: (name: string) => { kg: number | null; sets: number | null; reps: number | null } | null; onClose: () => void }): React.JSX.Element {
+function NewExerciseModal({ t, onSave, onLookup, knownExercises, onClose }: { t: (k: string) => string; onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>; onLookup: (name: string) => { kg: number | null; sets: number | null; reps: number | null } | null; knownExercises: string[]; onClose: () => void }): React.JSX.Element {
   const [name, setName] = useState('')
   const [kg, setKg] = useState('')
   const [lbs, setLbs] = useState('')
@@ -722,13 +722,22 @@ function NewExerciseModal({ t, onSave, onLookup, onClose }: { t: (k: string) => 
   useEffect(() => {
     if (selectedRef.current) { selectedRef.current = false; return }
     if (name.length < 2) { setCatalogResults([]); setShowDrop(false); return }
-    const timeout = setTimeout(async () => {
-      const { data } = await supabase.from('exercise_catalog').select('id, name, muscle_group').ilike('name', `%${name}%`).limit(8)
-      setCatalogResults((data ?? []) as CatalogItem[])
-      setShowDrop(true)
-    }, 200)
+    const timeout = setTimeout(() => {
+      const q = name.toLowerCase()
+      // Show user's own exercises first, deduped
+      const seen = new Set<string>()
+      const results: CatalogItem[] = []
+      for (const n of knownExercises) {
+        if (n.toLowerCase().includes(q) && !seen.has(n.toLowerCase())) {
+          seen.add(n.toLowerCase())
+          results.push({ id: results.length, name: n, muscle_group: null })
+        }
+      }
+      setCatalogResults(results.slice(0, 10))
+      setShowDrop(results.length > 0)
+    }, 100)
     return () => clearTimeout(timeout)
-  }, [name])
+  }, [name, knownExercises])
 
   function selectFromCatalog(itemName: string): void {
     selectedRef.current = true
@@ -2278,6 +2287,11 @@ export default function Traning(): React.JSX.Element {
           }
           return null
         }}
+        knownExercises={(() => {
+          const names = new Set<string>()
+          for (const exs of Object.values(exercises)) for (const ex of exs) names.add(ex.name)
+          return Array.from(names).sort()
+        })()}
         onSave={async (name, kg, sets, reps) => {
           const sortOrder = (exercises[activeTab!] ?? []).length
           let catalogId: number | null = null
