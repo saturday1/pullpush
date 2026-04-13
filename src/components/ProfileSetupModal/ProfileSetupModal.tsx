@@ -132,18 +132,6 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-        {/* Step indicator */}
-        <div className={styles.stepIndicator}>
-          {steps.map((s, i) => (
-            <span key={s}>
-              {i > 0 && <span className={styles.stepSep}> — </span>}
-              <span className={s < step ? styles.stepDone : s === step ? styles.stepActive : styles.stepInactive}>
-                {s === 1 ? t('Personal') : s === 2 ? t('Weights') : t('Timers')}
-              </span>
-            </span>
-          ))}
-        </div>
-
         {/* Animated step content */}
         <div className={styles.stepContent}>
           <AnimatePresence mode="wait" custom={dir}>
