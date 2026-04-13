@@ -735,7 +735,7 @@ function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; on
         <div className={styles.modalFields}>
           <label className={styles.modalField} style={{ position: 'relative' }}>
             <span className={styles.modalLabel}>{t('Name')}</span>
-            <input className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} autoFocus />
+            <input className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} onBlur={() => setTimeout(() => setShowDrop(false), 150)} autoFocus />
             {showDrop && catalogResults.length > 0 && (
               <div className={styles.catalogDropdown}>
                 {catalogResults.map(item => (
