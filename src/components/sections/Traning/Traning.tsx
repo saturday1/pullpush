@@ -1530,6 +1530,7 @@ export default function Traning(): React.JSX.Element {
   const isRestDay = !todaySession && sessions.length > 0 && weeklyPlans.length > 0
   const [showLibrary, setShowLibrary] = useState(false)
   const [showPlanEditor, setShowPlanEditor] = useState(false)
+  const [weekExpanded, setWeekExpanded] = useState(false)
 
   // Auto-set activeTab to today's session if not manually overridden
   useEffect(() => {
@@ -1666,28 +1667,50 @@ export default function Traning(): React.JSX.Element {
             </div>
           )}
 
-          {/* Weekly overview */}
+          {/* Weekly overview — collapsible */}
           <Reveal>
             <div className={styles.weekList}>
-              {[1, 2, 3, 4, 5, 6, 7].map(dow => {
-                const daySessions = activePlanDays.filter(d => d.day_of_week === dow).map(d => sessions.find(s => s.id === d.session_id)).filter(Boolean) as typeof sessions
-                const isToday = dow === todayDow
-                return (
-                  <div key={dow} className={`${styles.weekRow} ${isToday ? styles.weekRowToday : ''}`}>
-                    <span className={styles.weekRowDay}>{dayAbbrev[dow - 1]}</span>
-                    <div className={styles.weekRowSessions}>
-                      {daySessions.length > 0 ? daySessions.map(s => (
-                        <button key={s.id} className={`${styles.weekRowSession} ${s.id === activeTab ? styles.weekRowSessionActive : ''}`} onClick={() => setActiveTab(s.id)}>
-                          {s.name}
-                        </button>
-                      )) : (
-                        <span className={styles.weekRowRest}>{t('Rest day')}</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-              <button className={styles.weekEditLink} onClick={() => setShowPlanEditor(true)}>✎ {t('Edit')}</button>
+              {/* Collapsed: compact bar */}
+              <div className={styles.weekBar}>
+                <button className={styles.weekBarSession} onClick={() => setShowLibrary(true)}>
+                  <span className={styles.weekBarDay}>{dayAbbrev[todayDow - 1]}</span>
+                  <span className={styles.weekBarName}>{currentSession?.name ?? t('Choose a workout')}</span>
+                </button>
+                <button className={styles.weekBarAdd} onClick={async () => {
+                  const name = prompt(t('Session name'))
+                  if (!name?.trim()) return
+                  const s = await addSessionToLibrary(name.trim())
+                  if (s) { setActiveTab(s.id); setEditMode(true) }
+                }}>+</button>
+                <button className={styles.weekBarToggle} onClick={() => setWeekExpanded(e => !e)}>
+                  {weekExpanded ? '▴' : '▾'} {t('Week')}
+                </button>
+              </div>
+
+              {/* Expanded: full week */}
+              {weekExpanded && (
+                <>
+                  {[1, 2, 3, 4, 5, 6, 7].map(dow => {
+                    const daySessions = activePlanDays.filter(d => d.day_of_week === dow).map(d => sessions.find(s => s.id === d.session_id)).filter(Boolean) as typeof sessions
+                    const isToday = dow === todayDow
+                    return (
+                      <div key={dow} className={`${styles.weekRow} ${isToday ? styles.weekRowToday : ''}`}>
+                        <span className={styles.weekRowDay}>{dayAbbrev[dow - 1]}</span>
+                        <div className={styles.weekRowSessions}>
+                          {daySessions.length > 0 ? daySessions.map(s => (
+                            <button key={s.id} className={`${styles.weekRowSession} ${s.id === activeTab ? styles.weekRowSessionActive : ''}`} onClick={() => setActiveTab(s.id)}>
+                              {s.name}
+                            </button>
+                          )) : (
+                            <span className={styles.weekRowRest}>{t('Rest day')}</span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <button className={styles.weekEditLink} onClick={() => setShowPlanEditor(true)}>✎ {t('Edit weekly plan')}</button>
+                </>
+              )}
             </div>
           </Reveal>
 
