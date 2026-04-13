@@ -1446,9 +1446,6 @@ export default function Traning(): React.JSX.Element {
         setCompletedSets(restored)
         setWorkoutId(openWorkout.id)
         setWorkoutSessionId(openWorkout.session_id)
-        // Jump to the session the workout belongs to — otherwise new sets
-        // would be saved against the wrong session (Pull-sets bookings as Push etc.)
-        if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
       }
     } finally {
       setRestoreComplete(true)
