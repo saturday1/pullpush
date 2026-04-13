@@ -1652,8 +1652,8 @@ export default function Traning(): React.JSX.Element {
                 <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
                   {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                 </select>
-                <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>
-                <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>
+                {editMode && <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>}
+                {editMode && <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>}
               </div>
             </Reveal>
           )}
@@ -1673,10 +1673,10 @@ export default function Traning(): React.JSX.Element {
                   ))}
                 </select>
               )}
-              {currentSession && (
+              {editMode && currentSession && (
                 <button className={styles.editProgramBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>✎</button>
               )}
-              <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>
+              {editMode && <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>}
             </div>
 
             {currentExercises.length === 0 && activeTab && (
