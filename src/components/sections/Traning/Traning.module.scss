@@ -1449,6 +1449,20 @@
   color: var(--muted);
 }
 
+.newSessionBtn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
 .editPlanBtn {
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;

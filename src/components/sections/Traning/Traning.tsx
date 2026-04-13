@@ -1665,6 +1665,12 @@ export default function Traning(): React.JSX.Element {
                     </button>
                   ))}
                 </div>
+                <button className={styles.newSessionBtn} onClick={async () => {
+                  const name = prompt(t('Session name'))
+                  if (!name?.trim()) return
+                  const s = await addSessionToLibrary(name.trim())
+                  if (s) { setActiveTab(s.id); setShowLibrary(false); setEditMode(true) }
+                }}>+ {t('New workout')}</button>
               </div>
             </div>
           )}
