@@ -61,7 +61,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
   const [lastName, setLastName] = useState(existingLast ?? '')
   const [birthDate, setBirthDate] = useState(existingBirth ?? '')
   const [phone, setPhone] = useState(existingPhone ?? '')
-  const [gender, setGender] = useState<'male' | 'female' | null>(existingGender)
+  const [gender, setGender] = useState<'male' | 'female' | 'unspecified' | 'unset'>(existingGender ?? 'unset')
 
   // Step 2: Weights
   const [weight, setWeight] = useState('')
@@ -78,6 +78,10 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
     if (step === 1) {
       if (!firstName.trim() || !lastName.trim() || !birthDate) {
         setError(t('Please fill in first name, last name and birthday.'))
+        return
+      }
+      if (gender === 'unset') {
+        setError(t('Please select a gender.'))
         return
       }
       setError('')
@@ -117,7 +121,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
         last_name: lastName.trim(),
         birth_date: birthDate,
         phone: phone.trim() || null,
-        gender,
+        gender: gender === 'male' ? 'male' : gender === 'female' ? 'female' : null,
         goal_weight: g && !isNaN(g) ? g : null,
         start_weight: w,
         height_cm: h,
@@ -163,21 +167,24 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                         <input className={styles.input} type="text" value={lastName} onChange={(e: ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)} placeholder={t('Last name')} />
                       </label>
                     </div>
-                    <label className={styles.field}>
-                      <span className={styles.label}>{t('Birthday *')}</span>
-                      <input className={styles.input} type="date" value={birthDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setBirthDate(e.target.value)} />
-                    </label>
+                    <div className={styles.row2}>
+                      <label className={styles.field}>
+                        <span className={styles.label}>{t('Birthday *')}</span>
+                        <input className={styles.input} type="date" value={birthDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setBirthDate(e.target.value)} />
+                      </label>
+                      <label className={styles.field}>
+                        <span className={styles.label}>{t('Gender *')}</span>
+                        <select className={styles.input} value={gender} onChange={(e) => setGender(e.target.value as 'male' | 'female' | 'unspecified' | 'unset')}>
+                          <option value="unset" disabled>{t('Select...')}</option>
+                          <option value="male">{t('Male')}</option>
+                          <option value="female">{t('Female')}</option>
+                          <option value="unspecified">{t('Prefer not to say')}</option>
+                        </select>
+                      </label>
+                    </div>
                     <label className={styles.field}>
                       <span className={styles.label}>{t('Phone')}</span>
                       <input className={styles.input} type="tel" value={phone} onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)} placeholder={t('Optional')} />
-                    </label>
-                    <label className={styles.field}>
-                      <span className={styles.label}>{t('Gender')}</span>
-                      <select className={styles.input} value={gender ?? ''} onChange={(e) => setGender(e.target.value === 'male' ? 'male' : e.target.value === 'female' ? 'female' : null)}>
-                        <option value="">{t('Prefer not to say')}</option>
-                        <option value="male">{t('Male')}</option>
-                        <option value="female">{t('Female')}</option>
-                      </select>
                     </label>
                     {error && <p className={styles.error}>{error}</p>}
                     <button type="button" className={styles.btn} onClick={goNext}>{t('Next')}</button>

@@ -197,6 +197,8 @@
   "Male": "Man",
   "Female": "Kvinna",
   "Prefer not to say": "Vill ej ange",
+  "Select...": "Välj",
+  "Please select a gender.": "Vänligen välj kön.",
   "Goal weight (optional)": "Målvikt (valfritt)",
   "Please fill in current weight and height.": "Fyll i nuvarande vikt och längd.",
   "Kcal": "Kcal",
