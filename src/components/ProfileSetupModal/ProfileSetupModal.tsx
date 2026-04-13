@@ -16,9 +16,10 @@ export default function ProfileSetupModal(): React.ReactElement | null {
   const { t } = useTranslation()
   const profile = useProfile()
   if (!profile) return null
-  const { profileLoading, firstName: existingFirst, lastName: existingLast, birthDate: existingBirth, phone: existingPhone, goalWeight, logWeight, updateProfile } = profile
+  const { profileLoading, firstName: existingFirst, lastName: existingLast, birthDate: existingBirth, phone: existingPhone, gender: existingGender, height, logWeight, updateProfile } = profile
 
-  if (profileLoading || goalWeight !== null) return null
+  // Show wizard until height is set (height is always required in step 2)
+  if (profileLoading || height !== null) return null
 
   // Determine initial step — skip step 1 if personal info already exists
   const hasPersonalInfo = !!(existingFirst && existingLast && existingBirth)
@@ -30,6 +31,7 @@ export default function ProfileSetupModal(): React.ReactElement | null {
     existingLast={existingLast}
     existingBirth={existingBirth}
     existingPhone={existingPhone}
+    existingGender={existingGender}
     updateProfile={updateProfile}
     logWeight={logWeight}
     t={t}
@@ -42,12 +44,13 @@ interface WizardInnerProps {
   existingLast: string | null
   existingBirth: string | null
   existingPhone: string | null
+  existingGender: 'male' | 'female' | null
   updateProfile: (data: Record<string, unknown>) => Promise<boolean>
   logWeight: (kg: number) => Promise<boolean>
   t: (key: string, opts?: object) => string
 }
 
-function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, existingPhone, updateProfile, logWeight, t }: WizardInnerProps): React.ReactElement {
+function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, existingPhone, existingGender, updateProfile, logWeight, t }: WizardInnerProps): React.ReactElement {
   const [step, setStep] = useState<Step>(initialStep)
   const [dir, setDir] = useState<number>(1)
   const [saving, setSaving] = useState(false)
@@ -58,6 +61,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
   const [lastName, setLastName] = useState(existingLast ?? '')
   const [birthDate, setBirthDate] = useState(existingBirth ?? '')
   const [phone, setPhone] = useState(existingPhone ?? '')
+  const [gender, setGender] = useState<'male' | 'female' | null>(existingGender)
 
   // Step 2: Weights
   const [weight, setWeight] = useState('')
@@ -81,10 +85,9 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
       setStep(2)
     } else if (step === 2) {
       const w = parseFloat(weight.replace(',', '.'))
-      const g = parseFloat(goalW.replace(',', '.'))
       const h = parseFloat(height.replace(',', '.'))
-      if (isNaN(w) || isNaN(g) || isNaN(h)) {
-        setError(t('Please fill in current weight, goal weight and height.'))
+      if (isNaN(w) || isNaN(h)) {
+        setError(t('Please fill in current weight and height.'))
         return
       }
       setError('')
@@ -105,7 +108,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
     setError('')
 
     const w = parseFloat(weight.replace(',', '.'))
-    const g = parseFloat(goalW.replace(',', '.'))
+    const g = goalW ? parseFloat(goalW.replace(',', '.')) : null
     const h = parseFloat(height.replace(',', '.'))
 
     await Promise.all([
@@ -114,7 +117,8 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
         last_name: lastName.trim(),
         birth_date: birthDate,
         phone: phone.trim() || null,
-        goal_weight: g,
+        gender,
+        goal_weight: g && !isNaN(g) ? g : null,
         start_weight: w,
         height_cm: h,
         rest_seconds: parseInt(restSec) || 90,
@@ -167,6 +171,14 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                       <span className={styles.label}>{t('Phone')}</span>
                       <input className={styles.input} type="tel" value={phone} onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)} placeholder={t('Optional')} />
                     </label>
+                    <label className={styles.field}>
+                      <span className={styles.label}>{t('Gender')}</span>
+                      <select className={styles.input} value={gender ?? ''} onChange={(e) => setGender(e.target.value === 'male' ? 'male' : e.target.value === 'female' ? 'female' : null)}>
+                        <option value="">{t('Prefer not to say')}</option>
+                        <option value="male">{t('Male')}</option>
+                        <option value="female">{t('Female')}</option>
+                      </select>
+                    </label>
                     {error && <p className={styles.error}>{error}</p>}
                     <button type="button" className={styles.btn} onClick={goNext}>{t('Next')}</button>
                   </div>
@@ -184,7 +196,7 @@ function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, 
                         <input className={styles.input} type="number" inputMode="decimal" step="0.1" value={weight} onChange={(e: ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)} placeholder="kg" autoFocus />
                       </label>
                       <label className={styles.field}>
-                        <span className={styles.label}>{t('Goal weight *')}</span>
+                        <span className={styles.label}>{t('Goal weight (optional)')}</span>
                         <input className={styles.input} type="number" inputMode="decimal" step="0.1" value={goalW} onChange={(e: ChangeEvent<HTMLInputElement>) => setGoalW(e.target.value)} placeholder="kg" />
                       </label>
                       <label className={styles.field}>
