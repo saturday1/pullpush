@@ -1626,6 +1626,7 @@ export default function Traning(): React.JSX.Element {
   const [showNewSession, setShowNewSession] = useState(false)
   const [addingExercise, setAddingExercise] = useState(false)
   const [newSessionName, setNewSessionName] = useState('')
+  const [deletingSession, setDeletingSession] = useState<{ id: string; name: string } | null>(null)
 
   // Set activeTab to today's session whenever plan data changes
   useEffect(() => {
@@ -1743,13 +1744,7 @@ export default function Traning(): React.JSX.Element {
                         <span className={styles.libraryItemName}>{s.name}</span>
                         <span className={styles.libraryItemMeta}>{(exercises[s.id] ?? []).length} {t('exercises')}</span>
                       </button>
-                      <button className={styles.libraryItemDelete} onClick={async () => {
-                        if (!confirm(t('Delete {{name}}?', { name: s.name }))) return
-                        await supabase.from('exercises').delete().eq('session_id', s.id)
-                        await supabase.from('training_sessions').delete().eq('id', s.id)
-                        if (activeTab === s.id) setActiveTab(null)
-                        await loadProfile()
-                      }}>✕</button>
+                      <button className={styles.libraryItemDelete} onClick={() => setDeletingSession({ id: s.id, name: s.name })}>✕</button>
                     </div>
                   ))}
                 </div>
@@ -2236,6 +2231,27 @@ export default function Traning(): React.JSX.Element {
               <button type="submit" className={styles.newSessionSave} disabled={!newSessionName.trim()}>{t('Create')}</button>
             </div>
           </form>
+        </div>
+      </div>
+    )}
+
+    {deletingSession && (
+      <div className={styles.overlay} onClick={() => setDeletingSession(null)}>
+        <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={styles.deleteIcon}>🗑</div>
+          <div className={styles.modalTitle}>{t('Delete workout')}</div>
+          <p className={styles.deleteText} dangerouslySetInnerHTML={{ __html: t('Delete <strong>{{name}}</strong> and all its exercises? This cannot be undone.', { name: deletingSession.name }) }} />
+          <div className={styles.deleteActions}>
+            <button className={styles.newSessionCancel} onClick={() => setDeletingSession(null)}>{t('Cancel')}</button>
+            <button className={styles.deleteConfirmBtn} onClick={async () => {
+              const id = deletingSession.id
+              setDeletingSession(null)
+              await supabase.from('exercises').delete().eq('session_id', id)
+              await supabase.from('training_sessions').delete().eq('id', id)
+              if (activeTab === id) setActiveTab(null)
+              await loadProfile()
+            }}>{t('Delete')}</button>
+          </div>
         </div>
       </div>
     )}

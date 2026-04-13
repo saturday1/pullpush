@@ -1711,6 +1711,43 @@
   &:disabled { opacity: 0.4; }
 }
 
+.deleteIcon {
+  font-size: 36px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.deleteText {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+  text-align: center;
+  margin: 8px 0 20px;
+}
+
+.deleteActions {
+  display: flex;
+  gap: 10px;
+}
+
+.deleteConfirmBtn {
+  flex: 1;
+  padding: 12px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--red, #dc2626);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.deleteActions .newSessionCancel {
+  flex: 0;
+}
+
 .exercisePickerList {
   max-height: 200px;
   overflow-y: auto;
