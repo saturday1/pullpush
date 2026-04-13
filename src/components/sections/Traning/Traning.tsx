@@ -815,7 +815,7 @@ export default function Traning(): React.JSX.Element {
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
-  const [activeTab,        setActiveTab]        = useState<string | null>(() => localStorage.getItem('pullpush_activeTab'))
+  const [activeTab,        setActiveTab]        = useState<string | null>(null)
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
@@ -1335,16 +1335,13 @@ export default function Traning(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (sessions.length > 0 && (activeTab === null || !sessions.find((s: TrainingSession) => s.id === activeTab))) {
-      const saved = localStorage.getItem('pullpush_activeTab')
-      const match = saved && sessions.find((s: TrainingSession) => s.id === saved)
-      setActiveTab(match ? saved : sessions[0].id)
-    }
+    if (sessions.length === 0) return
+    if (activeTab && sessions.find((s: TrainingSession) => s.id === activeTab)) return
+    // Auto-select today's session, or first session as fallback
+    const todayDow = new Date().getDay() || 7
+    const todaySession = sessions.find(s => s.day_of_week === todayDow)
+    setActiveTab(todaySession ? todaySession.id : sessions[0].id)
   }, [sessions])
-
-  useEffect(() => {
-    if (activeTab) localStorage.setItem('pullpush_activeTab', activeTab)
-  }, [activeTab])
 
   useEffect(() => {
     localStorage.setItem('pullpush_autoplay', String(autoplay))
