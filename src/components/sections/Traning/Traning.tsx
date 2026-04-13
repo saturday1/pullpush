@@ -1598,6 +1598,7 @@ export default function Traning(): React.JSX.Element {
     : null
 
   return (
+  <>
     <section id="traning">
       <div className={styles.sectionHeaderRow}>
         <h2 className={styles.sectionTitle}>{t('Training sessions')}</h2>
@@ -1793,9 +1794,6 @@ export default function Traning(): React.JSX.Element {
               )}
             </div>
 
-            {editMode && !adding && (
-              <button className={styles.addExerciseFab} onClick={() => setAdding(true)} title={t('+ Add exercise')}>+</button>
-            )}
 
             {!editMode && workoutId && !allSessionDone && completedSetsInSession > 0 && (
               <button className={styles.endWorkoutBtn} onClick={() => setShowEndDialog(true)}>{t('End workout')}</button>
@@ -2089,5 +2087,10 @@ export default function Traning(): React.JSX.Element {
         )
       })()}
     </section>
+
+    {editMode && !adding && activeTab && (
+      <button className={styles.addExerciseFab} onClick={() => setAdding(true)} title={t('+ Add exercise')}>+</button>
+    )}
+  </>
   )
 }
