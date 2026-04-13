@@ -829,6 +829,7 @@ export default function Traning(): React.JSX.Element {
     })
   }
   const [addingExercise,   setAddingExercise]   = useState<boolean>(false)
+  const [pickerDay,        setPickerDay]        = useState<number | null>(null)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [workoutSessionId, setWorkoutSessionId] = useState<string | null>(null)
   const [showEndDialog,    setShowEndDialog]    = useState<boolean>(false)
@@ -1707,19 +1708,37 @@ export default function Traning(): React.JSX.Element {
       {sessions.length > 0 && (
         <div className={styles.weekOverview}>
           {[1, 2, 3, 4, 5, 6, 7].map(dow => {
-            const session = sessions.find(s => s.day_of_week === dow)
+            const daySessions = sessions.filter(s => s.day_of_week === dow)
             const isToday = dow === (new Date().getDay() || 7)
-            const isActive = session && session.id === activeTab
+            const hasActive = daySessions.some(s => s.id === activeTab)
             return (
-              <button
-                key={dow}
-                className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''} ${isActive ? styles.weekOverviewActive : ''}`}
-                onClick={() => { if (session) setActiveTab(session.id) }}
-                disabled={!session}
-              >
-                <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
-                <span className={session ? styles.weekOverviewDot : styles.weekOverviewDotRest} />
-              </button>
+              <div key={dow} className={styles.weekOverviewDayWrap}>
+                <button
+                  className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''} ${hasActive ? styles.weekOverviewActive : ''}`}
+                  onClick={() => {
+                    if (daySessions.length === 1) setActiveTab(daySessions[0].id)
+                    else if (daySessions.length > 1) setPickerDay(pickerDay === dow ? null : dow)
+                  }}
+                  disabled={daySessions.length === 0}
+                >
+                  <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
+                  <span className={styles.weekOverviewDots}>
+                    {daySessions.length > 0
+                      ? daySessions.slice(0, 3).map((s, i) => <span key={i} className={styles.weekOverviewDot} />)
+                      : <span className={styles.weekOverviewDotRest} />
+                    }
+                  </span>
+                </button>
+                {pickerDay === dow && daySessions.length > 1 && (
+                  <div className={styles.weekPicker}>
+                    {daySessions.map(s => (
+                      <button key={s.id} className={styles.weekPickerItem} onClick={() => { setActiveTab(s.id); setPickerDay(null) }}>
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
