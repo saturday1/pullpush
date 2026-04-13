@@ -712,22 +712,20 @@ function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; on
   const [sets, setSets] = useState('3')
   const [reps, setReps] = useState('')
   const [saving, setSaving] = useState(false)
-  const [catalogResults, setCatalogResults] = useState<CatalogItem[]>([])
-  const [showDrop, setShowDrop] = useState(false)
-  const selectedRef = useRef(false)
+  const [allCatalog, setAllCatalog] = useState<CatalogItem[]>([])
+  const [picked, setPicked] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
   useEffect(() => { nameRef.current?.focus() }, [])
 
+  // Load full catalog once
   useEffect(() => {
-    if (selectedRef.current) { selectedRef.current = false; return }
-    if (name.length < 2) { setCatalogResults([]); setShowDrop(false); return }
-    const timeout = setTimeout(async () => {
-      const { data } = await supabase.from('exercise_catalog').select('id, name, muscle_group').ilike('name', `%${name}%`).limit(8)
-      setCatalogResults((data ?? []) as CatalogItem[])
-      setShowDrop(true)
-    }, 200)
-    return () => clearTimeout(timeout)
-  }, [name])
+    supabase.from('exercise_catalog').select('id, name, muscle_group').order('name').limit(200)
+      .then(({ data }) => setAllCatalog((data ?? []) as CatalogItem[]))
+  }, [])
+
+  const filtered = name.length > 0
+    ? allCatalog.filter(c => c.name.toLowerCase().includes(name.toLowerCase()))
+    : allCatalog
 
   function handleKgChange(val: string): void { setKg(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setLbs(toLbs(n).toString()) }
   function handleLbsChange(val: string): void { setLbs(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setKg(toKg(n).toString()) }
@@ -737,20 +735,20 @@ function NewExerciseModal({ t, onSave, onClose }: { t: (k: string) => string; on
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.modalTitle}>{t('New exercise')}</div>
         <div className={styles.modalFields}>
-          <label className={styles.modalField} style={{ position: 'relative' }}>
+          <label className={styles.modalField}>
             <span className={styles.modalLabel}>{t('Name')}</span>
-            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setShowDrop(true) }} onBlur={() => setTimeout(() => setShowDrop(false), 150)} />
-            {showDrop && catalogResults.length > 0 && (
-              <div className={styles.catalogDropdown}>
-                {catalogResults.map(item => (
-                  <button key={item.id} className={styles.catalogItem} type="button" onClick={() => { selectedRef.current = true; setName(item.name); setCatalogResults([]); setShowDrop(false) }}>
-                    <span className={styles.catalogItemName}>{item.name}</span>
-                    {item.muscle_group && <span className={styles.catalogItemMuscle}>{item.muscle_group}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
+            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => { setName(e.target.value); setPicked(false) }} placeholder={t('Search or create new…')} />
           </label>
+          {!picked && filtered.length > 0 && (
+            <div className={styles.exercisePickerList}>
+              {filtered.slice(0, 12).map(item => (
+                <button key={item.id} className={styles.exercisePickerItem} type="button" onClick={() => { setName(item.name); setPicked(true) }}>
+                  <span>{item.name}</span>
+                  {item.muscle_group && <span className={styles.exercisePickerMuscle}>{item.muscle_group}</span>}
+                </button>
+              ))}
+            </div>
+          )}
           <div className={styles.modalRow}>
             <label className={styles.modalField}>
               <span className={styles.modalLabel}>{t('Weight (kg)')}</span>
