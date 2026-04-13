@@ -1765,7 +1765,7 @@ export default function Traning(): React.JSX.Element {
               )}
             </div>
 
-            {editMode && !adding && (
+            {editMode && !adding && currentExercises.length > 0 && (
               <button className={styles.addBtn} onClick={() => setAdding(true)}>{t('+ Add exercise')}</button>
             )}
 
