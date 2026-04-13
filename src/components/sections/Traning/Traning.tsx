@@ -803,7 +803,14 @@ export default function Traning(): React.JSX.Element {
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
   const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
-  const [editMode,         setEditMode]         = useState<boolean>(false)
+  const [editMode,         setEditModeRaw]      = useState<boolean>(() => localStorage.getItem('pullpush_editMode') === 'true')
+  const setEditMode = (v: boolean | ((prev: boolean) => boolean)): void => {
+    setEditModeRaw(prev => {
+      const next = typeof v === 'function' ? v(prev) : v
+      localStorage.setItem('pullpush_editMode', String(next))
+      return next
+    })
+  }
   const [addingExercise,   setAddingExercise]   = useState<boolean>(false)
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [workoutSessionId, setWorkoutSessionId] = useState<string | null>(null)
