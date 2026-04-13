@@ -1531,6 +1531,8 @@ export default function Traning(): React.JSX.Element {
   const [showLibrary, setShowLibrary] = useState(false)
   const [showPlanEditor, setShowPlanEditor] = useState(false)
   const [weekExpanded, setWeekExpanded] = useState(false)
+  const [showNewSession, setShowNewSession] = useState(false)
+  const [newSessionName, setNewSessionName] = useState('')
 
   // Auto-set activeTab to today's session if not manually overridden
   useEffect(() => {
@@ -1657,12 +1659,7 @@ export default function Traning(): React.JSX.Element {
                     </button>
                   ))}
                 </div>
-                <button className={styles.newSessionBtn} onClick={async () => {
-                  const name = prompt(t('Session name'))
-                  if (!name?.trim()) return
-                  const s = await addSessionToLibrary(name.trim())
-                  if (s) { setActiveTab(s.id); setShowLibrary(false); setEditMode(true) }
-                }}>+ {t('New workout')}</button>
+                <button className={styles.newSessionBtn} onClick={() => { setShowLibrary(false); setShowNewSession(true) }}>+ {t('New workout')}</button>
               </div>
             </div>
           )}
@@ -1676,12 +1673,7 @@ export default function Traning(): React.JSX.Element {
                   <span className={styles.weekBarDay}>{dayAbbrev[todayDow - 1]}</span>
                   <span className={styles.weekBarName}>{currentSession?.name ?? t('Choose a workout')}</span>
                 </button>
-                <button className={styles.weekBarAdd} onClick={async () => {
-                  const name = prompt(t('Session name'))
-                  if (!name?.trim()) return
-                  const s = await addSessionToLibrary(name.trim())
-                  if (s) { setActiveTab(s.id); setEditMode(true) }
-                }}>+</button>
+                <button className={styles.weekBarAdd} onClick={() => setShowNewSession(true)}>+</button>
                 <button className={styles.weekBarToggle} onClick={() => setWeekExpanded(e => !e)}>
                   {weekExpanded ? '▴' : '▾'} {t('Week')}
                 </button>
@@ -2113,6 +2105,35 @@ export default function Traning(): React.JSX.Element {
 
     {editMode && !adding && activeTab && (
       <button className={styles.addExerciseFab} onClick={() => setAdding(true)} title={t('+ Add exercise')}>+</button>
+    )}
+
+    {showNewSession && (
+      <div className={styles.overlay} onClick={() => { setShowNewSession(false); setNewSessionName('') }}>
+        <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={styles.modalTitle}>{t('New workout')}</div>
+          <form onSubmit={async (e) => {
+            e.preventDefault()
+            if (!newSessionName.trim()) return
+            const s = await addSessionToLibrary(newSessionName.trim())
+            if (s) { setActiveTab(s.id); setEditMode(true) }
+            setShowNewSession(false)
+            setNewSessionName('')
+          }}>
+            <input
+              className={styles.newSessionInput}
+              type="text"
+              value={newSessionName}
+              onChange={e => setNewSessionName(e.target.value)}
+              placeholder={t('e.g. Push, Legs, Full body…')}
+              autoFocus
+            />
+            <div className={styles.newSessionActions}>
+              <button type="button" className={styles.newSessionCancel} onClick={() => { setShowNewSession(false); setNewSessionName('') }}>{t('Cancel')}</button>
+              <button type="submit" className={styles.newSessionSave} disabled={!newSessionName.trim()}>{t('Create')}</button>
+            </div>
+          </form>
+        </div>
+      </div>
     )}
   </>
   )

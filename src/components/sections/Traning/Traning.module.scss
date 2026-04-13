@@ -1635,6 +1635,59 @@
   color: var(--faint, var(--muted));
 }
 
+.newSessionInput {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  margin-top: 16px;
+  box-sizing: border-box;
+
+  &::placeholder { color: var(--faint); }
+  &:focus { outline: none; border-color: var(--pink, #e8197d); box-shadow: 0 0 0 3px rgba(232, 25, 125, 0.08); }
+}
+
+.newSessionActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.newSessionCancel {
+  flex: 0;
+  padding: 12px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.newSessionSave {
+  flex: 1;
+  padding: 12px 20px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--gradient);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.4; }
+}
+
 .activePassTitle {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 28px;
