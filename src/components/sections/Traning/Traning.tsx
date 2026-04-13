@@ -717,13 +717,21 @@ function NewExerciseModal({ t, knownExercises, onLookup, onSave, onClose }: {
   const [sets, setSets] = useState('3')
   const [reps, setReps] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showAuto, setShowAuto] = useState(false)
+  const pickedRef = useRef(false)
   const nameRef = useRef<HTMLInputElement>(null)
   useEffect(() => { nameRef.current?.focus() }, [])
+
+  const filtered = name.length >= 2 && !pickedRef.current
+    ? knownExercises.filter(n => n.toLowerCase().includes(name.toLowerCase())).slice(0, 8)
+    : []
 
   function handleKgChange(val: string): void { setKg(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setLbs(toLbs(n).toString()) }
   function handleLbsChange(val: string): void { setLbs(val); const n = parseFloat(val.replace(',', '.')); if (!isNaN(n)) setKg(toKg(n).toString()) }
 
   function selectExisting(exName: string): void {
+    pickedRef.current = true
+    setShowAuto(false)
     setName(exName)
     const last = onLookup(exName)
     if (last) {
@@ -738,9 +746,18 @@ function NewExerciseModal({ t, knownExercises, onLookup, onSave, onClose }: {
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.modalTitle}>{t('New exercise')}</div>
         <div className={styles.modalFields}>
-          <label className={styles.modalField}>
+          <label className={styles.modalField} style={{ position: 'relative' }}>
             <span className={styles.modalLabel}>{t('Name')}</span>
-            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('Exercise name…')} />
+            <input ref={nameRef} className={styles.modalInput} type="text" value={name} onChange={e => { pickedRef.current = false; setName(e.target.value); setShowAuto(true) }} onBlur={() => setTimeout(() => setShowAuto(false), 150)} placeholder={t('Exercise name…')} />
+            {showAuto && filtered.length > 0 && (
+              <div className={styles.catalogDropdown}>
+                {filtered.map((n, i) => (
+                  <button key={i} className={styles.catalogItem} type="button" onClick={() => selectExisting(n)}>
+                    <span className={styles.catalogItemName}>{n}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </label>
           {knownExercises.length > 0 && (
             <label className={styles.modalField}>
