@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, closestCenter, type DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -1738,15 +1739,25 @@ export default function Traning(): React.JSX.Element {
               <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 <div className={styles.modalTitle}>{t('Choose a workout')}</div>
                 <div className={styles.libraryList}>
-                  {sessions.map(s => (
-                    <div key={s.id} className={`${styles.libraryItem} ${s.id === activeTab ? styles.libraryItemActive : ''}`}>
-                      <button className={styles.libraryItemBtn} onClick={() => { setActiveTab(s.id); setShowLibrary(false) }}>
-                        <span className={styles.libraryItemName}>{s.name}</span>
-                        <span className={styles.libraryItemMeta}>{(exercises[s.id] ?? []).length} {t('exercises')}</span>
-                      </button>
-                      <button className={styles.libraryItemDelete} onClick={() => setDeletingSession({ id: s.id, name: s.name })}>✕</button>
-                    </div>
-                  ))}
+                  <AnimatePresence>
+                    {sessions.map(s => (
+                      <motion.div
+                        key={s.id}
+                        layout
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
+                        className={`${styles.libraryItem} ${s.id === activeTab ? styles.libraryItemActive : ''}`}
+                      >
+                        <button className={styles.libraryItemBtn} onClick={() => { setActiveTab(s.id); setShowLibrary(false) }}>
+                          <span className={styles.libraryItemName}>{s.name}</span>
+                          <span className={styles.libraryItemMeta}>{(exercises[s.id] ?? []).length} {t('exercises')}</span>
+                        </button>
+                        <button className={styles.libraryItemDelete} onClick={() => setDeletingSession({ id: s.id, name: s.name })}>✕</button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
                 <button className={styles.newSessionBtn} onClick={() => { setShowLibrary(false); setShowNewSession(true) }}>+ {t('New workout')}</button>
               </div>
