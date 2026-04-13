@@ -242,6 +242,11 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: transparent;
+}
+
+.weekOverviewActive .weekOverviewDot {
   background: var(--accent);
 }
 
@@ -249,7 +254,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--border);
+  border: 2px solid var(--border);
+  background: transparent;
 }
 
 // ── Section header with Flow toggle ─────────────────────────
