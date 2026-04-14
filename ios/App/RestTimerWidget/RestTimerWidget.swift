@@ -9,6 +9,7 @@ struct RestTimerLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RestTimerAttributes.self) { context in
             let startTime = context.state.endTime.addingTimeInterval(-Double(context.attributes.totalSeconds))
+            let isExpired = context.state.endTime < Date()
 
             // Lock screen banner
             VStack(spacing: 10) {
@@ -19,31 +20,39 @@ struct RestTimerLiveActivity: Widget {
                         .frame(width: 56, height: 56)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(context.attributes.label.uppercased())
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.primary.opacity(0.85))
-                            .lineLimit(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
+                        if isExpired {
+                            Text("✓ KLAR")
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .foregroundColor(.green)
+                        } else {
+                            Text(context.attributes.label.uppercased())
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.primary.opacity(0.85))
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .multilineTextAlignment(.leading)
 
-                        Text(timerInterval: Date()...context.state.endTime, countsDown: true)
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundColor(.primary)
+                            Text(timerInterval: Date()...context.state.endTime, countsDown: true)
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundColor(.primary)
+                        }
                     }
 
                     Spacer()
                 }
 
-                ProgressView(timerInterval: startTime...context.state.endTime, countsDown: true) {
-                    EmptyView()
-                } currentValueLabel: {
-                    EmptyView()
+                if !isExpired {
+                    ProgressView(timerInterval: startTime...context.state.endTime, countsDown: true) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        EmptyView()
+                    }
+                    .progressViewStyle(.linear)
+                    .tint(.white)
+                    .scaleEffect(y: 1.5)
+                    .clipShape(Capsule())
                 }
-                .progressViewStyle(.linear)
-                .tint(.white)
-                .scaleEffect(y: 1.5)
-                .clipShape(Capsule())
             }
             .padding()
             .background(Color(UIColor.systemBackground))
