@@ -12,6 +12,7 @@ import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 import PlayIcon from '../../icons/Normal/PlayIcon'
 import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
+import { useFlowSounds } from '../../../hooks/useFlowSounds'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string }): Promise<void>
@@ -809,6 +810,7 @@ function NewExerciseModal({ t, knownExercises, onLookup, onSave, onClose }: {
 export default function Traning(): React.JSX.Element {
   const { t } = useTranslation()
   const [weightUnit] = useWeightUnit()
+  const flowSounds = useFlowSounds()
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
   const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
@@ -1113,8 +1115,10 @@ export default function Traning(): React.JSX.Element {
           if (timerRef.current) clearInterval(timerRef.current)
           timerRef.current = null
           setCountdownOverlay(null)
+          flowSounds.playGo()
           runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
         } else {
+          if (remaining <= 3) flowSounds.playCountdownTick()
           setCountdownOverlay(remaining)
         }
       }, 250)
@@ -1150,6 +1154,7 @@ export default function Traning(): React.JSX.Element {
         timerRef.current = null
 
         if (phase === 'work') {
+          flowSounds.playRestStart()
           setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
           // Save completed set to database
           if (wId) {
@@ -1166,10 +1171,13 @@ export default function Traning(): React.JSX.Element {
           } else {
             console.warn('workout_sets insert skipped: no workoutId')
           }
+        } else if (phase === 'rest') {
+          flowSounds.playSetComplete()
         }
 
         runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
       } else {
+        if (phase === 'rest' && remaining <= 3 && remaining > 0) flowSounds.playRestEnd()
         setTimerSecs(remaining)
       }
     }, 250)

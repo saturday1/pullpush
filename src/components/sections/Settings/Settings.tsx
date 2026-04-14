@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '../../../context/ThemeContext'
 import { useWeightUnit, type WeightUnit } from '../../../hooks/useWeightUnit'
+import { useFlowSounds } from '../../../hooks/useFlowSounds'
 import { supabase } from '../../../supabase'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
@@ -17,6 +18,8 @@ export default function Settings(): React.ReactElement {
     const theme = themeCtx?.theme ?? 'light'
     const toggle = themeCtx?.toggle ?? (() => {})
     const [tab, setTab] = useState<SettingsTab>('profile')
+    const flowSounds = useFlowSounds()
+    const [soundsOn, setSoundsOn] = useState(flowSounds.enabled)
     const [weightUnit, setWeightUnit] = useWeightUnit()
 
     return (
@@ -101,6 +104,26 @@ export default function Settings(): React.ReactElement {
                                         {u === 'both' ? 'KG / LBS' : u.toUpperCase()}
                                     </button>
                                 ))}
+                            </div>
+                        </div>
+                    </Reveal>
+
+                    <Reveal>
+                        <div className={styles.card}>
+                            <div className={styles.cardTitle}>{t('Flow sounds')}</div>
+                            <div className={styles.optionRow}>
+                                <button
+                                    className={`${styles.optionBtn} ${soundsOn ? styles.optionActive : ''}`}
+                                    onClick={() => { flowSounds.setEnabled(true); setSoundsOn(true) }}
+                                >
+                                    {t('On')}
+                                </button>
+                                <button
+                                    className={`${styles.optionBtn} ${!soundsOn ? styles.optionActive : ''}`}
+                                    onClick={() => { flowSounds.setEnabled(false); setSoundsOn(false) }}
+                                >
+                                    {t('Off')}
+                                </button>
                             </div>
                         </div>
                     </Reveal>
