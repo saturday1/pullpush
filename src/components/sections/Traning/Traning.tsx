@@ -863,6 +863,8 @@ export default function Traning(): React.JSX.Element {
   const [programDropOpen,  setProgramDropOpen]  = useState<boolean>(false)
   const programDropRef = useRef<HTMLDivElement | null>(null)
   const [restTimer,        setRestTimer]        = useState<number | null>(null)
+  const runTimerStepRef = useRef<((plan: { phase: TimerPhase; duration: number }[], step: number, skipExpired?: boolean) => void) | null>(null)
+  const timerArgsRef = useRef<{ exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const restEndTimeRef = useRef<number | null>(null)
   const [logging,          setLogging]          = useState<Exercise | null>(null)
@@ -901,11 +903,21 @@ export default function Traning(): React.JSX.Element {
       if (paused) return
       if (timerEndRef.current === 0) return
       const remaining = Math.ceil((timerEndRef.current - Date.now()) / 1000)
-      if (remaining < 0) return
-      if (countdownOverlay !== null) {
-        setCountdownOverlay(Math.max(0, remaining))
-      } else if (timerPhase) {
-        setTimerSecs(Math.max(0, remaining))
+      if (remaining > 0) {
+        if (countdownOverlay !== null) setCountdownOverlay(remaining)
+        else if (timerPhase) setTimerSecs(remaining)
+      } else {
+        // Phase expired while backgrounded — kill stale interval and
+        // immediately advance to next phase via runTimerStep
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+        if (countdownOverlay !== null) setCountdownOverlay(0)
+        else if (timerPhase) setTimerSecs(0)
+        // Advance: use stored plan refs
+        const plan = timerPlanRef.current
+        const step = timerStepRef.current
+        if (plan.length > 0 && runTimerStepRef.current) {
+          runTimerStepRef.current(plan, step, true)
+        }
       }
     }
     document.addEventListener('visibilitychange', resync)
@@ -1038,6 +1050,27 @@ export default function Traning(): React.JSX.Element {
   }
 
   function runTimerStep(plan: { phase: TimerPhase; duration: number }[], step: number, exId: string, currentSet: number, setsTotal: number, kg: number | null, reps: number, wId: string | null): void {
+    // Store context so resync can re-invoke after background
+    timerArgsRef.current = { exId, currentSet, setsTotal, kg, reps, wId }
+    runTimerStepRef.current = (p, s, skipExpired) => {
+      const args = timerArgsRef.current!
+      // If skipExpired, fast-forward through expired phases
+      if (skipExpired) {
+        let nextStep = s
+        while (nextStep < p.length) {
+          const phaseEnd = timerEndRef.current
+          const r = Math.ceil((phaseEnd - Date.now()) / 1000)
+          if (r > 0) break
+          nextStep++
+          if (nextStep < p.length) {
+            timerEndRef.current = Date.now() + p[nextStep].duration * 1000
+          }
+        }
+        runTimerStep(p, nextStep, args.exId, args.currentSet, args.setsTotal, args.kg, args.reps, args.wId)
+      } else {
+        runTimerStep(p, s, args.exId, args.currentSet, args.setsTotal, args.kg, args.reps, args.wId)
+      }
+    }
     if (step >= plan.length) {
       // Set done
       if (timerRef.current) clearInterval(timerRef.current)
