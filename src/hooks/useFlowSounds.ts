@@ -1,4 +1,6 @@
 import { useCallback, useRef } from 'react'
+import tickSound from '../sounds/cinematic_tick.wav'
+import goSound from '../sounds/Go.mp3'
 
 const STORAGE_KEY = 'pullpush_flowSounds'
 
@@ -45,42 +47,27 @@ export function useFlowSounds(): {
     } catch {}
   }
 
-  // 24-style deep countdown: low punchy "bip" (like CTU clock)
-  const playCountdownTick = useCallback(() => {
-    tone(220, 0.12, 'square', 0.2)
-    // Subtle harmonic on top
-    setTimeout(() => tone(440, 0.06, 'sine', 0.08), 10)
-  }, [])
+  // Preload audio files
+  const tickAudioRef = useRef<HTMLAudioElement | null>(null)
+  const goAudioRef = useRef<HTMLAudioElement | null>(null)
 
-  // GO! Deep aggressive rising hit
-  const playGo = useCallback(() => {
+  function playFile(ref: React.MutableRefObject<HTMLAudioElement | null>, src: string): void {
     if (!isEnabled()) return
     try {
-      const ctx = getCtx()
-      // Low punch
-      const osc1 = ctx.createOscillator()
-      const g1 = ctx.createGain()
-      osc1.type = 'sawtooth'
-      osc1.frequency.setValueAtTime(120, ctx.currentTime)
-      osc1.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.12)
-      g1.gain.value = 0.25
-      g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2)
-      osc1.connect(g1)
-      g1.connect(ctx.destination)
-      osc1.start(ctx.currentTime)
-      osc1.stop(ctx.currentTime + 0.2)
-      // High accent
-      const osc2 = ctx.createOscillator()
-      const g2 = ctx.createGain()
-      osc2.type = 'sine'
-      osc2.frequency.value = 660
-      g2.gain.value = 0.15
-      g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15)
-      osc2.connect(g2)
-      g2.connect(ctx.destination)
-      osc2.start(ctx.currentTime + 0.05)
-      osc2.stop(ctx.currentTime + 0.2)
+      if (!ref.current) ref.current = new Audio(src)
+      ref.current.currentTime = 0
+      ref.current.play().catch(() => {})
     } catch {}
+  }
+
+  // Countdown tick: cinematic tick sound file
+  const playCountdownTick = useCallback(() => {
+    playFile(tickAudioRef, tickSound)
+  }, [])
+
+  // GO! sound file
+  const playGo = useCallback(() => {
+    playFile(goAudioRef, goSound)
   }, [])
 
   // Rest start: deep muted thud
