@@ -1696,14 +1696,48 @@ export default function Traning(): React.JSX.Element {
   }, [restoreComplete, currentExercises.length, allSessionDone, workoutId, timerPhase])
 
   // Inactivity timeout — show dialog if no activity for 15 min during active workout
+  const lastActivityRef = useRef<number>(Date.now())
   useEffect(() => {
     if (inactivityRef.current) clearTimeout(inactivityRef.current)
     if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) return
+    lastActivityRef.current = Date.now()
+
+    // JS timeout (works when app is in foreground)
     inactivityRef.current = setTimeout(() => {
       setShowInactiveDialog(true)
     }, INACTIVITY_MINUTES * 60 * 1000)
-    return () => { if (inactivityRef.current) clearTimeout(inactivityRef.current) }
+
+    // Schedule local notification as backup (works when app is backgrounded)
+    const notifTime = new Date(Date.now() + INACTIVITY_MINUTES * 60 * 1000)
+    LocalNotifications.schedule({
+      notifications: [{
+        id: 99,
+        title: t('Still training?'),
+        body: t('You have an unfinished workout'),
+        schedule: { at: notifTime },
+        sound: 'default',
+      }],
+    }).catch(() => {})
+
+    return () => {
+      if (inactivityRef.current) clearTimeout(inactivityRef.current)
+      LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
+    }
   }, [workoutId, completedSetsInSession, allSessionDone, timerPhase, completedSets])
+
+  // Check inactivity on app resume from background
+  useEffect(() => {
+    function checkInactivity(): void {
+      if (document.hidden) return
+      if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) return
+      const elapsed = Date.now() - lastActivityRef.current
+      if (elapsed >= INACTIVITY_MINUTES * 60 * 1000) {
+        setShowInactiveDialog(true)
+      }
+    }
+    document.addEventListener('visibilitychange', checkInactivity)
+    return () => document.removeEventListener('visibilitychange', checkInactivity)
+  }, [workoutId, completedSetsInSession, allSessionDone, timerPhase])
 
   // Find active exercise name/details for overlay
   const timerExercise = currentExercises.find(ex => ex.id === timerExId)
