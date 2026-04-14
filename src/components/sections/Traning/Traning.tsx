@@ -1965,7 +1965,10 @@ export default function Traning(): React.JSX.Element {
           onClose={() => setEditingSession(false)}
         />
       )}
-      {countdownOverlay !== null && timerExercise && !paused && !timerMinimized && (
+    </section>
+
+    {/* All overlays OUTSIDE section to avoid Reveal transform breaking position:fixed */}
+    {countdownOverlay !== null && timerExercise && !paused && !timerMinimized && (
         <div className={styles.countdownOverlay}>
           <div className={styles.overlayContent}>
             <div className={styles.overlaySetLabel}>SET {timerSet}</div>
@@ -2197,7 +2200,6 @@ export default function Traning(): React.JSX.Element {
           </div>
         )
       })()}
-    </section>
 
     {editMode && activeTab && !adding && !addingExercise && (
       <button className={styles.addExerciseFab} onClick={() => setAddingExercise(true)} title={t('+ Add exercise')}>+</button>
