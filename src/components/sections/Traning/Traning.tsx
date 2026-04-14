@@ -983,6 +983,7 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function startExerciseTimer(ex: Exercise): Promise<void> {
+    flowSounds.warmUp() // Unlock AudioContext during user gesture
     setTimerMinimized(false)
     const log = logs[ex.id]
     const indPlans = individualSets[ex.id]

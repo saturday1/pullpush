@@ -5,6 +5,7 @@ const STORAGE_KEY = 'pullpush_flowSounds'
 export function useFlowSounds(): {
   enabled: boolean
   setEnabled: (v: boolean) => void
+  warmUp: () => void
   playCountdownTick: () => void
   playGo: () => void
   playRestStart: () => void
@@ -85,9 +86,21 @@ export function useFlowSounds(): {
     setTimeout(() => beep(1200, 0.2, 'sine', 0.25), 120)
   }, [])
 
+  // Call this during a user gesture (click/tap) to unlock AudioContext
+  const warmUp = useCallback(() => {
+    const ctx = getCtx()
+    // Play a silent buffer to unlock audio on iOS
+    const buf = ctx.createBuffer(1, 1, 22050)
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(ctx.destination)
+    src.start(0)
+  }, [])
+
   return {
     enabled: isEnabled(),
     setEnabled: (v: boolean) => localStorage.setItem(STORAGE_KEY, String(v)),
+    warmUp,
     playCountdownTick,
     playGo,
     playRestStart,
