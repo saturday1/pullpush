@@ -1110,6 +1110,7 @@ export default function Traning(): React.JSX.Element {
       timerStepRef.current = step
       if (timerRef.current) clearInterval(timerRef.current)
       const cdEnd = Date.now() + duration * 1000
+      let lastTickSec = -1
       timerRef.current = setInterval(() => {
         const remaining = Math.ceil((cdEnd - Date.now()) / 1000)
         if (remaining <= 0) {
@@ -1119,7 +1120,7 @@ export default function Traning(): React.JSX.Element {
           flowSounds.playGo()
           runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
         } else {
-          if (remaining <= 3) flowSounds.playCountdownTick()
+          if (remaining <= 3 && remaining !== lastTickSec) { lastTickSec = remaining; flowSounds.playCountdownTick() }
           setCountdownOverlay(remaining)
         }
       }, 250)
@@ -1148,6 +1149,7 @@ export default function Traning(): React.JSX.Element {
     }
 
     if (timerRef.current) clearInterval(timerRef.current)
+    let lastPhaseSec = -1
     timerRef.current = setInterval(() => {
       const remaining = Math.ceil((timerEndRef.current - Date.now()) / 1000)
       if (remaining <= 0) {
@@ -1178,7 +1180,7 @@ export default function Traning(): React.JSX.Element {
 
         runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
       } else {
-        if (phase === 'rest' && remaining <= 3 && remaining > 0) flowSounds.playRestEnd()
+        if (phase === 'rest' && remaining <= 3 && remaining > 0 && remaining !== lastPhaseSec) { lastPhaseSec = remaining; flowSounds.playRestEnd() }
         setTimerSecs(remaining)
       }
     }, 250)
