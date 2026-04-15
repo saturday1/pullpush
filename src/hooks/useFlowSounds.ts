@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
-import tickSound from '../sounds/cinematic_tick.wav'
-import goSound from '../sounds/Go.mp3'
+import tickSound from '../sounds/beep.mp3'
+import goSound from '../sounds/ElevenLabs_2026-04-15T10_49_37_Saga_gen_sp100_s50_sb75_v3.mp3'
 
 const STORAGE_KEY = 'pullpush_flowSounds'
 
