@@ -1,26 +1,14 @@
 import UIKit
 import Capacitor
 import ActivityKit
-import AVFoundation
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private var bgTaskID: UIBackgroundTaskIdentifier = .invalid
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Audio session: duck Spotify/music instead of stopping it
-        do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback,
-                mode: .default,
-                options: [.duckOthers, .mixWithOthers]
-            )
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Audio session setup failed: \(error)")
-        }
-
         // Clean up any stale Live Activities
         if #available(iOS 16.2, *) {
             Task {
@@ -38,8 +26,50 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        // Request background time to auto-end Live Activities when their timer expires
+        if #available(iOS 16.2, *) {
+            let activities = Activity<RestTimerAttributes>.activities
+            guard !activities.isEmpty else { return }
+
+            // Find the latest end time among active activities
+            let latestEnd = activities.compactMap({ $0.content.state.endTime }).max() ?? Date()
+            let secondsUntilEnd = latestEnd.timeIntervalSinceNow + 1.0
+            guard secondsUntilEnd > 0 else { return }
+
+            bgTaskID = application.beginBackgroundTask(withName: "EndLiveActivity") { [weak self] in
+                guard let self = self else { return }
+                if self.bgTaskID != .invalid {
+                    application.endBackgroundTask(self.bgTaskID)
+                    self.bgTaskID = .invalid
+                }
+            }
+
+            // Poll every 2s to check if activities have expired
+            func pollExpired() {
+                Task {
+                    var hasActive = false
+                    for activity in Activity<RestTimerAttributes>.activities {
+                        if activity.content.state.endTime < Date() {
+                            await activity.end(nil, dismissalPolicy: .immediate)
+                        } else {
+                            hasActive = true
+                        }
+                    }
+                    if hasActive {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            pollExpired()
+                        }
+                    } else if self.bgTaskID != .invalid {
+                        application.endBackgroundTask(self.bgTaskID)
+                        self.bgTaskID = .invalid
+                    }
+                }
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                pollExpired()
+            }
+        }
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
@@ -47,7 +77,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Clean up expired Live Activities when app becomes active (e.g., user unlocks phone)
+        if #available(iOS 16.2, *) {
+            Task {
+                for activity in Activity<RestTimerAttributes>.activities {
+                    if activity.content.state.endTime < Date() {
+                        await activity.end(nil, dismissalPolicy: .immediate)
+                    }
+                }
+            }
+        }
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

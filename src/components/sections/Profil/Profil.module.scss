@@ -29,15 +29,14 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  padding: 5px 14px;
+  padding: 6px 16px;
   border-radius: 20px;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--muted);
+  border: none;
+  background: var(--gradient);
+  color: #fff;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
 
-  &:hover { color: var(--text); border-color: var(--text); }
+  &:active { opacity: 0.85; }
 }
 
 .infoRows {

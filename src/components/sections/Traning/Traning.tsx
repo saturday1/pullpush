@@ -12,11 +12,13 @@ import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 import PlayIcon from '../../icons/Normal/PlayIcon'
 import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
-import { useFlowSounds } from '../../../hooks/useFlowSounds'
+import { useFlowSounds, getCountdownLength, getCountdownStyle } from '../../../hooks/useFlowSounds'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string }): Promise<void>
   stop(): Promise<void>
+  setKeepAwake(options: { keep: boolean }): Promise<void>
+  setWorkoutActive(options: { active: boolean }): Promise<void>
 }
 
 const RestTimer: RestTimerPlugin | null = Capacitor.isNativePlatform() ? registerPlugin<RestTimerPlugin>('RestTimer') : null
@@ -90,6 +92,19 @@ interface SessionData {
 const KG_TO_LBS: number = 2.20462
 const toKg  = (lbs: number): number => +(lbs / KG_TO_LBS).toFixed(2)
 const toLbs = (kg: number): number  => +(kg  * KG_TO_LBS).toFixed(1)
+
+function relativeLabel(iso: string, t: (k: string, opts?: object) => string): string {
+  const then = new Date(iso)
+  const now = new Date()
+  const diffDays = Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24))
+  const s = diffDays === 0 ? t('today')
+    : diffDays === 1 ? t('yesterday')
+    : diffDays < 7 ? t('{{n}} days ago', { n: diffDays })
+    : diffDays < 14 ? t('1 week ago')
+    : diffDays < 60 ? t('{{n}} weeks ago', { n: Math.floor(diffDays / 7) })
+    : t('{{n}} months ago', { n: Math.floor(diffDays / 30) })
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 
 function formatRelativeDate(iso: string, t: (k: string, opts?: object) => string): string {
   const then = new Date(iso)
@@ -635,11 +650,15 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
   const totalDots = Math.max(configuredSets, completedSets)
   const allDone = completedSets >= configuredSets
   const isDisabled = !editMode && timerRunning && !isTimerActive
+  const fillPct = editMode ? 0 : Math.min(100, (completedSets / configuredSets) * 100)
+  const colorPct = completedSets <= 1 ? 0 : ((completedSets - 1) / (configuredSets - 1)) * 100
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : isDisabled ? 0.4 : 1,
-  }
+    '--fill-pct': `${fillPct}%`,
+    '--color-pct': `${colorPct}%`,
+  } as React.CSSProperties
 
   function handleClick(): void {
     if (editMode) { onName(ex); return }
@@ -648,23 +667,24 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
     onPlay(ex)
   }
 
-  return (
-    <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''} ${isDisabled ? styles.exerciseDisabled : ''}`} onClick={handleClick}>
-      {editMode && <div className={styles.dragStrip} style={{ touchAction: 'none' }} {...attributes} {...listeners}><span className={styles.dragGrip} /></div>}
-      <div className={styles.exerciseCardBody}>
+  const cardBody = (
+    <div className={styles.exerciseCardBody}>
       <div className={styles.exerciseCardHeader}>
         <span className={styles.exNameText}>
           {allDone && !editMode && <span className={styles.exDoneCheck}>✓</span>}
           {ex.name}
         </span>
-        {!editMode && (completedSets > 0 || isTimerActive) && (
+        {!editMode && (
           <span className={styles.setProgress}>
-            {Array.from({ length: totalDots }, (_, i) => (
+            {Array.from({ length: configuredSets }, (_, i) => (
               <span key={i} className={i < completedSets ? styles.setDotDone : styles.setDotPending} />
             ))}
-            {completedSets > 0 && !isTimerActive && (
-              <button className={styles.undoBtn} onClick={(e) => { e.stopPropagation(); onUndo(ex.id) }} title="Undo">↩</button>
-            )}
+            <button
+              className={styles.undoBtn}
+              style={{ visibility: completedSets > 0 && !isTimerActive ? 'visible' : 'hidden' }}
+              onClick={(e) => { e.stopPropagation(); onUndo(ex.id) }}
+              title="Undo"
+            >↩</button>
           </span>
         )}
       </div>
@@ -689,16 +709,28 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
         )}
         {lastDone && !editMode && (
           <div className={styles.lastDoneRow}>
-            {t('Latest')}: {lastDone.reps} × {lastDone.kg != null ? formatWeight(lastDone.kg, weightUnit) : '–'} {formatRelativeDate(lastDone.date, t)}
+            {relativeLabel(lastDone.date, t)}: Max {lastDone.reps}×{lastDone.kg != null ? `${lastDone.kg} kg` : '–'}
           </div>
         )}
       </div>
-      </div>
-      {!editMode && !allDone && !isTimerActive && (
-        <div className={styles.playStrip}>
-          <PlayIcon size={22} />
-        </div>
-      )}
+    </div>
+  )
+
+  const playEl = !editMode && !allDone && !isTimerActive
+    ? <div className={styles.playStrip}><PlayIcon size={22} /></div>
+    : null
+
+  return (
+    <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''} ${isDisabled ? styles.exerciseDisabled : ''}`} onClick={handleClick}>
+      {editMode && <div className={styles.dragStrip} style={{ touchAction: 'none' }} {...attributes} {...listeners}><span className={styles.dragGrip} /></div>}
+      {editMode
+        ? cardBody
+        : <>
+            <div className={styles.exerciseFill} />
+            <div className={styles.exerciseLayerBase}>{cardBody}{playEl}</div>
+            {fillPct > 0 && <div className={styles.exerciseLayerMask}>{cardBody}{playEl}</div>}
+          </>
+      }
     </div>
   )
 }
@@ -817,7 +849,11 @@ export default function Traning(): React.JSX.Element {
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
-  const [activeTab,        setActiveTab]        = useState<string | null>(null)
+  const todayStr = (): string => new Date().toISOString().slice(0, 10)
+  const [activeTab, setActiveTab] = useState<string | null>(() => {
+    if (localStorage.getItem('pullpush_activeDate') === todayStr()) return localStorage.getItem('pullpush_activeTab')
+    return null
+  })
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
@@ -832,6 +868,13 @@ export default function Traning(): React.JSX.Element {
   }
   const [addingExercise,   setAddingExercise]   = useState<boolean>(false)
   const [pickerDay,        setPickerDay]        = useState<number | null>(null)
+  const [selectedRestDow, setSelectedRestDow] = useState<number | null>(() => {
+    if (localStorage.getItem('pullpush_activeDate') === todayStr()) {
+      const v = localStorage.getItem('pullpush_selectedRestDow')
+      return v ? Number(v) : null
+    }
+    return null
+  })
   const [workoutId,        setWorkoutId]        = useState<string | null>(null)
   const [workoutSessionId, setWorkoutSessionId] = useState<string | null>(null)
   const [showEndDialog,    setShowEndDialog]    = useState<boolean>(false)
@@ -855,12 +898,14 @@ export default function Traning(): React.JSX.Element {
   const [paused,           setPaused]           = useState<boolean>(false)
   const [timerMinimized,   setTimerMinimized]   = useState<boolean>(false)
   const [autoplay,         setAutoplay]         = useState<boolean>(() => localStorage.getItem('pullpush_autoplay') === 'true')
+  const [fabMenuOpen,      setFabMenuOpen]      = useState<boolean>(false)
   const autoplayRef = useRef(autoplay)
   const completedSetsRef = useRef(completedSets)
   const pausedRemainRef = useRef<number>(0)
   const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
   const timerEndRef = useRef<number>(0)
   const timerPlanRef = useRef<{ phase: TimerPhase; duration: number }[]>([])
+  const planStartRef = useRef<number>(0)
   const timerStepRef = useRef<number>(0)
   const [programDropOpen,  setProgramDropOpen]  = useState<boolean>(false)
   const programDropRef = useRef<HTMLDivElement | null>(null)
@@ -1040,6 +1085,7 @@ export default function Traning(): React.JSX.Element {
 
     timerPlanRef.current = plan
     timerStepRef.current = 0
+    planStartRef.current = Date.now()
     setTimerExId(ex.id)
     setTimerSetsTotal(sets)
     setTimerSet(currentSet)
@@ -1047,9 +1093,83 @@ export default function Traning(): React.JSX.Element {
     // Start Live Activity with total time (countdown + work + rest)
     const totalTime = plan.reduce((sum, p) => sum + p.duration, 0)
     const label = `Set ${currentSet}/${sets} • ${reps} reps\n${ex.name}${setKg ? `\n${formatWeight(setKg, weightUnit)}` : ''}`
-    if (RestTimer) RestTimer.start({ seconds: totalTime, label }).catch(() => {})
+    if (RestTimer) RestTimer.start({ seconds: totalTime, label, endTime: planStartRef.current + totalTime * 1000 }).catch(() => {})
+
+    // Native: pre-schedule ALL sounds for the entire plan upfront so they play
+    // reliably even if the screen is locked during countdown/work/rest
+    if (flowSounds.isNative) {
+      flowSounds.cancelScheduledSounds()
+      const NUMBER_WORDS: Record<number, string> = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five' }
+      const cdLen = getCountdownLength()
+      const style = getCountdownStyle()
+      const items: { name: string, delayMs: number }[] = []
+      let accum = 0
+      for (const p of plan) {
+        if (p.phase === 'countdown') {
+          const start = Math.min(p.duration, cdLen)
+          for (let i = start; i >= 1; i--) {
+            const delay = accum + (p.duration - i) * 1000
+            const name = style === 'beep' ? 'tick' : NUMBER_WORDS[i]
+            if (name) items.push({ name, delayMs: delay })
+          }
+          items.push({ name: 'go', delayMs: accum + p.duration * 1000 })
+        } else if (p.phase === 'rest') {
+          items.push({ name: 'rest', delayMs: accum })
+          items.push({ name: 'rest_end', delayMs: accum + p.duration * 1000 })
+        }
+        accum += p.duration * 1000
+      }
+      flowSounds.scheduleSoundSequence(items, planStartRef.current)
+    }
 
     runTimerStep(plan, 0, ex.id, currentSet, sets, setKg, reps, wId)
+  }
+
+  function scheduleRemainingNativeSounds(
+    plan: { phase: TimerPhase; duration: number }[],
+    fromStep: number,
+    currentPhaseRemainSecs: number
+  ): void {
+    if (!flowSounds.isNative) return
+    const NW: Record<number, string> = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five' }
+    const cdLen = getCountdownLength()
+    const style = getCountdownStyle()
+    const items: { name: string; delayMs: number }[] = []
+    const resumeStart = Date.now()
+    const { phase } = plan[fromStep]
+
+    if (phase === 'countdown') {
+      for (let i = Math.min(Math.floor(currentPhaseRemainSecs), cdLen); i >= 1; i--) {
+        const delay = (currentPhaseRemainSecs - i) * 1000
+        if (delay >= 0) {
+          const name = style === 'beep' ? 'tick' : NW[i]
+          if (name) items.push({ name, delayMs: Math.round(delay) })
+        }
+      }
+      items.push({ name: 'go', delayMs: Math.round(currentPhaseRemainSecs * 1000) })
+    } else if (phase === 'rest') {
+      items.push({ name: 'rest_end', delayMs: Math.round(currentPhaseRemainSecs * 1000) })
+    }
+
+    let accum = Math.round(currentPhaseRemainSecs * 1000)
+    for (let i = fromStep + 1; i < plan.length; i++) {
+      const p = plan[i]
+      if (p.phase === 'countdown') {
+        const start = Math.min(p.duration, cdLen)
+        for (let j = start; j >= 1; j--) {
+          const delay = accum + (p.duration - j) * 1000
+          const name = style === 'beep' ? 'tick' : NW[j]
+          if (name) items.push({ name, delayMs: Math.round(delay) })
+        }
+        items.push({ name: 'go', delayMs: Math.round(accum + p.duration * 1000) })
+      } else if (p.phase === 'rest') {
+        items.push({ name: 'rest', delayMs: Math.round(accum) })
+        items.push({ name: 'rest_end', delayMs: Math.round(accum + p.duration * 1000) })
+      }
+      accum += p.duration * 1000
+    }
+
+    if (items.length > 0) flowSounds.scheduleSoundSequence(items, resumeStart)
   }
 
   function runTimerStep(plan: { phase: TimerPhase; duration: number }[], step: number, exId: string, currentSet: number, setsTotal: number, kg: number | null, reps: number, wId: string | null): void {
@@ -1104,34 +1224,48 @@ export default function Traning(): React.JSX.Element {
 
     const { phase, duration } = plan[step]
 
+    // Calculate absolute end time from plan start (no drift between phases)
+    const elapsedBefore = plan.slice(0, step).reduce((s, p) => s + p.duration, 0)
+    const phaseEndAbs = planStartRef.current + (elapsedBefore + duration) * 1000
+
     // Countdown phase: fullscreen overlay
     if (phase === 'countdown') {
       setCountdownOverlay(duration)
       timerStepRef.current = step
       if (timerRef.current) clearInterval(timerRef.current)
-      const cdEnd = Date.now() + duration * 1000
-      let lastTickSec = -1
+      const cdEnd = phaseEndAbs
+
+      // Web: play first tick immediately. Native has sounds pre-scheduled at plan start.
+      if (!flowSounds.isNative && duration > 0 && duration <= 5) flowSounds.playCountdownTick(duration)
+
+      let lastTickSec = duration
       timerRef.current = setInterval(() => {
         const remaining = Math.ceil((cdEnd - Date.now()) / 1000)
         if (remaining <= 0) {
           if (timerRef.current) clearInterval(timerRef.current)
           timerRef.current = null
           setCountdownOverlay(null)
-          flowSounds.playGo()
+          // On web, play Go if on-time. On native, native scheduler handles Go.
+          if (!flowSounds.isNative) {
+            const msPastEnd = Date.now() - cdEnd
+            if (msPastEnd < 500) flowSounds.playGo()
+          }
           runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
         } else {
-          if (remaining <= 3 && remaining !== lastTickSec) { lastTickSec = remaining; flowSounds.playCountdownTick() }
+          // Web keeps JS-driven ticks for UI + sound. Native: UI only (sounds pre-scheduled).
+          if (!flowSounds.isNative && remaining <= 5 && remaining > 0 && remaining !== lastTickSec) { lastTickSec = remaining; flowSounds.playCountdownTick(remaining) }
           setCountdownOverlay(remaining)
         }
       }, 250)
       return
     }
 
-    const endTime = Date.now() + duration * 1000
+    const endTime = phaseEndAbs
     timerEndRef.current = endTime
     timerStepRef.current = step
     setTimerPhase(phase)
-    setTimerSecs(duration)
+    const initialRemaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000))
+    setTimerSecs(initialRemaining)
     setTimerTotalSecs(duration)
 
     // Schedule notification at end of rest phase
@@ -1155,9 +1289,11 @@ export default function Traning(): React.JSX.Element {
       if (remaining <= 0) {
         if (timerRef.current) clearInterval(timerRef.current)
         timerRef.current = null
+        const onTime = Date.now() - timerEndRef.current < 500
 
         if (phase === 'work') {
-          flowSounds.playRestStart()
+          // Web plays rest-start sound here; native has pre-scheduled it
+          if (onTime && !flowSounds.isNative) flowSounds.playRestStart()
           setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
           // Save completed set to database
           if (wId) {
@@ -1175,12 +1311,14 @@ export default function Traning(): React.JSX.Element {
             console.warn('workout_sets insert skipped: no workoutId')
           }
         } else if (phase === 'rest') {
-          flowSounds.playSetComplete()
+          // Web plays set-complete here; native has pre-scheduled it
+          if (onTime && !flowSounds.isNative) flowSounds.playSetComplete()
         }
 
         runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
       } else {
-        if (phase === 'rest' && remaining <= 3 && remaining > 0 && remaining !== lastPhaseSec) { lastPhaseSec = remaining; flowSounds.playRestEnd() }
+        // Web keeps last-3-sec rest end warning. Native has no equivalent tick — rest_end plays at 0.
+        if (!flowSounds.isNative && phase === 'rest' && remaining <= 3 && remaining > 0 && remaining !== lastPhaseSec) { lastPhaseSec = remaining; flowSounds.playRestEnd() }
         setTimerSecs(remaining)
       }
     }, 250)
@@ -1189,6 +1327,7 @@ export default function Traning(): React.JSX.Element {
   function pauseCountdown(): void {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
+    flowSounds.cancelScheduledSounds()
     pausedRemainRef.current = countdownOverlay ?? 0
     const step = timerStepRef.current
     const plan = timerPlanRef.current
@@ -1204,6 +1343,7 @@ export default function Traning(): React.JSX.Element {
   function pauseExerciseTimer(): void {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
+    flowSounds.cancelScheduledSounds()
     pausedRemainRef.current = Math.ceil((timerEndRef.current - Date.now()) / 1000)
     const step = timerStepRef.current
     const plan = timerPlanRef.current
@@ -1230,7 +1370,8 @@ export default function Traning(): React.JSX.Element {
       const cdEnd = Date.now() + remain * 1000
       // Restart Live Activity
       const totalRemaining = plan.slice(step).reduce((sum, p) => sum + p.duration, 0) - (plan[step].duration - remain)
-      if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(totalRemaining)) }).catch(() => {})
+      if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(totalRemaining)), endTime: Date.now() + totalRemaining * 1000 }).catch(() => {})
+      scheduleRemainingNativeSounds(plan, step, remain)
       timerRef.current = setInterval(() => {
         const r = Math.ceil((cdEnd - Date.now()) / 1000)
         if (r <= 0) {
@@ -1258,7 +1399,8 @@ export default function Traning(): React.JSX.Element {
     const resumeLabelFull = resumeReps > 0
       ? `Set ${ctx.currentSet}/${ctx.setsTotal} • ${resumeReps} reps\n${resumeName}${resumeKg ? `\n${formatWeight(resumeKg, weightUnit)}` : ''}`
       : resumeName
-    if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(remainingTotal)), label: resumeLabelFull }).catch(() => {})
+    if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(remainingTotal)), label: resumeLabelFull, endTime: Date.now() + remainingTotal * 1000 }).catch(() => {})
+    scheduleRemainingNativeSounds(plan, step, remain)
 
     timerRef.current = setInterval(() => {
       const r = Math.ceil((timerEndRef.current - Date.now()) / 1000)
@@ -1378,13 +1520,61 @@ export default function Traning(): React.JSX.Element {
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [])
 
+  // Persist active tab + rest day selection with today's date
+  useEffect(() => {
+    const today = todayStr()
+    localStorage.setItem('pullpush_activeDate', today)
+    if (activeTab) {
+      localStorage.setItem('pullpush_activeTab', activeTab)
+      localStorage.removeItem('pullpush_selectedRestDow')
+    } else if (selectedRestDow != null) {
+      localStorage.removeItem('pullpush_activeTab')
+      localStorage.setItem('pullpush_selectedRestDow', String(selectedRestDow))
+    } else {
+      localStorage.removeItem('pullpush_activeTab')
+      localStorage.removeItem('pullpush_selectedRestDow')
+    }
+  }, [activeTab, selectedRestDow])
+
+  // Auto-select today's session on load or after day reset
   useEffect(() => {
     if (sessions.length === 0) return
     if (activeTab && sessions.find((s: TrainingSession) => s.id === activeTab)) return
-    // Auto-select today's session, or first session as fallback
+    if (selectedRestDow != null) return
     const todayDow = new Date().getDay() || 7
     const todaySession = sessions.find(s => s.day_of_week === todayDow)
-    setActiveTab(todaySession ? todaySession.id : sessions[0].id)
+    if (todaySession) setActiveTab(todaySession.id)
+    else setSelectedRestDow(todayDow)
+  }, [sessions])
+
+  // Reset to today at midnight and when app comes to foreground on a new day
+  useEffect(() => {
+    if (sessions.length === 0) return
+
+    const selectToday = () => {
+      const todayDow = new Date().getDay() || 7
+      const todaySession = sessions.find((s: TrainingSession) => s.day_of_week === todayDow)
+      setSelectedRestDow(null)
+      if (todaySession) setActiveTab(todaySession.id)
+      else { setActiveTab(null); setSelectedRestDow(todayDow) }
+    }
+
+    const checkDayReset = () => {
+      if (localStorage.getItem('pullpush_activeDate') !== todayStr()) selectToday()
+    }
+
+    // Schedule reset at midnight
+    const now = new Date()
+    const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
+    const midnightTimer = setTimeout(selectToday, msUntilMidnight + 500)
+
+    // Also check when app comes to foreground
+    document.addEventListener('visibilitychange', checkDayReset)
+
+    return () => {
+      clearTimeout(midnightTimer)
+      document.removeEventListener('visibilitychange', checkDayReset)
+    }
   }, [sessions])
 
   useEffect(() => {
@@ -1706,42 +1896,75 @@ export default function Traning(): React.JSX.Element {
     setCompletedSets({})
   }, [restoreComplete, currentExercises.length, allSessionDone, workoutId, timerPhase])
 
-  // Inactivity timeout — show dialog if no activity for 15 min during active workout
-  const lastActivityRef = useRef<number>(Date.now())
+  // Inactivity: tracks the last time user DID SOMETHING (completed a set).
+  // Persisted in localStorage so cold-start from notification tap still knows the real elapsed time.
+  const LAST_ACTIVITY_KEY = 'pullpush_lastActivity'
+  const lastActivityRef = useRef<number>(Number(localStorage.getItem(LAST_ACTIVITY_KEY)) || Date.now())
+  const prevCompletedCountRef = useRef<number>(completedSetsInSession)
+
+  // When a NEW set is completed, update the activity timestamp (not on every effect re-run!)
+  useEffect(() => {
+    if (completedSetsInSession > prevCompletedCountRef.current) {
+      lastActivityRef.current = Date.now()
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivityRef.current))
+    }
+    prevCompletedCountRef.current = completedSetsInSession
+  }, [completedSetsInSession])
+
+  // Manage 15-min inactivity notification + dialog based on the persisted lastActivity
   useEffect(() => {
     if (inactivityRef.current) clearTimeout(inactivityRef.current)
-    if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) return
-    lastActivityRef.current = Date.now()
+    if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) {
+      LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
+      if (allSessionDone) localStorage.removeItem(LAST_ACTIVITY_KEY)
+      return
+    }
 
-    // JS timeout (works when app is in foreground)
-    inactivityRef.current = setTimeout(() => {
+    const deadline = lastActivityRef.current + INACTIVITY_MINUTES * 60 * 1000
+    const remainingMs = deadline - Date.now()
+
+    if (remainingMs <= 0) {
+      // Already past 15 min (cold-start from notification, or long foreground inactivity) → show dialog now
+      LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
       setShowInactiveDialog(true)
-    }, INACTIVITY_MINUTES * 60 * 1000)
+      return
+    }
 
-    // Schedule local notification as backup (works when app is backgrounded)
-    const notifTime = new Date(Date.now() + INACTIVITY_MINUTES * 60 * 1000)
-    LocalNotifications.schedule({
-      notifications: [{
-        id: 99,
-        title: t('Still training?'),
-        body: t('You have an unfinished workout'),
-        schedule: { at: notifTime },
-        sound: 'default',
-      }],
-    }).catch(() => {})
+    // JS timeout for foreground (fires when 15 min elapses with app open)
+    inactivityRef.current = setTimeout(() => {
+      LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
+      setShowInactiveDialog(true)
+    }, remainingMs)
+
+    // Schedule backup notification for when app is backgrounded (debounced to avoid races)
+    const scheduleDebounce = setTimeout(() => {
+      LocalNotifications.schedule({
+        notifications: [{
+          id: 99,
+          title: t('Still training?'),
+          body: t('You have an unfinished workout'),
+          schedule: { at: new Date(deadline - 300) },
+          sound: 'default',
+        }],
+      }).catch(() => {})
+    }, 300)
 
     return () => {
+      clearTimeout(scheduleDebounce)
       if (inactivityRef.current) clearTimeout(inactivityRef.current)
       LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
     }
-  }, [workoutId, completedSetsInSession, allSessionDone, timerPhase, completedSets])
+  }, [workoutId, completedSetsInSession, allSessionDone, timerPhase])
 
   // Check inactivity on app resume from background
   useEffect(() => {
     function checkInactivity(): void {
       if (document.hidden) return
+      // Always cancel pending notification when app becomes visible
+      LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
       if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) return
-      const elapsed = Date.now() - lastActivityRef.current
+      const saved = Number(localStorage.getItem(LAST_ACTIVITY_KEY)) || lastActivityRef.current
+      const elapsed = Date.now() - saved
       if (elapsed >= INACTIVITY_MINUTES * 60 * 1000) {
         setShowInactiveDialog(true)
       }
@@ -1750,9 +1973,26 @@ export default function Traning(): React.JSX.Element {
     return () => document.removeEventListener('visibilitychange', checkInactivity)
   }, [workoutId, completedSetsInSession, allSessionDone, timerPhase])
 
+  // Keep screen awake during work and rest phases so user doesn't have to unlock mid-set
+  useEffect(() => {
+    const keep = timerPhase === 'work' || timerPhase === 'rest'
+    if (RestTimer) RestTimer.setKeepAwake({ keep }).catch(() => {})
+  }, [timerPhase])
+
+  // Keep app alive (silent audio) for the entire workout so iOS doesn't kill
+  // the app between sets, ensuring scheduled sounds and notifications work
+  useEffect(() => {
+    if (!RestTimer) return
+    RestTimer.setWorkoutActive({ active: !!workoutId }).catch(() => {})
+  }, [workoutId])
+
   // Find active exercise name/details for overlay
   const timerExercise = currentExercises.find(ex => ex.id === timerExId)
   const timerExLog = timerExId ? logs[timerExId] : undefined
+  // Per-set values (individual sets override global log)
+  const timerSetPlan = timerExId ? individualSets[timerExId]?.[timerSet - 1] : undefined
+  const timerDisplayReps = timerSetPlan?.reps ?? timerExLog?.reps ?? 10
+  const timerDisplayKg = timerSetPlan?.weight_kg ?? timerExLog?.kg ?? null
 
   // Find next exercise/set for rest overlay preview
   const nextUp: { setLabel: string; name: string } | { setLabel: ''; name: string } = (() => {
@@ -1774,7 +2014,7 @@ export default function Traning(): React.JSX.Element {
     <section id="traning">
       <div className={styles.sectionHeaderRow}>
         <h2 className={styles.sectionTitle}>{t('Training sessions')}</h2>
-        {currentExercises.length > 0 && (
+        {sessions.length > 0 && (
           <label className={styles.flowSwitch}>
             <input type="checkbox" checked={!editMode} onChange={() => setEditMode(m => !m)} />
             <span className={styles.flowSlider} />
@@ -1783,48 +2023,103 @@ export default function Traning(): React.JSX.Element {
         )}
       </div>
 
+      {/* Program (week) selector */}
+      {setupStep === null && programs.length > 0 && (
+        <Reveal>
+          <div className={styles.programBar}>
+            {programs.length === 1
+              ? <span className={styles.programLabel}>{programs[0].name}</span>
+              : <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
+                  {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                </select>
+            }
+          </div>
+        </Reveal>
+      )}
+
       {/* Week overview */}
       {sessions.length > 0 && (
-        <div className={styles.weekOverview}>
-          {[1, 2, 3, 4, 5, 6, 7].map(dow => {
-            const daySessions = sessions.filter(s => s.day_of_week === dow)
-            const isToday = dow === (new Date().getDay() || 7)
-            const hasActive = daySessions.some(s => s.id === activeTab)
-            return (
-              <div key={dow} className={styles.weekOverviewDayWrap}>
-                <button
-                  className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''} ${hasActive ? styles.weekOverviewActive : ''}`}
-                  onClick={() => {
-                    if (daySessions.length === 1) setActiveTab(daySessions[0].id)
-                    else if (daySessions.length > 1) setPickerDay(pickerDay === dow ? null : dow)
-                  }}
-                  disabled={daySessions.length === 0}
-                >
-                  <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
-                  <span className={styles.weekOverviewDots}>
-                    {daySessions.length > 0 ? (
-                      <>
-                        <span className={styles.weekOverviewDot} />
-                        {daySessions.length > 1 && <span className={styles.weekOverviewCount}>{daySessions.length}</span>}
-                      </>
-                    ) : (
-                      <span className={styles.weekOverviewDotRest} />
+        <>
+          <div className={styles.weekOverviewRow}>
+            <div className={styles.weekOverview}>
+              {[1, 2, 3, 4, 5, 6, 7].map(dow => {
+                const daySessions = sessions.filter(s => s.day_of_week === dow)
+                const isToday = dow === (new Date().getDay() || 7)
+                const hasActive = daySessions.some(s => s.id === activeTab)
+                return (
+                  <div key={dow} className={styles.weekOverviewDayWrap}>
+                    <button
+                      className={`${styles.weekOverviewDay} ${isToday ? styles.weekOverviewToday : ''} ${hasActive ? styles.weekOverviewActive : ''} ${selectedRestDow === dow ? styles.weekOverviewRestSelected : ''}`}
+                      onClick={() => {
+                        if (daySessions.length === 1) { setActiveTab(daySessions[0].id); setSelectedRestDow(null) }
+                        else if (daySessions.length > 1) { setPickerDay(pickerDay === dow ? null : dow); setSelectedRestDow(null) }
+                        else { setActiveTab(null); setSelectedRestDow(dow) }
+                      }}
+                    >
+                      <span className={styles.weekOverviewLabel}>{dayAbbrev[dow - 1]}</span>
+                      <span className={styles.weekOverviewDots}>
+                        {daySessions.length > 0 ? (
+                          <>
+                            <span className={styles.weekOverviewDot} />
+                            {daySessions.length > 1 && <span className={styles.weekOverviewCount}>{daySessions.length}</span>}
+                          </>
+                        ) : (
+                          <span className={styles.weekOverviewDotRest} />
+                        )}
+                      </span>
+                    </button>
+                    {pickerDay === dow && daySessions.length > 1 && (
+                      <div className={styles.weekPicker}>
+                        {daySessions.map(s => (
+                          <button key={s.id} className={styles.weekPickerItem} onClick={() => { setActiveTab(s.id); setPickerDay(null) }}>
+                            {s.name}
+                          </button>
+                        ))}
+                      </div>
                     )}
-                  </span>
-                </button>
-                {pickerDay === dow && daySessions.length > 1 && (
-                  <div className={styles.weekPicker}>
-                    {daySessions.map(s => (
-                      <button key={s.id} className={styles.weekPickerItem} onClick={() => { setActiveTab(s.id); setPickerDay(null) }}>
-                        {s.name}
-                      </button>
-                    ))}
                   </div>
-                )}
+                )
+              })}
+            </div>
+          </div>
+          {editMode && (
+            <div className={styles.editActionBar}>
+              {currentSession && (
+                <button className={styles.actionChip} onClick={() => setEditingSession(true)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                  {t('Edit session')}
+                </button>
+              )}
+              {programs.length > 0 && (
+                <button className={styles.actionChip} onClick={() => setEditingProgram(true)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                  {t('Edit week')}
+                </button>
+              )}
+            </div>
+          )}
+          {selectedRestDow ? (
+            <>
+              <div className={styles.activeSessionLabel}>{t('Rest day')}</div>
+              <div className={styles.restDayCard}>
+                <div className={styles.restDayBig}><span>Z</span><span>Z</span><span>Z</span></div>
+<div className={styles.restDayStats}>
+                  <div className={styles.restDayStat}>
+                    <span className={styles.restDayStatNum}>{sessions.filter(s => s.day_of_week !== selectedRestDow).length}</span>
+                    <span className={styles.restDayStatLabel}>{t('sessions / week')}</span>
+                  </div>
+                  <div className={styles.restDayStatDivider} />
+                  <div className={styles.restDayStat}>
+                    <span className={styles.restDayStatNum}>{7 - sessions.map(s => s.day_of_week).filter((d, i, a) => a.indexOf(d) === i).length}</span>
+                    <span className={styles.restDayStatLabel}>{t('rest days')}</span>
+                  </div>
+                </div>
               </div>
-            )
-          })}
-        </div>
+            </>
+          ) : currentSession ? (
+            <div className={styles.activeSessionLabel}>{currentSession.name}</div>
+          ) : null}
+        </>
       )}
 
       {setupStep === 1 && (
@@ -1864,38 +2159,7 @@ export default function Traning(): React.JSX.Element {
           )}
 
 
-          {programs.length > 0 && (
-            <Reveal>
-              <div className={styles.programBar}>
-                <select className={styles.programDropdown} value={String(activeProgramId ?? programs[0]?.id ?? '')} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { switchProgram(e.target.value); setAdding(false) }}>
-                  {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
-                </select>
-                {editMode && <button className={styles.editProgramBtn} onClick={() => setEditingProgram(true)} title={t('Edit program')}>✎</button>}
-                {editMode && <button className={styles.addProgramBtn} onClick={() => setCreatingProgram(true)}>+</button>}
-              </div>
-            </Reveal>
-          )}
-
           <Reveal>
-            <div className={styles.topRow}>
-              {sessions.length > 0 && (
-                <select
-                  className={styles.sessionDropdown}
-                  value={String(activeTab ?? sessions[0]?.id ?? '')}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setActiveTab(e.target.value); setAdding(false) }}
-                >
-                  {sessions.map((s: TrainingSession) => (
-                    <option key={s.id} value={String(s.id)}>
-                      {dayAbbrev[s.day_of_week - 1]} — {s.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {editMode && currentSession && (
-                <button className={styles.editProgramBtn} onClick={() => setEditingSession(true)} title={t('Edit session')}>✎</button>
-              )}
-              {editMode && <button className={styles.addProgramBtn} onClick={() => setAddingSession(true)}>+</button>}
-            </div>
 
             {currentExercises.length === 0 && activeTab && (
               <button className={styles.emptyPassBtn} onClick={() => setAddingExercise(true)}>
@@ -1921,7 +2185,7 @@ export default function Traning(): React.JSX.Element {
                   }, 0)
                   const mins = Math.floor(totalSec / 60)
                   const secs = totalSec % 60
-                  return `${t('Estimated time')}: ${mins} min ${secs} sek`
+                  return `${t('Estimated time')}: ~${mins} min`
                 })()}
               </div>
             )}
@@ -2055,9 +2319,9 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${countdownSeconds > 0 ? (countdownOverlay / countdownSeconds) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
-            {timerExLog?.kg != null && (
-              <div className={styles.overlayWeightBelow}>{formatWeight(timerExLog.kg, weightUnit)}</div>
+            <div className={styles.overlayReps}>{timerDisplayReps}x</div>
+            {timerDisplayKg != null && (
+              <div className={styles.overlayWeightBelow}>{formatWeight(timerDisplayKg, weightUnit)}</div>
             )}
           </div>
           <div className={styles.overlayActions}>
@@ -2090,9 +2354,9 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayReps}>{timerExLog?.reps ?? 10}x</div>
-            {timerExLog?.kg != null && (
-              <div className={styles.overlayWeightBelow}>{formatWeight(timerExLog.kg, weightUnit)}</div>
+            <div className={styles.overlayReps}>{timerDisplayReps}x</div>
+            {timerDisplayKg != null && (
+              <div className={styles.overlayWeightBelow}>{formatWeight(timerDisplayKg, weightUnit)}</div>
             )}
           </div>
           <div className={styles.overlayActions}>
@@ -2189,7 +2453,6 @@ export default function Traning(): React.JSX.Element {
             </>
           )}
           <div className={styles.miniTimerInfo}>
-            <MaximizeIcon size={20} className={styles.miniTimerExpandLeft} />
             <span className={styles.miniTimerPhase}>
               {countdownOverlay !== null ? `Set ${timerSet} — ${t('Countdown')}` : timerPhase === 'work' ? `Set ${timerSet} — ${t('Reps')}` : timerPhase === 'side_pause' ? `Set ${timerSet} — ${t('Switch side')}` : `Set ${timerSet} — ${t('Rest')}`}
             </span>
@@ -2198,6 +2461,7 @@ export default function Traning(): React.JSX.Element {
                 ? countdownOverlay
                 : `${Math.floor(timerSecs / 60)}:${String(timerSecs % 60).padStart(2, '0')}`}
             </span>
+            <MaximizeIcon size={20} className={styles.miniTimerExpandRight} />
           </div>
           <div className={styles.miniTimerTrack}>
             <div className={styles.miniTimerFill} style={{ width: `${
@@ -2279,8 +2543,40 @@ export default function Traning(): React.JSX.Element {
         )
       })()}
 
-    {editMode && activeTab && !adding && !addingExercise && (
-      <button className={styles.addExerciseFab} onClick={() => setAddingExercise(true)} title={t('+ Add exercise')}>+</button>
+    {!adding && !addingExercise && !addingSession && !creatingProgram && setupStep === null && (
+      <>
+        {fabMenuOpen && <div className={styles.fabBackdrop} onClick={() => setFabMenuOpen(false)} />}
+        <div className={`${styles.fabMenu} ${fabMenuOpen ? styles.fabMenuOpen : ''}`}>
+          <button
+            className={styles.fabMenuItem}
+            onClick={() => {
+              setFabMenuOpen(false)
+              // If no active session, switch to first available one so the modal has context
+              if (!activeTab && sessions.length > 0) setActiveTab(sessions[0].id)
+              setAddingExercise(true)
+            }}
+            style={{ transitionDelay: fabMenuOpen ? '0.15s' : '0s' }}
+            disabled={sessions.length === 0}
+          >
+            <span className={styles.fabMenuIcon}>+</span>
+            <span className={styles.fabMenuLabel}>{t('New exercise')}</span>
+          </button>
+          <button className={styles.fabMenuItem} onClick={() => { setFabMenuOpen(false); setAddingSession(true) }} style={{ transitionDelay: fabMenuOpen ? '0.08s' : '0s' }}>
+            <span className={styles.fabMenuIcon}>+</span>
+            <span className={styles.fabMenuLabel}>{t('New session')}</span>
+          </button>
+          <button className={styles.fabMenuItem} onClick={() => { setFabMenuOpen(false); setCreatingProgram(true) }} style={{ transitionDelay: fabMenuOpen ? '0s' : '0s' }}>
+            <span className={styles.fabMenuIcon}>+</span>
+            <span className={styles.fabMenuLabel}>{t('New week')}</span>
+          </button>
+        </div>
+        <button
+          className={`${styles.addExerciseFab} ${fabMenuOpen ? styles.addExerciseFabOpen : ''}`}
+          onClick={() => setFabMenuOpen(o => !o)}
+          title={t('Add')}
+          aria-label={t('Add')}
+        >+</button>
+      </>
     )}
 
     {addingExercise && (

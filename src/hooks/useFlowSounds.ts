@@ -1,18 +1,65 @@
 import { useCallback, useRef } from 'react'
-import tickSound from '../sounds/beep.mp3'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import goSound from '../sounds/ElevenLabs_2026-04-15T10_49_37_Saga_gen_sp100_s50_sb75_v3.mp3'
+import restStartSound from '../sounds/rest.mp3'
+import restEndSound from '../sounds/rest is over.mp3'
+import beepSound from '../sounds/beep.mp3'
+import oneSound from '../sounds/one.mp3'
+import twoSound from '../sounds/two.mp3'
+import threeSound from '../sounds/three.mp3'
+import fourSound from '../sounds/four.mp3'
+import fiveSound from '../sounds/five.mp3'
+
+const NUMBER_WORDS: Record<number, string> = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five' }
+const NUMBER_SOUNDS: Record<number, string> = { 1: oneSound, 2: twoSound, 3: threeSound, 4: fourSound, 5: fiveSound }
+
+export type CountdownStyle = 'voice' | 'beep'
+const COUNTDOWN_STYLE_KEY = 'pullpush_countdownStyle'
+export function getCountdownStyle(): CountdownStyle {
+  return (localStorage.getItem(COUNTDOWN_STYLE_KEY) as CountdownStyle) ?? 'voice'
+}
+export function setCountdownStyle(v: CountdownStyle): void {
+  localStorage.setItem(COUNTDOWN_STYLE_KEY, v)
+}
+
+// How many seconds the audible countdown covers (3 or 5)
+const COUNTDOWN_LENGTH_KEY = 'pullpush_countdownLength'
+export function getCountdownLength(): 3 | 5 {
+  const v = localStorage.getItem(COUNTDOWN_LENGTH_KEY)
+  return v === '3' ? 3 : 5
+}
+export function setCountdownLength(v: 3 | 5): void {
+  localStorage.setItem(COUNTDOWN_LENGTH_KEY, String(v))
+}
 
 const STORAGE_KEY = 'pullpush_flowSounds'
+
+interface RestTimerPlugin {
+  playSound(options: { name: string }): Promise<void>
+  setKeepAwake(options: { keep: boolean }): Promise<void>
+  scheduleSound(options: { name: string, delayMs: number }): Promise<void>
+  scheduleSoundSequence(options: { items: { name: string, delayMs: number }[], startTime: number }): Promise<void>
+  cancelScheduledSounds(): Promise<void>
+}
+
+export const IS_NATIVE = Capacitor.isNativePlatform()
+
+const RestTimer: RestTimerPlugin | null = Capacitor.isNativePlatform()
+  ? registerPlugin<RestTimerPlugin>('RestTimer')
+  : null
 
 export function useFlowSounds(): {
   enabled: boolean
   setEnabled: (v: boolean) => void
   warmUp: () => void
-  playCountdownTick: () => void
+  playCountdownTick: (seconds: number) => void
   playGo: () => void
   playRestStart: () => void
   playRestEnd: () => void
   playSetComplete: () => void
+  scheduleSoundSequence: (items: { name: string, delayMs: number }[], startTime?: number) => void
+  cancelScheduledSounds: () => void
+  isNative: boolean
 } {
   const ctxRef = useRef<AudioContext | null>(null)
 
@@ -48,8 +95,11 @@ export function useFlowSounds(): {
   }
 
   // Preload audio files
-  const tickAudioRef = useRef<HTMLAudioElement | null>(null)
   const goAudioRef = useRef<HTMLAudioElement | null>(null)
+  const restStartAudioRef = useRef<HTMLAudioElement | null>(null)
+  const restEndAudioRef = useRef<HTMLAudioElement | null>(null)
+  const beepAudioRef = useRef<HTMLAudioElement | null>(null)
+  const numberAudioRefs = useRef<Record<number, HTMLAudioElement | null>>({})
 
   function playFile(ref: React.MutableRefObject<HTMLAudioElement | null>, src: string): void {
     if (!isEnabled()) return
@@ -60,31 +110,53 @@ export function useFlowSounds(): {
     } catch {}
   }
 
-  // Countdown tick: cinematic tick sound file
-  const playCountdownTick = useCallback(() => {
-    playFile(tickAudioRef, tickSound)
+  // Countdown tick: voice (speak number) or beep — user-configurable
+  const playCountdownTick = useCallback((seconds: number) => {
+    if (!isEnabled()) return
+    // Only play audible countdown within the user-selected range (3 or 5 seconds)
+    if (seconds > getCountdownLength()) return
+    const style = getCountdownStyle()
+    if (style === 'beep') {
+      if (RestTimer) { RestTimer.playSound({ name: 'tick' }).catch(() => {}); return }
+      playFile(beepAudioRef, beepSound)
+      return
+    }
+    // voice
+    const word = NUMBER_WORDS[seconds]
+    const src = NUMBER_SOUNDS[seconds]
+    if (!word || !src) return
+    if (RestTimer) { RestTimer.playSound({ name: word }).catch(() => {}); return }
+    if (!numberAudioRefs.current[seconds]) numberAudioRefs.current[seconds] = new Audio(src)
+    const el = numberAudioRefs.current[seconds]!
+    el.currentTime = 0
+    el.play().catch(() => {})
   }, [])
 
-  // GO! sound file
+  // GO! sound: native on iOS (ducks Spotify), HTMLAudio on web
   const playGo = useCallback(() => {
+    if (!isEnabled()) return
+    if (RestTimer) { RestTimer.playSound({ name: 'go' }).catch(() => {}); return }
     playFile(goAudioRef, goSound)
   }, [])
 
-  // Rest start: deep muted thud
+  // Rest start: voice file (native on iOS, HTMLAudio on web)
   const playRestStart = useCallback(() => {
-    tone(180, 0.25, 'sine', 0.2)
+    if (!isEnabled()) return
+    if (RestTimer) { RestTimer.playSound({ name: 'rest' }).catch(() => {}); return }
+    playFile(restStartAudioRef, restStartSound)
   }, [])
 
-  // Rest ending tick: 24-style double bip
+  // Rest ending tick (last 3 sec warning): 24-style double bip (kept as synth)
   const playRestEnd = useCallback(() => {
     tone(260, 0.08, 'square', 0.15)
     setTimeout(() => tone(260, 0.08, 'square', 0.15), 120)
   }, [])
 
-  // Set complete: deep satisfying two-tone
+  // Rest is over / set complete: voice file (native on iOS, HTMLAudio on web)
   const playSetComplete = useCallback(() => {
-    tone(330, 0.15, 'sine', 0.2)
-    setTimeout(() => tone(440, 0.2, 'sine', 0.2), 100)
+    if (!isEnabled()) return
+    if (RestTimer) { RestTimer.playSound({ name: 'rest_end' }).catch(() => {}); return }
+    playFile(restEndAudioRef, restEndSound)
   }, [])
 
   // Call during user gesture to unlock AudioContext
@@ -97,6 +169,18 @@ export function useFlowSounds(): {
     src.start(0)
   }, [])
 
+  // Schedule a sequence of sounds natively (iOS only) — plays even with locked screen.
+  // Accepts optional startTime (JS Date.now() at anchor) so native aligns with JS clock.
+  const scheduleSoundSequence = useCallback((items: { name: string, delayMs: number }[], startTime?: number) => {
+    if (!isEnabled() || !RestTimer) return
+    RestTimer.scheduleSoundSequence({ items, startTime: startTime ?? Date.now() }).catch(() => {})
+  }, [])
+
+  const cancelScheduledSounds = useCallback(() => {
+    if (!RestTimer) return
+    RestTimer.cancelScheduledSounds().catch(() => {})
+  }, [])
+
   return {
     enabled: isEnabled(),
     setEnabled: (v: boolean) => localStorage.setItem(STORAGE_KEY, String(v)),
@@ -106,5 +190,8 @@ export function useFlowSounds(): {
     playRestStart,
     playRestEnd,
     playSetComplete,
+    scheduleSoundSequence,
+    cancelScheduledSounds,
+    isNative: IS_NATIVE,
   }
 }
