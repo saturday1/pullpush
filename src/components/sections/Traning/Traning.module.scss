@@ -110,6 +110,159 @@
   margin-bottom: 12px;
 }
 
+.emptyPassBtn {
+  width: 100%;
+  padding: 20px;
+  margin: 16px 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.addExerciseFab {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  right: 24px;
+  z-index: 100;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 300;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(232, 25, 125, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+// ── Week overview ──────────────────────────────────────────
+
+.weekOverview {
+  display: flex;
+  margin: 12px 0;
+}
+
+.weekOverviewDayWrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.weekOverviewDay {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:disabled { cursor: default; opacity: 0.5; }
+}
+
+.weekOverviewDots {
+  display: flex;
+  gap: 3px;
+}
+
+.weekOverviewActive {
+}
+
+.weekPicker {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.weekPickerItem {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+
+  &:active { background: var(--bg2); }
+}
+
+.weekOverviewToday {
+  .weekOverviewLabel {
+    font-weight: 900;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+.weekOverviewLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weekOverviewDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.weekOverviewActive .weekOverviewDot {
+  background: var(--accent);
+}
+
+.weekOverviewCount {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.weekOverviewDotRest {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--border);
+  box-sizing: border-box;
+}
+
 // ── Section header with Flow toggle ─────────────────────────
 
 .sectionHeaderRow {
@@ -514,12 +667,13 @@
 
 .overlaySetLabel {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(28px, 7vw, 42px);
+  font-size: clamp(48px, 12vw, 72px);
   font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
   color: #fff;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  line-height: 1;
 }
 
 .overlayExLine {
@@ -532,11 +686,13 @@
 
 .overlayExName {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(22px, 5.5vw, 32px);
+  font-size: clamp(28px, 7vw, 42px);
   font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
   color: #fff;
+  margin-bottom: 16px;
+  line-height: 1;
 }
 
 .overlayWeight {
@@ -562,22 +718,22 @@
 
 .overlayTime {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(80px, 22vw, 160px);
+  font-size: clamp(140px, 38vw, 260px);
   font-weight: 700;
   font-style: italic;
   color: #fff;
-  line-height: 1;
-  margin-bottom: 20px;
+  line-height: 0.9;
+  margin-bottom: 24px;
   padding-right: 4px;
 }
 
 .overlayProgressTrack {
   width: 100%;
-  height: 5px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .overlayProgressFill {
@@ -589,61 +745,114 @@
 
 .overlayReps {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: clamp(48px, 12vw, 80px);
+  font-size: clamp(72px, 18vw, 120px);
   font-weight: 700;
   font-style: italic;
   color: #fff;
   line-height: 1;
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 .overlayWeightBelow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(28px, 7vw, 40px);
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.overlayNextLabel {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(20px, 5vw, 28px);
   font-weight: 300;
   font-style: italic;
   text-transform: uppercase;
-  color: #fff;
-  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 24px;
+  line-height: 1;
 }
 
-.overlayHintRow {
+.overlayNextValue {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(28px, 7vw, 42px);
+  font-weight: 300;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #fff;
+  margin-top: 4px;
+  line-height: 1;
+}
+
+.overlayActions {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
   left: 24px;
   right: 24px;
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 2;
+}
+
+.flowToggleBtn {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
-  color: #fff;
-}
-
-.autoplayBtn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 16px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 
-.autoplayActive {
-  background: rgba(255, 255, 255, 0.25);
+.flowToggleBtnActive {
+  background: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.85);
   color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 0 16px 1px rgba(255, 255, 255, 0.65),
+    0 0 32px 2px rgba(255, 140, 90, 0.55);
 }
 
-.minimizeBtn {
+.flowActionRow {
+  display: flex;
+  gap: 16px;
+}
+
+.flowActionBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.15);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
-  padding: 8px 14px;
-  border-radius: 8px;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: 12px;
   cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.3);
+  }
 }
 
 // ── Minimized timer bar ─────────────────────────────────────
@@ -668,7 +877,6 @@
   position: relative;
   z-index: 1;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
 }
@@ -686,6 +894,7 @@
   font-size: 20px;
   font-weight: 700;
   font-style: italic;
+  margin-left: auto;
 }
 
 .miniTimerTrack {
@@ -702,6 +911,22 @@
   background: #fff;
   border-radius: 999px;
   transition: width 0.3s linear;
+}
+
+.miniTimerExpand {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  z-index: 2;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.miniTimerExpandLeft {
+  flex-shrink: 0;
+  margin-right: 10px;
+  opacity: 0.85;
 }
 
 // ── Pause overlay ───────────────────────────────────────────
@@ -752,6 +977,16 @@
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.pauseStopBtnDanger {
+  border-color: rgba(220, 38, 38, 0.7);
+  color: #fca5a5;
+
+  &:active {
+    background: rgba(220, 38, 38, 0.18);
+    border-color: rgba(220, 38, 38, 1);
+  }
 }
 
 .endDialogActions {
@@ -1290,22 +1525,22 @@
 .setupStep    { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px;
                 border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); transition: opacity .2s; }
 
-.setupActive  { border-color: var(--accent); }
+.setupActive  { border-color: var(--pink, #e8197d); }
 .setupDone    { opacity: .55; }
 .setupLocked  { opacity: .3; pointer-events: none; }
 
 .setupNum     { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
                 display: flex; align-items: center; justify-content: center;
-                font-family: 'Barlow Condensed'; font-size: 14px; flex-shrink: 0; }
-.setupActive .setupNum { background: var(--accent); color: #fff; border-color: var(--accent); }
-.setupDone .setupNum   { background: #2a2a2a; color: var(--accent); border-color: var(--accent); }
+                font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.setupActive .setupNum { background: transparent; color: var(--text); border-color: var(--border); }
+.setupDone .setupNum   { background: var(--bg2); color: var(--text); border-color: var(--border); }
 
 .setupContent { display: flex; flex-direction: column; gap: 6px; }
-.setupTitle   { font-family: 'Barlow Condensed'; font-size: 16px; letter-spacing: .5px; }
-.setupDesc    { font-size: 13px; color: var(--text-muted); }
-.setupCta     { align-self: flex-start; margin-top: 4px; padding: 9px 20px; border-radius: 8px;
-                background: var(--accent-gradient, var(--accent)); color: #fff;
-                font-family: 'Barlow Condensed'; font-size: 16px; letter-spacing: .5px; border: none; cursor: pointer; }
+.setupTitle   { font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 16px; letter-spacing: .5px; }
+.setupDesc    { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--muted); }
+.setupCta     { align-self: flex-start; margin-top: 4px; padding: 10px 24px; border-radius: 10px;
+                background: var(--gradient); color: #fff;
+                font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 700; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; border: none; cursor: pointer; }
 
 // ── Log modal ─────────────────────────────────────────────
 
@@ -1544,17 +1779,63 @@
   border-bottom: 1px solid var(--border);
   background: var(--card);
   cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+
+  // Accent stripe on the left — only in flow mode (not edit mode)
+  &:not(:has(.dragStrip))::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+
+  &:active {
+    background: var(--bg2, var(--bg));
+  }
 
   &:last-child { border-bottom: none; }
+}
+
+.playStrip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  flex-shrink: 0;
+  color: var(--accent);
+  opacity: 0.45;
+}
+
+.exerciseActive .playStrip {
+  display: none;
+}
+
+.exerciseActive::before {
+  background: var(--accent) !important;
+  opacity: 1 !important;
+  width: 5px !important;
+}
+
+.exerciseDisabled::before {
+  background: var(--border) !important;
+  opacity: 0.5 !important;
 }
 
 .dragStrip {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
+  width: 40px;
   flex-shrink: 0;
   user-select: none;
+  cursor: grab;
+
+  &:active { cursor: grabbing; }
 }
 
 .dragGrip {
@@ -1613,6 +1894,22 @@
   font-weight: 700;
   color: var(--text);
   min-width: 42px;
+}
+
+.exerciseNote {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 4px;
+}
+
+.lastDoneRow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-style: italic;
 }
 
 .metaItem {

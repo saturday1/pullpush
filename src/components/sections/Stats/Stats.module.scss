@@ -290,6 +290,45 @@
   margin: 0;
 }
 
+// ── Personal Records ─────────────────────────────────────────
+
+.prList {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.prRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+
+  &:last-child { border-bottom: none; }
+}
+
+.prName {
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.prValue {
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 // ── Workout detail modal ──────────────────────────────────────
 
 .overlay {
@@ -299,7 +338,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
   background: rgba(15, 14, 13, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -314,12 +353,12 @@
 .modal {
   position: relative;
   background: var(--card);
-  border-radius: 16px;
+  border-radius: 24px;
   border: 1px solid var(--border);
   padding: 28px 24px 24px;
   width: 100%;
   max-width: 380px;
-  max-height: calc(100vh - 40px);
+  max-height: 100%;
   overflow-y: auto;
   box-shadow: 0 24px 60px rgba(0,0,0,0.16);
   animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -332,31 +371,36 @@
 
 .modalClose {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: 18px;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: var(--bg2, var(--bg));
+  color: var(--text);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, transform 0.15s;
+  z-index: 1;
 
   &:hover {
-    color: var(--text);
-    background: var(--bg2, var(--bg));
+    background: var(--bg3, var(--bg2));
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 }
 
 .modalTitle {
   font-family: 'Barlow Condensed', sans-serif;
   font-style: italic;
-  font-size: 24px;
+  font-weight: 700;
+  font-size: 28px;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--text);
@@ -404,6 +448,15 @@
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.modalStatIcon {
+  flex-shrink: 0;
+  color: var(--text);
 }
 
 .modalExerciseList {

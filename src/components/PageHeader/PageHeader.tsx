@@ -49,6 +49,7 @@ function useSubtitle(): string {
 }
 
 export default function PageHeader(): React.ReactElement {
+  const { t } = useTranslation()
   const profile = useProfile()
   const loading = profile?.loading ?? true
   const firstName = profile?.firstName ?? null
@@ -61,7 +62,7 @@ export default function PageHeader(): React.ReactElement {
       <div className={styles.blobPurple} aria-hidden="true" />
       <div className={styles.content}>
         <h1 className={styles.title}>
-          Hey <span>{loading ? '…' : (firstName ?? '–')}!</span>
+          {t('Hey')} <span>{loading ? '…' : (firstName ?? '–')}!</span>
         </h1>
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
       </div>

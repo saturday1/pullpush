@@ -6,6 +6,7 @@ import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
 import Skeleton from '../../Skeleton/Skeleton'
 import { useProfile } from '../../../context/ProfileContext'
 import InfoModal from '../../InfoModal/InfoModal'
+import { useWeightUnit, formatWeightJsx } from '../../../hooks/useWeightUnit'
 import styles from './Vikt.module.scss'
 
 interface MacroBar {
@@ -16,10 +17,15 @@ interface MacroBar {
   barWidth: string
 }
 
+const KG_TO_LBS = 2.20462
+const toLbs = (kg: number): number => +(kg * KG_TO_LBS).toFixed(1)
+
 export default function Vikt(): React.JSX.Element {
   const { t } = useTranslation()
   const { weightLoading, profileLoading, startWeight, currentWeight, goalWeight, height, age, macros, logWeight } = useProfile()!
+  const [weightUnit] = useWeightUnit()
   const [weightInput,   setWeightInput]   = useState<string>('')
+  const [lbsInput,      setLbsInput]      = useState<string>('')
   const [loggingWeight, setLoggingWeight] = useState<boolean>(false)
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false)
   const [barsVisible,   setBarsVisible]   = useState<boolean>(false)
@@ -65,15 +71,15 @@ export default function Vikt(): React.JSX.Element {
 
       <Reveal className={styles.section}>
         <CardGrid>
-          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : `${start} kg`} />
-          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : `${weight} kg`} valueStyle={{ color: 'var(--accent)' }} />
-          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : `${goal} kg`}   valueStyle={{ color: 'var(--green)' }} />
+          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(start, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } />
+          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(weight, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } valueStyle={{ color: 'var(--accent)' }} />
+          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(goal, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() }   valueStyle={{ color: 'var(--green)' }} />
           <CardGridItem
             label={t('Change')}
-            value={loading ? <Skeleton width={60} height={18} /> : `${diff > 0 ? '+' : ''}${diff} kg`}
+            value={loading ? <Skeleton width={60} height={18} /> : (() => { const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''; const abs = Math.abs(diff); const [p, s] = formatWeightJsx(abs, weightUnit); const pSigned = `${sign}${p}`; return s ? <>{pSigned}<br /><span className="lbsLight">{sign}{s}</span></> : pSigned })() }
             valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
           />
-          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : `−${kvar} kg`} valueStyle={{ color: 'var(--orange)' }} />
+          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : (() => { const k = parseFloat(kvar); const [p, s] = formatWeightJsx(k, weightUnit); return s ? <>−{p} / <span className="lbsLight">−{s}</span></> : `−${p}` })() } valueStyle={{ color: 'var(--orange)' }} />
         </CardGrid>
       </Reveal>
 
@@ -149,15 +155,25 @@ export default function Vikt(): React.JSX.Element {
           <div className={styles.weightModal} onClick={e => e.stopPropagation()}>
             <div className={styles.weightModalTitle}>{t('Log new weight')}</div>
             <form onSubmit={(e) => { handleLogWeight(e); setShowWeightModal(false) }}>
-              <input
-                type="number" step="0.1"
-                placeholder={t('Current ({{weight}} kg)', { weight })}
-                value={weightInput}
-                onChange={e => setWeightInput(e.target.value)}
-                className={styles.logInput}
-                style={{ width: '100%', marginBottom: 8 }}
-                autoFocus
-              />
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  type="number" step="0.1" inputMode="decimal"
+                  placeholder={`${weight} kg`}
+                  value={weightInput}
+                  onChange={e => { setWeightInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setLbsInput(!isNaN(n) ? toLbs(n).toString() : '') }}
+                  className={styles.logInput}
+                  style={{ flex: 1 }}
+                  autoFocus
+                />
+                <input
+                  type="number" step="0.1" inputMode="decimal"
+                  placeholder={`${toLbs(weight)} lbs`}
+                  value={lbsInput}
+                  onChange={e => { setLbsInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setWeightInput(!isNaN(n) ? (n / KG_TO_LBS).toFixed(1) : '') }}
+                  className={styles.logInput}
+                  style={{ flex: 1 }}
+                />
+              </div>
               <div className={styles.weightModalActions}>
                 <button type="button" className={styles.weightModalCancel} onClick={() => setShowWeightModal(false)}>{t('Cancel')}</button>
                 <button type="submit" disabled={loggingWeight} className={`${styles.logBtn} ${styles.weightModalSave}`}>

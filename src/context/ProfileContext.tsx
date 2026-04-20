@@ -38,6 +38,7 @@ interface ProfileState {
   weightLoading: boolean
   sessionsLoading: boolean
   programsLoading: boolean
+  exercisesLoading: boolean
   firstName: string | null
   lastName: string | null
   birthDate: string | null
@@ -45,6 +46,7 @@ interface ProfileState {
   startWeight: number | null
   currentWeight: number | null
   goalWeight: number | null
+  gender: 'male' | 'female' | null
   height: number | null
   age: number | null
   macros: Macros | null
@@ -69,6 +71,7 @@ interface ProfileUpdate {
   sec_per_rep?: number | null
   countdown_seconds?: number | null
   side_pause_seconds?: number | null
+  gender?: 'male' | 'female' | null
 }
 
 interface SessionInput {
@@ -95,10 +98,12 @@ interface ProfileContextValue extends ProfileState {
   renameProgram: (id: string, name: string) => Promise<void>
   deleteProgram: (id: string) => Promise<void>
   load: () => Promise<void>
+  setExercisesLoading: (loading: boolean) => void
 }
 
-function calcMacros(weight: number, height: number, age: number): Macros {
-  const bmr = Math.round(10 * weight + 6.25 * height - 5 * age + 5)
+function calcMacros(weight: number, height: number, age: number, gender: 'male' | 'female' | null): Macros {
+  const genderOffset = gender === 'female' ? -161 : 5
+  const bmr = Math.round(10 * weight + 6.25 * height - 5 * age + genderOffset)
   const tdee = Math.round(bmr * 1.55)
   const deficit = 280
   const targetKcal = tdee - deficit
@@ -139,6 +144,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     weightLoading: true,
     sessionsLoading: true,
     programsLoading: true,
+    exercisesLoading: true,
     firstName: null,
     lastName: null,
     birthDate: null,
@@ -146,6 +152,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     startWeight: null,
     currentWeight: null,
     goalWeight: null,
+    gender: null,
     height: null,
     age: null,
     macros: null,
@@ -213,7 +220,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
         const newState: ProfileState = { ...prev, currentWeight, startWeight, weightLoading: false }
         // Recalculate macros if profile data is already available
         if (!prev.profileLoading && currentWeight && prev.height && prev.age) {
-          newState.macros = calcMacros(currentWeight, prev.height, prev.age)
+          newState.macros = calcMacros(currentWeight, prev.height, prev.age, prev.gender)
         }
         newState.loading = !prev.profileLoading && !prev.sessionsLoading && !prev.programsLoading ? false : prev.loading
         return newState
@@ -243,18 +250,19 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       const secPerRep: number = profile?.sec_per_rep ?? 4
       const countdownSeconds: number = profile?.countdown_seconds ?? 10
       const sidePauseSeconds: number = profile?.side_pause_seconds ?? 5
+      const gender: 'male' | 'female' | null = profile?.gender ?? null
       const age = calcAge(birthDate)
 
       setState(prev => {
         const newState: ProfileState = {
           ...prev,
-          firstName, lastName, birthDate, phone, goalWeight, height, age, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds,
+          firstName, lastName, birthDate, phone, goalWeight, gender, height, age, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds,
           startWeight: startWeight ?? prev.startWeight,
           profileLoading: false,
         }
         // Recalculate macros if weight data is already available
         if (!prev.weightLoading && prev.currentWeight && height && age) {
-          newState.macros = calcMacros(prev.currentWeight, height, age)
+          newState.macros = calcMacros(prev.currentWeight, height, age, gender)
         }
         newState.loading = !prev.weightLoading && !prev.sessionsLoading && !prev.programsLoading ? false : prev.loading
         return newState
@@ -295,7 +303,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     return !error
   }
 
-  async function updateProfile({ goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, rest_seconds, sec_per_rep, countdown_seconds, side_pause_seconds }: ProfileUpdate): Promise<boolean> {
+  async function updateProfile({ goal_weight, start_weight, height_cm, first_name, last_name, birth_date, phone, rest_seconds, sec_per_rep, countdown_seconds, side_pause_seconds, gender }: ProfileUpdate): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
     const row: Record<string, unknown> = { user_id: user.id, goal_weight, height_cm, first_name, last_name, birth_date, phone }
@@ -304,6 +312,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     if (sec_per_rep != null) row.sec_per_rep = sec_per_rep
     if (countdown_seconds != null) row.countdown_seconds = countdown_seconds
     if (side_pause_seconds != null) row.side_pause_seconds = side_pause_seconds
+    if (gender !== undefined) row.gender = gender
     const { error } = await supabase.from('profile').upsert(
       row,
       { onConflict: 'user_id' }
@@ -377,8 +386,12 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     await load(true)
   }
 
+  function setExercisesLoading(loading: boolean): void {
+    setState(prev => ({ ...prev, exercisesLoading: loading }))
+  }
+
   return (
-    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load }}>
+    <ProfileContext.Provider value={{ ...state, logWeight, updateProfile, saveSessions, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load, setExercisesLoading }}>
       {children}
     </ProfileContext.Provider>
   )

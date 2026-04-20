@@ -17,12 +17,11 @@ import Vikt from './components/sections/Vikt/Vikt'
 import Stats from './components/sections/Stats/Stats'
 import styles from './App.module.scss'
 
-function SplashGate({ children }: { children: React.ReactNode }): React.ReactElement {
+function SplashOverlay(): React.ReactElement | null {
   const profile = useProfile()
-  const loading = profile?.loading ?? true
-
-  if (loading) return <Splash />
-  return <>{children}</>
+  const loading = (profile?.loading ?? true) || (profile?.exercisesLoading ?? true)
+  if (!loading) return null
+  return <Splash />
 }
 
 function AppRoutes(): React.ReactElement {
@@ -68,11 +67,10 @@ export default function App(): React.ReactElement | null {
     <HashRouter>
       <ThemeProvider>
       <ProfileProvider>
-        <SplashGate>
-          <Routes>
-            <Route path="*" element={<AppRoutes />} />
-          </Routes>
-        </SplashGate>
+        <SplashOverlay />
+        <Routes>
+          <Route path="*" element={<AppRoutes />} />
+        </Routes>
       </ProfileProvider>
       </ThemeProvider>
     </HashRouter>

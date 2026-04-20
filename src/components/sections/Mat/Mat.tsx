@@ -768,7 +768,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                 <div className={styles.modalFields}>
                     <label className={styles.modalField}>
                         <span className={styles.modalLabel}>{t('Time')}</span>
-                        <input className={styles.modalInput} value={form.time_label} onChange={e => set('time_label', e.target.value)} placeholder={t('e.g. 07:00 or After workout')} />
+                        <input className={styles.modalInput} value={form.time_label} onChange={e => set('time_label', e.target.value)} placeholder={t('e.g. 0700 or after workout')} />
                     </label>
                     <label className={styles.modalField}>
                         <span className={styles.modalLabel}>{t('Label')}</span>
@@ -790,19 +790,19 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                     <div className={styles.macroInputRow}>
                         <label className={styles.modalField}>
                             <span className={styles.modalLabel} style={{ color: '#f97316' }}>{t('Protein (g)')}</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.protein_g} onChange={e => set('protein_g', e.target.value)} />
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.protein_g} onChange={e => set('protein_g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
                             <span className={styles.modalLabel} style={{ color: '#60a5fa' }}>{t('Carbs (g)')}</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.carbs_g} onChange={e => set('carbs_g', e.target.value)} />
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.carbs_g} onChange={e => set('carbs_g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
                             <span className={styles.modalLabel} style={{ color: '#22c55e' }}>{t('Fat (g)')}</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
-                            <span className={styles.modalLabel}>Kcal</span>
-                            <input className={styles.modalInput} type="number" min="0" value={form.kcal} onChange={e => set('kcal', e.target.value)} />
+                            <span className={styles.modalLabel}>{t('Kcal')}</span>
+                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.kcal} onChange={e => set('kcal', e.target.value)} />
                         </label>
                     </div>
                 </div>
@@ -872,11 +872,69 @@ function MealTable({ meals, onEdit, onDelete, onToggleRecurring, t }: MealTableP
 
 // --- Main component ---
 
-function buildTips(weight: number | null, age: number | null, t: TFunction): { icon: string; title: string; detail: string }[] {
+interface Macros {
+    targetKcal: number
+    protein: number
+    carbs: number
+    fat: number
+}
+
+function buildTips(weight: number | null, age: number | null, totals: MealTotals, macros: Macros | null, t: TFunction): { icon: string; title: string; detail: string }[] {
     const w = weight ?? 80
     const tips: { icon: string; title: string; detail: string }[] = []
+    const hasLogged = totals.kcal > 0
 
-    // Kreatin: 0.07 g/kg kroppsvikt, avrundat till närmaste halva gram
+    // Kalorier — actionable om loggat
+    if (hasLogged && macros) {
+        const kcalLeft = macros.targetKcal - totals.kcal
+        if (kcalLeft > 100) {
+            tips.push({
+                icon: '🔥',
+                title: t('Calories'),
+                detail: t('kcalActionable', { current: Math.round(totals.kcal), target: macros.targetKcal, remaining: Math.round(kcalLeft) }),
+            })
+        } else if (kcalLeft > -200) {
+            tips.push({
+                icon: '✅',
+                title: t('Calories'),
+                detail: t('kcalOnTrack'),
+            })
+        } else {
+            tips.push({
+                icon: '⚠️',
+                title: t('Calories'),
+                detail: t('kcalOver', { over: Math.round(Math.abs(kcalLeft)) }),
+            })
+        }
+    }
+
+    // Protein — actionable om loggat
+    if (hasLogged && macros) {
+        const protLeft = macros.protein - totals.protein_g
+        if (protLeft > 10) {
+            tips.push({
+                icon: '🥛',
+                title: t('Protein'),
+                detail: t('proteinActionable', { current: Math.round(totals.protein_g), target: macros.protein, remaining: Math.round(protLeft) }),
+            })
+        } else {
+            tips.push({
+                icon: '✅',
+                title: t('Protein'),
+                detail: t('proteinOnTrack', { current: Math.round(totals.protein_g), target: macros.protein }),
+            })
+        }
+    } else {
+        const proteinMin = Math.round(w * 1.6)
+        const proteinMax = Math.round(w * 2.0)
+        tips.push({
+            icon: '🥛',
+            title: t('Protein'),
+            detail: t('proteinTip', { min: proteinMin, max: proteinMax }),
+        })
+    }
+
+    // Kreatin: alltid statiskt
     const creatine = Math.round(w * 0.07 * 2) / 2
     tips.push({
         icon: '💊',
@@ -884,16 +942,7 @@ function buildTips(weight: number | null, age: number | null, t: TFunction): { i
         detail: t('creatineTip', { dose: creatine, weight: w }),
     })
 
-    // Protein: 1.6-2.0 g/kg
-    const proteinMin = Math.round(w * 1.6)
-    const proteinMax = Math.round(w * 2.0)
-    tips.push({
-        icon: '🥛',
-        title: t('Protein'),
-        detail: t('proteinTip', { min: proteinMin, max: proteinMax }),
-    })
-
-    // Vatten: 0.033 l/kg, avrundat
+    // Vatten
     const water = (w * 0.033).toFixed(1)
     tips.push({
         icon: '💧',
@@ -901,7 +950,7 @@ function buildTips(weight: number | null, age: number | null, t: TFunction): { i
         detail: t('waterTip', { liters: water }),
     })
 
-    // Sömn baserat på ålder
+    // Sömn
     const sleepHours = age && age > 40 ? '7–9' : '7–8'
     tips.push({
         icon: '😴',
@@ -1040,7 +1089,7 @@ export default function Mat(): React.JSX.Element {
         fat_g: acc.fat_g + m.fat_g,
     }), { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
 
-    const tips = buildTips(profile?.currentWeight ?? null, profile?.age ?? null, t)
+    const tips = buildTips(profile?.currentWeight ?? null, profile?.age ?? null, totals, profile?.macros ?? null, t)
 
     return (
         <section id="mat">
@@ -1116,10 +1165,10 @@ export default function Mat(): React.JSX.Element {
                         {profile?.macros ? (
                             <div className={styles.macroRings}>
                                 {([
-                                    { key: 'kcal', label: 'KCAL', current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
-                                    { key: 'protein', label: 'PROT', current: totals.protein_g, target: profile.macros.protein, unit: 'g', color: '#f97316' },
-                                    { key: 'carbs', label: 'CARBS', current: totals.carbs_g, target: profile.macros.carbs, unit: 'g', color: '#60a5fa' },
-                                    { key: 'fat', label: 'FAT', current: totals.fat_g, target: profile.macros.fat, unit: 'g', color: '#22c55e' },
+                                    { key: 'kcal', label: t('KCAL'), current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
+                                    { key: 'protein', label: t('PROT'), current: totals.protein_g, target: profile.macros.protein, unit: 'g', color: '#f97316' },
+                                    { key: 'carbs', label: t('CARBS'), current: totals.carbs_g, target: profile.macros.carbs, unit: 'g', color: '#60a5fa' },
+                                    { key: 'fat', label: t('FAT'), current: totals.fat_g, target: profile.macros.fat, unit: 'g', color: '#22c55e' },
                                 ] as const).map(row => {
                                     const pct = row.target > 0 ? Math.min(100, (row.current / row.target) * 100) : 0
                                     return (

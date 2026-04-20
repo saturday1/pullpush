@@ -53,6 +53,7 @@ html {
   overflow-x: hidden;
   width: 100%;
   max-width: 100%;
+  background: #2b2152;
 }
 
 body {
@@ -63,9 +64,6 @@ body {
   overflow-x: hidden;
   width: 100%;
   max-width: 100%;
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
 
   // Ambient color blobs — organic feel
   &::before {
@@ -85,6 +83,12 @@ body {
   position: relative;
   z-index: 1;
   overflow-x: hidden;
+  background: var(--bg);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 input[type=number]::-webkit-inner-spin-button,
@@ -93,6 +97,12 @@ input[type=number]::-webkit-outer-spin-button {
   margin: 0;
 }
 input[type=number] { -moz-appearance: textfield; }
+
+// Secondary unit (lbs) — lighter weight when shown next to bold kg
+.lbsLight {
+  font-weight: 400 !important;
+  font-style: inherit;
+}
 
 // Macro pills
 .pill {

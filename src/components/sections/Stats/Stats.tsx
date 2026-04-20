@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
+import { X } from 'lucide-react'
+import ClockIcon from '../../icons/Normal/ClockIcon'
+import WeightIcon from '../../icons/Normal/WeightIcon'
+import { useWeightUnit, formatWeight } from '../../../hooks/useWeightUnit'
 import {
     Bar,
     BarChart,
@@ -50,6 +54,7 @@ interface RawWorkout {
     completed_at: string | null
     started_at: string | null
     session_id: number | null
+    session_name: string | null
 }
 
 interface RawSet {
@@ -97,18 +102,30 @@ function formatDuration(
     return m === 0 ? `${h} ${t('h')}` : `${h} ${t('h')} ${m} ${t('min')}`
 }
 
+const KG_TO_LBS = 2.20462
+const toLbs = (kg: number): number => +(kg * KG_TO_LBS).toFixed(1)
+
 function formatTotalKg(kg: number): string {
     return `${Math.round(kg).toLocaleString('sv-SE')} kg`
+}
+
+function formatTotalKgLbs(kg: number): string {
+    const kgStr = Math.round(kg).toLocaleString('sv-SE')
+    const lbsStr = Math.round(kg * KG_TO_LBS).toLocaleString('sv-SE')
+    return `${kgStr} kg / ${lbsStr} lbs`
 }
 
 export default function Stats(): React.JSX.Element {
     const { t } = useTranslation()
     const { pathname } = useLocation()
     const isActive = pathname === '/stats'
+    interface PersonalRecord { name: string; kg: number; lbs: number }
+    const [weightUnit] = useWeightUnit()
     const [loading, setLoading] = useState(true)
     const [workouts, setWorkouts] = useState<CompletedWorkout[]>([])
     const [openWorkout, setOpenWorkout] = useState<CompletedWorkout | null>(null)
     const [favoriteExercise, setFavoriteExercise] = useState<FavoriteExercise | null>(null)
+    const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([])
 
     useEffect(() => {
         if (!openWorkout) return
@@ -131,7 +148,7 @@ export default function Stats(): React.JSX.Element {
             const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
                 supabase
                     .from('workouts')
-                    .select('id, completed_at, started_at, session_id')
+                    .select('id, completed_at, started_at, session_id, session_name')
                     .eq('user_id', user.id)
                     .not('completed_at', 'is', null)
                     .order('completed_at', { ascending: false }),
@@ -260,7 +277,7 @@ export default function Stats(): React.JSX.Element {
                         completed_at: w.completed_at!,
                         started_at: w.started_at,
                         session_id: w.session_id,
-                        session_name: w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null,
+                        session_name: w.session_name ?? (w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null),
                         set_count: agg?.setCount ?? 0,
                         total_kg: agg?.totalKg ?? 0,
                         exercises,
@@ -293,8 +310,15 @@ export default function Stats(): React.JSX.Element {
                 ? { name: exerciseMap.get(favExId) ?? `Exercise ${favExId}`, count: favBest }
                 : null
 
+            // Build personal records from runningMaxKg
+            const prs: PersonalRecord[] = Array.from(runningMaxKg.entries())
+                .map(([exId, kg]) => ({ name: exerciseMap.get(exId) ?? `Exercise ${exId}`, kg, lbs: toLbs(kg) }))
+                .sort((a, b) => b.kg - a.kg)
+                .slice(0, 10)
+
             setWorkouts(processed)
             setFavoriteExercise(favorite)
+            setPersonalRecords(prs)
             setLoading(false)
         }
 
@@ -306,6 +330,7 @@ export default function Stats(): React.JSX.Element {
     // ── Summary card values ────────────────────────────────────
     const totalWorkouts = workouts.length
     const totalSets = workouts.reduce((sum, w) => sum + w.set_count, 0)
+    const totalVolume = workouts.reduce((sum, w) => sum + w.total_kg, 0)
 
     const sessionCounts: Record<string, number> = {}
     for (const w of workouts) {
@@ -316,6 +341,45 @@ export default function Stats(): React.JSX.Element {
 
     const oldestWorkout = workouts.length > 0 ? workouts[workouts.length - 1].completed_at : null
     const trainingSince = oldestWorkout ? formatDisplayDate(oldestWorkout) : '–'
+
+    // Streak: consecutive weeks with at least 1 workout
+    const weekStreak = (() => {
+        if (workouts.length === 0) return 0
+        const getWeekKey = (iso: string) => {
+            const d = new Date(iso)
+            const jan1 = new Date(d.getFullYear(), 0, 1)
+            const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+            return `${d.getFullYear()}-W${week}`
+        }
+        const weeks = new Set(workouts.map(w => getWeekKey(w.completed_at)))
+        const now = new Date()
+        let streak = 0
+        for (let i = 0; i < 52; i++) {
+            const d = new Date(now.getTime() - i * 7 * 86400000)
+            const jan1 = new Date(d.getFullYear(), 0, 1)
+            const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+            const key = `${d.getFullYear()}-W${week}`
+            if (weeks.has(key)) streak++
+            else break
+        }
+        return streak
+    })()
+
+    // ── Weekly volume data (line chart) ────────────────────────
+    const weeklyVolumeData: { week: string; volume: number }[] = (() => {
+        const map = new Map<string, number>()
+        for (const w of workouts) {
+            const d = new Date(w.completed_at)
+            const dayOfYear = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 1).getTime()) / 86400000)
+            const weekNum = Math.ceil((dayOfYear + new Date(d.getFullYear(), 0, 1).getDay() + 1) / 7)
+            const key = `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+            map.set(key, (map.get(key) ?? 0) + w.total_kg)
+        }
+        return Array.from(map.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .slice(-12)
+            .map(([week, volume]) => ({ week: `V${week.split('-W')[1]}`, volume: Math.round(volume) }))
+    })()
 
     // ── Monthly workout data (bar chart) ─────────────────────
     const monthlyData: { month: string; count: number }[] = (() => {
@@ -396,8 +460,16 @@ export default function Stats(): React.JSX.Element {
                     <div className={styles.summaryValue}>{totalSets}</div>
                 </div>
                 <div className={styles.summaryCard}>
+                    <div className={styles.summaryLabel}>{t('Total volume')}</div>
+                    <div className={styles.summaryValueSmall}>{formatWeight(Math.round(totalVolume), weightUnit)}</div>
+                </div>
+                <div className={styles.summaryCard}>
                     <div className={styles.summaryLabel}>{t('Most trained')}</div>
                     <div className={styles.summaryValue} title={mostTrained}>{mostTrained}</div>
+                </div>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryLabel}>{t('Streak')}</div>
+                    <div className={styles.summaryValue}>{weekStreak > 0 ? t('{{n}} weeks', { n: weekStreak }) : '–'}</div>
                 </div>
                 <div className={styles.summaryCard}>
                     <div className={styles.summaryLabel}>{t('Training since')}</div>
@@ -465,6 +537,45 @@ export default function Stats(): React.JSX.Element {
                 </>
             )}
 
+            {/* ── Section 2b: Weekly volume chart ── */}
+            {weeklyVolumeData.length > 1 && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Weekly volume')}</div>
+                    <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={weeklyVolumeData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#7c3aed" />
+                                        <stop offset="100%" stopColor="#2563eb" />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}t`} />
+                                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value: number) => [`${value.toLocaleString('sv-SE')} kg`, t('Volume')]} />
+                                <Bar dataKey="volume" fill="url(#volumeGradient)" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </>
+            )}
+
+            {/* ── Section 2c: Personal Records ── */}
+            {personalRecords.length > 0 && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Personal Records')}</div>
+                    <div className={styles.prList}>
+                        {personalRecords.map((pr, i) => (
+                            <div key={i} className={styles.prRow}>
+                                <span className={styles.prName}>{pr.name}</span>
+                                <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+
             {/* ── Section 3: Workout history ── */}
             <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Workout History')}</div>
             <div className={styles.workoutList}>
@@ -513,13 +624,22 @@ export default function Stats(): React.JSX.Element {
                             onClick={() => setOpenWorkout(null)}
                             aria-label={t('Close')}
                         >
-                            ✕
+                            <X size={20} strokeWidth={2.5} />
                         </button>
                         <div className={styles.modalTitle}>
                             {openWorkout.session_name ?? '–'}
                         </div>
                         <div className={styles.modalSubtitle}>
-                            {formatDisplayDate(openWorkout.completed_at)} · {formatDisplayTime(openWorkout.completed_at)}
+                            {(() => {
+                                if (!openWorkout.started_at) {
+                                    return `${formatDisplayDate(openWorkout.completed_at)} · ${formatDisplayTime(openWorkout.completed_at)}`
+                                }
+                                const sameDay = formatDisplayDate(openWorkout.started_at) === formatDisplayDate(openWorkout.completed_at)
+                                if (sameDay) {
+                                    return `${formatDisplayDate(openWorkout.completed_at)} · ${formatDisplayTime(openWorkout.started_at)} – ${formatDisplayTime(openWorkout.completed_at)}`
+                                }
+                                return `${formatDisplayDate(openWorkout.started_at)} ${formatDisplayTime(openWorkout.started_at)} – ${formatDisplayDate(openWorkout.completed_at)} ${formatDisplayTime(openWorkout.completed_at)}`
+                            })()}
                         </div>
 
                         {openWorkout.pr_count > 0 && (
@@ -539,13 +659,13 @@ export default function Stats(): React.JSX.Element {
                             <div className={styles.modalStat}>
                                 <div className={styles.modalStatLabel}>{t('Duration')}</div>
                                 <div className={styles.modalStatValue}>
-                                    ⏱ {formatDuration(openWorkout.started_at, openWorkout.completed_at, t)}
+                                    <ClockIcon size={20} className={styles.modalStatIcon} /> {formatDuration(openWorkout.started_at, openWorkout.completed_at, t)}
                                 </div>
                             </div>
                             <div className={styles.modalStat}>
                                 <div className={styles.modalStatLabel}>{t('Total')}</div>
                                 <div className={styles.modalStatValue}>
-                                    ⚖ {formatTotalKg(openWorkout.total_kg)}
+                                    <WeightIcon size={20} className={styles.modalStatIcon} /> {formatWeight(Math.round(openWorkout.total_kg), weightUnit)}
                                 </div>
                             </div>
                         </div>
@@ -570,7 +690,7 @@ export default function Stats(): React.JSX.Element {
                                                     {t('Set')} {s.set_number}
                                                 </span>
                                                 <span className={styles.modalSetValue}>
-                                                    {s.reps ?? '–'} {t('reps')} × {s.kg ?? '–'} kg
+                                                    {s.reps ?? '–'} {t('reps')} × {s.kg != null ? formatWeight(s.kg, weightUnit) : '–'}
                                                 </span>
                                             </div>
                                         ))}
