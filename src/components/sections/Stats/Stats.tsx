@@ -6,10 +6,16 @@ import ClockIcon from '../../icons/Normal/ClockIcon'
 import WeightIcon from '../../icons/Normal/WeightIcon'
 import { useWeightUnit, formatWeight } from '../../../hooks/useWeightUnit'
 import {
+    Area,
+    AreaChart,
     Bar,
     BarChart,
     CartesianGrid,
+    Cell,
+    Pie,
+    PieChart,
     ResponsiveContainer,
+    Sector,
     Tooltip,
     XAxis,
     YAxis,
@@ -126,6 +132,10 @@ export default function Stats(): React.JSX.Element {
     const [openWorkout, setOpenWorkout] = useState<CompletedWorkout | null>(null)
     const [favoriteExercise, setFavoriteExercise] = useState<FavoriteExercise | null>(null)
     const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([])
+    const [prWorkoutMap, setPrWorkoutMap] = useState<Record<string, string>>({})
+    const [exerciseProgressData, setExerciseProgressData] = useState<Record<string, { date: string; kg: number }[]>>({})
+    const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
+    const [heatmapOffset, setHeatmapOffset] = useState(0) // 0 = current month, -1 = last month, etc.
 
     useEffect(() => {
         if (!openWorkout) return
@@ -223,6 +233,7 @@ export default function Stats(): React.JSX.Element {
             const prCountByWorkout = new Map<string, number>()
             const prExerciseIdsByWorkout = new Map<string, number[]>()
             const runningMaxKg = new Map<number, number>()
+            const maxKgWorkoutId = new Map<number, string>() // exercise_id → workout_id that holds current max
             const chronoWorkouts = rawWorkouts
                 .filter(w => w.completed_at)
                 .slice()
@@ -245,13 +256,12 @@ export default function Stats(): React.JSX.Element {
                 for (const [exId, best] of workoutBestKg) {
                     const prev = runningMaxKg.get(exId)
                     if (prev === undefined || best > prev) {
-                        // First time we see this exercise isn't a PR — it's just the baseline.
-                        // Only count it as a PR when a previous baseline existed and was beaten.
                         if (prev !== undefined) {
                             count += 1
                             ids.push(exId)
                         }
                         runningMaxKg.set(exId, best)
+                        maxKgWorkoutId.set(exId, w.id)
                     }
                 }
                 if (count > 0) {
@@ -316,9 +326,46 @@ export default function Stats(): React.JSX.Element {
                 .sort((a, b) => b.kg - a.kg)
                 .slice(0, 10)
 
+            // Map exercise name → workout id that holds the current max
+            const prWkMap: Record<string, string> = {}
+            for (const [exId, wkId] of maxKgWorkoutId) {
+                const name = exerciseMap.get(exId) ?? `Exercise ${exId}`
+                prWkMap[name] = wkId
+            }
+
+            // Build exercise progress data (max kg per exercise per date, deduplicated)
+            const progressRaw: Record<string, Map<string, number>> = {}
+            for (const w of chronoWorkouts) {
+                const agg = workoutAggMap.get(w.id)
+                if (!agg || !w.completed_at) continue
+                const dateStr = w.completed_at.slice(0, 10)
+                for (const [exId, sets] of agg.exerciseSets) {
+                    let best = -Infinity
+                    for (const s of sets) {
+                        if (s.kg != null && s.kg > best) best = s.kg
+                    }
+                    if (best > -Infinity) {
+                        const name = exerciseMap.get(exId) ?? `Exercise ${exId}`
+                        if (!progressRaw[name]) progressRaw[name] = new Map()
+                        const prev = progressRaw[name].get(dateStr)
+                        if (prev === undefined || best > prev) {
+                            progressRaw[name].set(dateStr, best)
+                        }
+                    }
+                }
+            }
+            const progressMap: Record<string, { date: string; kg: number }[]> = {}
+            for (const [name, dateMap] of Object.entries(progressRaw)) {
+                progressMap[name] = Array.from(dateMap.entries())
+                    .sort((a, b) => a[0].localeCompare(b[0]))
+                    .map(([date, kg]) => ({ date, kg }))
+            }
+
             setWorkouts(processed)
             setFavoriteExercise(favorite)
             setPersonalRecords(prs)
+            setPrWorkoutMap(prWkMap)
+            setExerciseProgressData(progressMap)
             setLoading(false)
         }
 
@@ -365,6 +412,120 @@ export default function Stats(): React.JSX.Element {
         return streak
     })()
 
+    // ── Best streak (all-time) ───────────────────────────────────
+    const bestStreak = (() => {
+        if (workouts.length === 0) return 0
+        const getWeekKey = (iso: string) => {
+            const d = new Date(iso)
+            const jan1 = new Date(d.getFullYear(), 0, 1)
+            const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+            return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`
+        }
+        const weekKeys = [...new Set(workouts.map(w => getWeekKey(w.completed_at)))].sort()
+        let best = 1
+        let current = 1
+        for (let i = 1; i < weekKeys.length; i++) {
+            // Check if consecutive week
+            const prev = weekKeys[i - 1]
+            const curr = weekKeys[i]
+            const [py, pw] = prev.split('-W').map(Number)
+            const [cy, cw] = curr.split('-W').map(Number)
+            const isConsecutive = (cy === py && cw === pw + 1) || (cy === py + 1 && pw >= 52 && cw === 1)
+            if (isConsecutive) {
+                current++
+                if (current > best) best = current
+            } else {
+                current = 1
+            }
+        }
+        return best
+    })()
+
+    // ── This week vs Last week ───────────────────────────────────
+    const weekComparison = (() => {
+        const now = new Date()
+        const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1 // Mon=0
+        const thisWeekStart = new Date(now)
+        thisWeekStart.setDate(now.getDate() - dayOfWeek)
+        thisWeekStart.setHours(0, 0, 0, 0)
+        const lastWeekStart = new Date(thisWeekStart)
+        lastWeekStart.setDate(thisWeekStart.getDate() - 7)
+
+        let thisWeekWorkouts = 0, lastWeekWorkouts = 0
+        let thisWeekVolume = 0, lastWeekVolume = 0
+        for (const w of workouts) {
+            const d = new Date(w.completed_at)
+            if (d >= thisWeekStart) {
+                thisWeekWorkouts++
+                thisWeekVolume += w.total_kg
+            } else if (d >= lastWeekStart && d < thisWeekStart) {
+                lastWeekWorkouts++
+                lastWeekVolume += w.total_kg
+            }
+        }
+        return { thisWeekWorkouts, lastWeekWorkouts, thisWeekVolume, lastWeekVolume }
+    })()
+
+    // ── Session distribution (pie chart data) ────────────────────
+    const sessionDistData = Object.entries(sessionCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([name, value]) => ({ name, value }))
+
+    const PIE_COLORS = ['#ff5c35', '#e8197d', '#7c3aed', '#2563eb', '#06b6d4', '#10b981', '#f59e0b', '#6366f1']
+
+    // ── Training heatmap (monthly calendar) ─────────────────────
+    const heatmapMonth = (() => {
+        const now = new Date()
+        const targetDate = new Date(now.getFullYear(), now.getMonth() + heatmapOffset, 1)
+        const year = targetDate.getFullYear()
+        const month = targetDate.getMonth()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+        // 0=Sun,1=Mon... convert to Mon=0
+        const firstDayRaw = new Date(year, month, 1).getDay()
+        const firstDay = firstDayRaw === 0 ? 6 : firstDayRaw - 1
+
+        const volumeByDay = new Map<string, number>()
+        for (const w of workouts) {
+            const d = w.completed_at.slice(0, 10)
+            volumeByDay.set(d, (volumeByDay.get(d) ?? 0) + w.total_kg)
+        }
+
+        const monthName = targetDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+
+        // Build weeks (rows), each has 7 slots (Mon-Sun)
+        const weeks: ({ day: number; date: string; volume: number } | null)[][] = []
+        let week: ({ day: number; date: string; volume: number } | null)[] = []
+        // Pad start
+        for (let i = 0; i < firstDay; i++) week.push(null)
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(year, month, d)
+            const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+            const isFuture = dateObj > today
+            week.push({ day: d, date: key, volume: isFuture ? -1 : (volumeByDay.get(key) ?? 0) })
+            if (week.length === 7) {
+                weeks.push(week)
+                week = []
+            }
+        }
+        // Pad end
+        if (week.length > 0) {
+            while (week.length < 7) week.push(null)
+            weeks.push(week)
+        }
+        return { weeks, monthName }
+    })()
+
+    // ── Exercise progress: top 5 exercises by data points ────────
+    const topExercises = Object.entries(exerciseProgressData)
+        .filter(([, pts]) => pts.length >= 2)
+        .sort((a, b) => b[1].length - a[1].length)
+        .slice(0, 5)
+        .map(([name]) => name)
+
+    const activeExercise = selectedExercise ?? topExercises[0] ?? null
+
     // ── Weekly volume data (line chart) ────────────────────────
     const weeklyVolumeData: { week: string; volume: number }[] = (() => {
         const map = new Map<string, number>()
@@ -408,13 +569,15 @@ export default function Stats(): React.JSX.Element {
         return (
             <section className={styles.container}>
                 <SectionHeader number="08" title={t('Stats')} />
-                <div className={styles.summaryGrid}>
-                    {[0, 1, 2, 3].map(i => (
-                        <div key={i} className={styles.summaryCard}>
-                            <Skeleton height={11} width="60%" style={{ marginBottom: 12 }} />
-                            <Skeleton height={32} width="80%" />
-                        </div>
-                    ))}
+                <div className={styles.summaryPanel}>
+                    <div className={styles.heroRow}>
+                        {[0, 1, 2].map(i => (
+                            <div key={i} className={styles.heroStat}>
+                                <Skeleton height={32} width="60%" style={{ margin: '0 auto 8px' }} />
+                                <Skeleton height={10} width="40%" style={{ margin: '0 auto' }} />
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div className={styles.sectionHeader}>
@@ -449,40 +612,103 @@ export default function Stats(): React.JSX.Element {
     return (
         <section className={styles.container}>
             <SectionHeader number="08" title={t('Stats')} />
-            {/* ── Section 1: Summary cards ── */}
-            <div className={styles.summaryGrid}>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryLabel}>{t('Total workouts')}</div>
-                    <div className={styles.summaryValue}>{totalWorkouts}</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryLabel}>{t('Total sets')}</div>
-                    <div className={styles.summaryValue}>{totalSets}</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryLabel}>{t('Total volume')}</div>
-                    <div className={styles.summaryValueSmall}>{formatWeight(Math.round(totalVolume), weightUnit)}</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryLabel}>{t('Most trained')}</div>
-                    <div className={styles.summaryValue} title={mostTrained}>{mostTrained}</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryLabel}>{t('Streak')}</div>
-                    <div className={styles.summaryValue}>{weekStreak > 0 ? t('{{n}} weeks', { n: weekStreak }) : '–'}</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryLabel}>{t('Training since')}</div>
-                    <div className={styles.summaryValue}>{trainingSince}</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryLabel}>{t('Favorite this month')}</div>
-                    <div className={styles.summaryValueSmall} title={favoriteExercise?.name ?? '–'}>
-                        {favoriteExercise?.name ?? '–'}
+            {/* ── Section 1: Summary panel ── */}
+            <div className={styles.summaryPanel}>
+                <div className={styles.heroRow}>
+                    <div className={styles.heroStat}>
+                        <div className={styles.heroValue}>{totalWorkouts}</div>
+                        <div className={styles.heroLabel}>{t('Workouts')}</div>
                     </div>
-                    <div className={styles.summarySubtitle}>
-                        {favoriteExercise?.count ?? 0} {t('sets')}
+                    <div className={styles.heroDivider} />
+                    <div className={styles.heroStat}>
+                        <div className={styles.heroValue}>{totalSets}</div>
+                        <div className={styles.heroLabel}>{t('sets')}</div>
                     </div>
+                    <div className={styles.heroDivider} />
+                    <div className={styles.heroStat}>
+                        <div className={styles.heroValueSmall}>{formatWeight(Math.round(totalVolume), weightUnit)}</div>
+                        <div className={styles.heroLabel}>{t('Volume')}</div>
+                    </div>
+                </div>
+                <div className={styles.secondaryRow}>
+                    <div className={styles.secondaryStat}>
+                        <span className={styles.secondaryLabel}>{t('Streak')}</span>
+                        <span className={styles.secondaryValue}>{weekStreak > 0 ? t('{{n}} weeks', { n: weekStreak }) : '–'}</span>
+                    </div>
+                    <div className={styles.secondaryStat}>
+                        <span className={styles.secondaryLabel}>{t('Best streak')}</span>
+                        <span className={styles.secondaryValue}>{bestStreak > 0 ? t('{{n}} weeks', { n: bestStreak }) : '–'}</span>
+                    </div>
+                    <div className={styles.secondaryStat}>
+                        <span className={styles.secondaryLabel}>{t('Most trained')}</span>
+                        <span className={styles.secondaryValue} title={mostTrained}>{mostTrained}</span>
+                    </div>
+                    <div className={styles.secondaryStat}>
+                        <span className={styles.secondaryLabel}>{t('Training since')}</span>
+                        <span className={styles.secondaryValue}>{trainingSince}</span>
+                    </div>
+                    {favoriteExercise && (
+                        <div className={styles.secondaryStat}>
+                            <span className={styles.secondaryLabel}>{t('Favorite this month')}</span>
+                            <span className={styles.secondaryValue} title={favoriteExercise.name}>{favoriteExercise.name}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Training Heatmap (monthly calendar) ── */}
+            <div className={styles.heatmapHeader}>
+                <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => o - 1)}>‹</button>
+                <span className={styles.sectionHeader} style={{ margin: 0 }}>{heatmapMonth.monthName}</span>
+                <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => Math.min(o + 1, 0))} disabled={heatmapOffset >= 0}>›</button>
+            </div>
+            <div className={styles.heatmap}>
+                <div className={styles.heatmapWeekRow}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                        <span key={i} className={styles.heatmapDayLabel}>{d}</span>
+                    ))}
+                </div>
+                {heatmapMonth.weeks.map((week, wi) => (
+                    <div key={wi} className={styles.heatmapWeekRow}>
+                        {week.map((cell, di) => {
+                            if (!cell) return <div key={di} className={styles.heatmapCellEmpty} />
+                            const hasWorkout = cell.volume > 0
+                            const dayWorkout = hasWorkout
+                                ? workouts.find(w => w.completed_at.slice(0, 10) === cell.date)
+                                : null
+                            return (
+                                <div
+                                    key={di}
+                                    className={`${styles.heatmapCell} ${dayWorkout ? styles.heatmapCellClickable : ''}`}
+                                    data-level={cell.volume < 0 ? 'future' : cell.volume === 0 ? '0' : cell.volume < 5000 ? '1' : cell.volume < 15000 ? '2' : '3'}
+                                    title={hasWorkout ? `${cell.date}: ${Math.round(cell.volume).toLocaleString()} kg` : cell.date}
+                                    onClick={dayWorkout ? () => setOpenWorkout(dayWorkout) : undefined}
+                                >
+                                    <span className={styles.heatmapDayNum}>{cell.day}</span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                ))}
+            </div>
+
+            {/* ── This Week vs Last Week ── */}
+            <div className={styles.weekComparison}>
+                <div className={styles.comparisonCard}>
+                    <div className={styles.comparisonLabel}>{t('This week')}</div>
+                    <div className={styles.comparisonValue}>{weekComparison.thisWeekWorkouts} {t('Workouts').toLowerCase()}</div>
+                    <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.thisWeekVolume), weightUnit)}</div>
+                    {weekComparison.lastWeekWorkouts > 0 && (
+                        <div className={`${styles.comparisonArrow} ${weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? styles.comparisonUp : styles.comparisonDown}`}>
+                            {weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? '↑' : '↓'}
+                            {' '}{Math.abs(Math.round(((weekComparison.thisWeekWorkouts - weekComparison.lastWeekWorkouts) / weekComparison.lastWeekWorkouts) * 100))}%
+                        </div>
+                    )}
+                </div>
+                <div className={styles.comparisonCard}>
+                    <div className={styles.comparisonLabel}>{t('Last week')}</div>
+                    <div className={styles.comparisonValue}>{weekComparison.lastWeekWorkouts} {t('Workouts').toLowerCase()}</div>
+                    <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.lastWeekVolume), weightUnit)}</div>
                 </div>
             </div>
 
@@ -519,7 +745,7 @@ export default function Stats(): React.JSX.Element {
                                     tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
                                 />
                                 <Tooltip
-                                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                     contentStyle={{
                                         background: 'var(--card)',
                                         border: '1px solid var(--border)',
@@ -532,6 +758,47 @@ export default function Stats(): React.JSX.Element {
                                 />
                                 <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
                             </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </>
+            )}
+
+            {/* ── Session distribution (pie chart) ── */}
+            {sessionDistData.length > 1 && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Session split')}</div>
+                    <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <PieChart>
+                                <Pie
+                                    data={sessionDistData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={80}
+                                    paddingAngle={3}
+                                    dataKey="value"
+                                    stroke="none"
+                                    label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                                    labelLine={false}
+                                    activeShape={((props: { cx: number; cy: number; innerRadius: number; outerRadius: number; startAngle: number; endAngle: number; fill: string }) => (
+                                        <g>
+                                            <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius} outerRadius={props.outerRadius} startAngle={props.startAngle} endAngle={props.endAngle} fill={props.fill} style={{ transition: 'all 0.2s ease' }} />
+                                            <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius - 8} outerRadius={props.outerRadius + 8} startAngle={props.startAngle} endAngle={props.endAngle} fill="rgba(255,255,255,0.08)" style={{ transition: 'all 0.2s ease' }} />
+                                        </g>
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    )) as any}
+                                >
+                                    {sessionDistData.map((_, i) => (
+                                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: '#fff' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    formatter={(value) => [`${value}`, t('Workouts')]}
+                                />
+                            </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </>
@@ -553,7 +820,7 @@ export default function Stats(): React.JSX.Element {
                                 <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
                                 <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}t`} />
-                                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value: number) => [`${value.toLocaleString('sv-SE')} kg`, t('Volume')]} />
+                                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value) => [`${Number(value).toLocaleString('sv-SE')} kg`, t('Volume')]} />
                                 <Bar dataKey="volume" fill="url(#volumeGradient)" radius={[6, 6, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -567,11 +834,73 @@ export default function Stats(): React.JSX.Element {
                     <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Personal Records')}</div>
                     <div className={styles.prList}>
                         {personalRecords.map((pr, i) => (
-                            <div key={i} className={styles.prRow}>
+                            <button
+                                key={i}
+                                type="button"
+                                className={`${styles.prRow} ${prWorkoutMap[pr.name] ? styles.prRowClickable : ''}`}
+                                onClick={() => {
+                                    const wkId = prWorkoutMap[pr.name]
+                                    if (wkId) {
+                                        const w = workouts.find(w => w.id === wkId)
+                                        if (w) setOpenWorkout(w)
+                                    }
+                                }}
+                            >
                                 <span className={styles.prName}>{pr.name}</span>
                                 <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
-                            </div>
+                            </button>
                         ))}
+                    </div>
+                </>
+            )}
+
+            {/* ── Exercise Progress Chart ── */}
+            {activeExercise && exerciseProgressData[activeExercise] && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Exercise progress')}</div>
+                    <div className={styles.exerciseChartTabs}>
+                        {topExercises.map(name => (
+                            <button
+                                key={name}
+                                type="button"
+                                className={`${styles.exerciseTab} ${name === activeExercise ? styles.exerciseTabActive : ''}`}
+                                onClick={() => setSelectedExercise(name)}
+                            >
+                                {name}
+                            </button>
+                        ))}
+                    </div>
+                    <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <AreaChart data={exerciseProgressData[activeExercise]} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                                        <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                    tickFormatter={(v: string) => { const [, m, d] = v.split('-'); return `${d}/${m}` }}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                    unit=" kg"
+                                    domain={['dataMin - 5', 'dataMax + 5']}
+                                />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }}
+                                    formatter={(value) => [`${value} kg`, t('Max')]}
+                                />
+                                <Area type="monotone" dataKey="kg" stroke="#10b981" strokeWidth={2} fill="url(#progressGradient)" dot={{ r: 3, fill: '#10b981' }} />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </>
             )}
