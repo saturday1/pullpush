@@ -319,10 +319,18 @@ export default function Stats(): React.JSX.Element {
 
     // ── Monthly workout data (bar chart) ─────────────────────
     const monthlyData: { month: string; count: number }[] = (() => {
+        const now = new Date()
+        const year = now.getFullYear()
         const map = new Map<string, number>()
+        // Initialize all 12 months for current year
+        for (let m = 1; m <= 12; m++) {
+            map.set(`${year}-${String(m).padStart(2, '0')}`, 0)
+        }
         for (const w of workouts) {
             const key = w.completed_at.slice(0, 7) // "YYYY-MM"
-            map.set(key, (map.get(key) ?? 0) + 1)
+            if (map.has(key)) {
+                map.set(key, (map.get(key) ?? 0) + 1)
+            }
         }
         return Array.from(map.entries())
             .sort((a, b) => a[0].localeCompare(b[0]))
