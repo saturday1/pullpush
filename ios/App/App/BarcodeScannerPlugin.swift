@@ -11,10 +11,10 @@ public class BarcodeScannerPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     @objc func scan(_ call: CAPPluginCall) {
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
             let vc = BarcodeScannerViewController()
             vc.modalPresentationStyle = .fullScreen
-            vc.onResult = { [weak self] barcode in
+            vc.onResult = { barcode in
                 call.resolve(["value": barcode])
             }
             vc.onCancel = {
@@ -85,13 +85,15 @@ class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOutputObj
         view.addSubview(finder)
 
         // Cancel button
-        let cancel = UIButton(type: .system)
-        cancel.setTitle("Avbryt", for: .normal)
-        cancel.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        cancel.setTitleColor(.white, for: .normal)
-        cancel.backgroundColor = UIColor(white: 0, alpha: 0.5)
+        var config = UIButton.Configuration.filled()
+        config.title = "Avbryt"
+        config.attributedTitle = AttributedString("Avbryt", attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 17, weight: .semibold)]))
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = UIColor(white: 0, alpha: 0.5)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 28, bottom: 10, trailing: 28)
+        let cancel = UIButton(configuration: config)
         cancel.layer.cornerRadius = 22
-        cancel.contentEdgeInsets = UIEdgeInsets(top: 10, left: 24, bottom: 10, right: 24)
+        cancel.clipsToBounds = true
         cancel.translatesAutoresizingMaskIntoConstraints = false
         cancel.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         view.addSubview(cancel)
