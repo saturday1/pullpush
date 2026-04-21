@@ -32,6 +32,8 @@ interface TrainingProgram {
   [key: string]: unknown
 }
 
+export type UserRole = 'developer' | 'premium' | 'standard' | 'free'
+
 interface ProfileState {
   loading: boolean
   profileLoading: boolean
@@ -57,6 +59,8 @@ interface ProfileState {
   secPerRep: number
   countdownSeconds: number
   sidePauseSeconds: number
+  role: UserRole
+  trialExpiresAt: string | null
 }
 
 interface ProfileUpdate {
@@ -163,6 +167,8 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     secPerRep: 4,
     countdownSeconds: 10,
     sidePauseSeconds: 5,
+    role: 'free',
+    trialExpiresAt: null,
   })
 
   async function load(silent: boolean = false): Promise<void> {
@@ -252,12 +258,21 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       const sidePauseSeconds: number = profile?.side_pause_seconds ?? 5
       const gender: 'male' | 'female' | null = profile?.gender ?? null
       const age = calcAge(birthDate)
+      const role: UserRole = (profile?.role as UserRole) ?? 'free'
+      let trialExpiresAt: string | null = profile?.trial_expires_at ?? null
+
+      // First-time user: set 14-day trial
+      if (!trialExpiresAt && profile) {
+        trialExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+        supabase.from('profile').upsert({ user_id: user.id, trial_expires_at: trialExpiresAt }, { onConflict: 'user_id' })
+      }
 
       setState(prev => {
         const newState: ProfileState = {
           ...prev,
           firstName, lastName, birthDate, phone, goalWeight, gender, height, age, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds,
           startWeight: startWeight ?? prev.startWeight,
+          role, trialExpiresAt,
           profileLoading: false,
         }
         // Recalculate macros if weight data is already available

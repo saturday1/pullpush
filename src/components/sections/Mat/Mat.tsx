@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock'
+import { useSubscription } from '../../../context/SubscriptionContext'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import Skeleton from '../../Skeleton/Skeleton'
@@ -450,6 +451,7 @@ interface MealModalProps {
 
 function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModalProps): React.JSX.Element {
     useBodyScrollLock()
+    const { requireUpgrade, canUse } = useSubscription()
 
     const [form, setForm] = useState<MealFormData>(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
     const set = (k: keyof MealFormData, v: string | number | null): void => setForm(f => ({ ...f, [k]: v }))
@@ -794,9 +796,13 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                             <input
                                 className={styles.searchInput}
                                 value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                placeholder={t('e.g. chicken breast, oats…')}
+                                onChange={e => {
+                                    if (!requireUpgrade('foodSearch')) return
+                                    setSearchQuery(e.target.value)
+                                }}
+                                placeholder={canUse('foodSearch') ? t('e.g. chicken breast, oats…') : t('Search food database — Standard required')}
                                 autoComplete="off"
+                                readOnly={!canUse('foodSearch')}
                             />
                             {searchLoading && <span className={styles.searchSpinner} />}
                             {showDropdown && (
@@ -813,7 +819,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                                 </div>
                             )}
                         </div>
-                        <button className={styles.scanBtn} type="button" onClick={() => { setScanError(''); setScannerOpen(true) }} title={t('Scan barcode')}>
+                        <button className={styles.scanBtn} type="button" onClick={() => { if (!requireUpgrade('barcodeScanner')) return; setScanError(''); setScannerOpen(true) }} title={t('Scan barcode')}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
                                 <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
@@ -1042,6 +1048,7 @@ function buildTips(weight: number | null, age: number | null, totals: MealTotals
 export default function Mat(): React.JSX.Element {
     const { t } = useTranslation()
     const profile = useProfile()
+    const { canUse, requireUpgrade } = useSubscription()
     const todayStr: string = localDateStr(new Date())
     const [selectedDate, setSelectedDate] = useState<string>(todayStr)
     const todayRef = useRef<string>(todayStr)
@@ -1240,7 +1247,7 @@ export default function Mat(): React.JSX.Element {
                     </div>
                 ) : (
                     <>
-                        {profile?.macros ? (
+                        {profile?.macros && canUse('macroRings') ? (
                             <div className={styles.macroRings}>
                                 {([
                                     { key: 'kcal', label: t('KCAL'), current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
@@ -1291,7 +1298,7 @@ export default function Mat(): React.JSX.Element {
                                 <span style={{ color: '#22c55e' }}>{t('F')}: {totals.fat_g} g</span>
                             </div>
                         )}
-                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={handleToggleRecurring} t={t} />
+                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={(meal) => { if (!requireUpgrade('recurringMeals')) return; handleToggleRecurring(meal) }} t={t} />
                     </>
                 )}
             </Reveal>

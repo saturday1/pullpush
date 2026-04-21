@@ -15,6 +15,7 @@ import UndoIcon from '../../icons/Normal/UndoIcon'
 import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
 import { useFlowSounds, getCountdownLength, getCountdownStyle } from '../../../hooks/useFlowSounds'
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock'
+import { useSubscription } from '../../../context/SubscriptionContext'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string; endTime?: number }): Promise<void>
@@ -861,6 +862,7 @@ export default function Traning(): React.JSX.Element {
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
   const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
+  const { requireUpgrade } = useSubscription()
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
@@ -2033,7 +2035,14 @@ export default function Traning(): React.JSX.Element {
         <h2 className={styles.sectionTitle}>{t('Training sessions')}</h2>
         {sessions.length > 0 && (
           <label className={styles.flowSwitch}>
-            <input type="checkbox" checked={!editMode} onChange={() => setEditMode(m => !m)} />
+            <input
+              type="checkbox"
+              checked={!editMode}
+              onChange={() => {
+                if (editMode && !requireUpgrade('flow')) return
+                setEditMode(m => !m)
+              }}
+            />
             <span className={styles.flowSlider} />
             <span className={styles.flowLabel}>Flow-mode</span>
           </label>

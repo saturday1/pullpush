@@ -4,6 +4,7 @@ import { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { ProfileProvider, useProfile } from './context/ProfileContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { SubscriptionProvider } from './context/SubscriptionContext'
 import Login from './components/Login/Login'
 import Splash from './components/Splash/Splash'
 import ProfileSetupModal from './components/ProfileSetupModal/ProfileSetupModal'
@@ -67,10 +68,12 @@ export default function App(): React.ReactElement | null {
     <HashRouter>
       <ThemeProvider>
       <ProfileProvider>
-        <SplashOverlay />
-        <Routes>
-          <Route path="*" element={<AppRoutes />} />
-        </Routes>
+        <SubscriptionProvider>
+          <SplashOverlay />
+          <Routes>
+            <Route path="*" element={<AppRoutes />} />
+          </Routes>
+        </SubscriptionProvider>
       </ProfileProvider>
       </ThemeProvider>
     </HashRouter>
