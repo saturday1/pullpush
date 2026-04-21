@@ -30,9 +30,6 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
     private var numberPlayers: [String: AVAudioPlayer] = [:]
     private var keepAlivePlayer: AVAudioPlayer?
 
-    private static let supabaseURL = "https://jfayqffmmkwjrbdanqsm.supabase.co"
-    private static let supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmYXlxZmZtbWt3anJiZGFucXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMDU0OTQsImV4cCI6MjA4ODg4MTQ5NH0.IM4xu2MRouTAe5DkzWyBtPtekW7J2o6-aKej2vXBeBU"
-
     override public func load() {
         print("🟡 RestTimerPlugin loaded!")
         if #available(iOS 16.2, *) {
@@ -408,32 +405,4 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
         }
     }
 
-    /// Send push token + end time to Supabase so the Edge Function can send APNs end-push
-    private func registerPushToken(token: String, endTime: Date) {
-        let iso = ISO8601DateFormatter().string(from: endTime)
-        let json: [String: Any] = ["push_token": token, "end_time": iso]
-
-        guard let body = try? JSONSerialization.data(withJSONObject: json),
-              let url = URL(string: "\(Self.supabaseURL)/rest/v1/live_activity_tokens") else {
-            print("🔴 Failed to build push token request")
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = body
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(Self.supabaseAnonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(Self.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
-
-        URLSession.shared.dataTask(with: request) { _, response, error in
-            if let error = error {
-                print("🔴 Push token registration failed: \(error)")
-            } else if let http = response as? HTTPURLResponse, http.statusCode < 300 {
-                print("🟢 Push token registered for APNs end-push")
-            } else {
-                print("🔴 Push token registration error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-            }
-        }.resume()
-    }
 }
