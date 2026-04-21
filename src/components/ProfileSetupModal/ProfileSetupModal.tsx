@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ChangeEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProfile } from '../../context/ProfileContext'
@@ -51,6 +51,11 @@ interface WizardInnerProps {
 }
 
 function WizardInner({ initialStep, existingFirst, existingLast, existingBirth, existingPhone, existingGender, updateProfile, logWeight, t }: WizardInnerProps): React.ReactElement {
+  useEffect(() => {
+    document.body.classList.add('modal-open')
+    return () => document.body.classList.remove('modal-open')
+  }, [])
+
   const [step, setStep] = useState<Step>(initialStep)
   const [dir, setDir] = useState<number>(1)
   const [saving, setSaving] = useState(false)

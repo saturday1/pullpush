@@ -144,6 +144,12 @@ export default function Stats(): React.JSX.Element {
     const [heatmapOffset, setHeatmapOffset] = useState(0) // 0 = current month, -1 = last month, etc.
 
     useEffect(() => {
+        if (openWorkout) document.body.classList.add('modal-open')
+        else document.body.classList.remove('modal-open')
+        return () => document.body.classList.remove('modal-open')
+    }, [openWorkout])
+
+    useEffect(() => {
         if (!openWorkout) return
         function onKey(e: KeyboardEvent): void {
             if (e.key === 'Escape') setOpenWorkout(null)

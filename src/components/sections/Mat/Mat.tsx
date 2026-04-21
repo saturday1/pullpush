@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import Skeleton from '../../Skeleton/Skeleton'
@@ -272,6 +273,7 @@ interface BarcodeScannerProps {
 }
 
 function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JSX.Element {
+    useBodyScrollLock()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const [camError, setCamError] = useState<string | null>(null)
     const [manualCode, setManualCode] = useState<string>('')

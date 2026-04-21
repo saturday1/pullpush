@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './InfoModal.module.scss'
 
@@ -10,6 +10,12 @@ interface InfoModalProps {
 export default function InfoModal({ title, text }: InfoModalProps): React.JSX.Element {
   const [open, setOpen] = useState<boolean>(false)
   const [closing, setClosing] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (open) document.body.classList.add('modal-open')
+    else document.body.classList.remove('modal-open')
+    return () => document.body.classList.remove('modal-open')
+  }, [open])
 
   function requestClose(): void {
     if (closing) return

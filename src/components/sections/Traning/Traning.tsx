@@ -14,6 +14,7 @@ import PlayIcon from '../../icons/Normal/PlayIcon'
 import UndoIcon from '../../icons/Normal/UndoIcon'
 import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
 import { useFlowSounds, getCountdownLength, getCountdownStyle } from '../../../hooks/useFlowSounds'
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string; endTime?: number }): Promise<void>
@@ -141,6 +142,7 @@ interface ExerciseModalProps {
 }
 
 function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSetPlans, onSaveNote, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
+  useBodyScrollLock()
   const { t } = useTranslation()
   const [name,       setName]       = useState<string>(exercise.name)
   const [note,       setNote]       = useState<string>(exercise.note ?? '')
@@ -342,6 +344,7 @@ interface AddSessionModalProps {
 }
 
 function AddSessionModal({ userId, sortOrder, onSave, onClose }: AddSessionModalProps): React.JSX.Element {
+  useBodyScrollLock()
   const { t } = useTranslation()
   const dayFull = t('dayFull', { returnObjects: true }) as string[]
   const [name, setName] = useState<string>('')
@@ -399,6 +402,7 @@ interface EditSessionModalProps {
 }
 
 function EditSessionModal({ session, onSave, onDelete, onClose }: EditSessionModalProps): React.JSX.Element {
+  useBodyScrollLock()
   const { t } = useTranslation()
   const dayFull = t('dayFull', { returnObjects: true }) as string[]
   const [name,       setName]       = useState<string>(session.name)
@@ -473,6 +477,7 @@ interface EditProgramModalProps {
 }
 
 function EditProgramModal({ program, onRename, onDelete, onClose }: EditProgramModalProps): React.JSX.Element {
+  useBodyScrollLock()
   const { t } = useTranslation()
   const [name,       setName]       = useState<string>(program.name)
   const [saving,     setSaving]     = useState<boolean>(false)
@@ -543,6 +548,7 @@ interface CreateProgramModalProps {
 }
 
 function CreateProgramModal({ onSave, onClose }: CreateProgramModalProps): React.JSX.Element {
+  useBodyScrollLock()
   const { t } = useTranslation()
   const [name,    setName]    = useState<string>('')
   const [saving,  setSaving]  = useState<boolean>(false)
@@ -752,6 +758,7 @@ function NewExerciseModal({ t, knownExercises, onLookup, onSave, onClose }: {
   onSave: (name: string, kg: number | null, sets: number | null, reps: number | null) => Promise<void>
   onClose: () => void
 }): React.JSX.Element {
+  useBodyScrollLock()
   const [name, setName] = useState('')
   const [kg, setKg] = useState('')
   const [lbs, setLbs] = useState('')

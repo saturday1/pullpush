@@ -163,6 +163,12 @@ input[type=number] { -moz-appearance: textfield; }
   50%       { transform: translateY(-4px); }
 }
 
+// Body scroll lock — applied when any modal/overlay is open
+body.modal-open {
+  overflow: hidden;
+  max-height: 100vh;
+}
+
 // Scrollbar
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
