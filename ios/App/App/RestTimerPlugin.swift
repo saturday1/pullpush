@@ -16,6 +16,8 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
         CAPPluginMethod(name: "scheduleSoundSequence", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelScheduledSounds", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWorkoutActive", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pause", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resume", returnType: CAPPluginReturnPromise),
     ]
 
     private var autoEndWorkItem: DispatchWorkItem?
@@ -315,7 +317,7 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
                 }
 
                 let attributes = RestTimerAttributes(totalSeconds: seconds, label: label)
-                let state = RestTimerAttributes.ContentState(endTime: endTime)
+                let state = RestTimerAttributes.ContentState(endTime: endTime, isPaused: false, pausedSecondsRemaining: 0)
 
                 do {
                     let activity = try Activity.request(
@@ -356,6 +358,48 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
             Task {
                 for activity in Activity<RestTimerAttributes>.activities {
                     await activity.end(nil, dismissalPolicy: .immediate)
+                }
+                call.resolve()
+            }
+        } else {
+            call.resolve()
+        }
+    }
+
+    @objc func pause(_ call: CAPPluginCall) {
+        if #available(iOS 16.2, *) {
+            Task {
+                for activity in Activity<RestTimerAttributes>.activities {
+                    let remaining = max(0, activity.content.state.endTime.timeIntervalSinceNow)
+                    let newState = RestTimerAttributes.ContentState(
+                        endTime: activity.content.state.endTime,
+                        isPaused: true,
+                        pausedSecondsRemaining: remaining
+                    )
+                    await activity.update(.init(state: newState, staleDate: nil))
+                }
+                call.resolve()
+            }
+        } else {
+            call.resolve()
+        }
+    }
+
+    @objc func resume(_ call: CAPPluginCall) {
+        let secondsRemaining = call.getDouble("seconds") ?? 0
+        let endTimeMs = call.getValue("endTime") as? Double
+        let endTime: Date = endTimeMs.map { Date(timeIntervalSince1970: $0 / 1000.0) }
+            ?? Date().addingTimeInterval(secondsRemaining)
+
+        if #available(iOS 16.2, *) {
+            Task {
+                for activity in Activity<RestTimerAttributes>.activities {
+                    let newState = RestTimerAttributes.ContentState(
+                        endTime: endTime,
+                        isPaused: false,
+                        pausedSecondsRemaining: 0
+                    )
+                    await activity.update(.init(state: newState, staleDate: endTime))
                 }
                 call.resolve()
             }

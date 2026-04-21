@@ -16,8 +16,10 @@ import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } fr
 import { useFlowSounds, getCountdownLength, getCountdownStyle } from '../../../hooks/useFlowSounds'
 
 interface RestTimerPlugin {
-  start(options: { seconds: number; label?: string }): Promise<void>
+  start(options: { seconds: number; label?: string; endTime?: number }): Promise<void>
   stop(): Promise<void>
+  pause(): Promise<void>
+  resume(options: { seconds: number; endTime?: number }): Promise<void>
   setKeepAwake(options: { keep: boolean }): Promise<void>
   setWorkoutActive(options: { active: boolean }): Promise<void>
 }
@@ -1345,7 +1347,7 @@ export default function Traning(): React.JSX.Element {
       kg: exLog?.kg ?? null, reps: exLog?.reps ?? 10, wId: workoutId
     }
     setPaused(true)
-    try { RestTimer?.stop() } catch {}
+    try { RestTimer?.pause() } catch {}
   }
 
   function pauseExerciseTimer(): void {
@@ -1361,7 +1363,7 @@ export default function Traning(): React.JSX.Element {
       kg: exLog?.kg ?? null, reps: exLog?.reps ?? 10, wId: workoutId
     }
     setPaused(true)
-    try { RestTimer?.stop() } catch {}
+    try { RestTimer?.pause() } catch {}
   }
 
   function resumeExerciseTimer(): void {
@@ -1376,9 +1378,9 @@ export default function Traning(): React.JSX.Element {
     if (phase === 'countdown') {
       setCountdownOverlay(remain)
       const cdEnd = Date.now() + remain * 1000
-      // Restart Live Activity
+      // Resume Live Activity
       const totalRemaining = plan.slice(step).reduce((sum, p) => sum + p.duration, 0) - (plan[step].duration - remain)
-      if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(totalRemaining)), endTime: Date.now() + totalRemaining * 1000 }).catch(() => {})
+      if (RestTimer) RestTimer.resume({ seconds: Math.max(1, Math.round(totalRemaining)), endTime: Date.now() + totalRemaining * 1000 }).catch(() => {})
       scheduleRemainingNativeSounds(plan, step, remain)
       timerRef.current = setInterval(() => {
         const r = Math.ceil((cdEnd - Date.now()) / 1000)
@@ -1407,7 +1409,7 @@ export default function Traning(): React.JSX.Element {
     const resumeLabelFull = resumeReps > 0
       ? `Set ${ctx.currentSet}/${ctx.setsTotal} • ${resumeReps} reps\n${resumeName}${resumeKg ? `\n${formatWeight(resumeKg, weightUnit)}` : ''}`
       : resumeName
-    if (RestTimer) RestTimer.start({ seconds: Math.max(1, Math.round(remainingTotal)), label: resumeLabelFull, endTime: Date.now() + remainingTotal * 1000 }).catch(() => {})
+    if (RestTimer) RestTimer.resume({ seconds: Math.max(1, Math.round(remainingTotal)), endTime: Date.now() + remainingTotal * 1000 }).catch(() => {})
     scheduleRemainingNativeSounds(plan, step, remain)
 
     timerRef.current = setInterval(() => {
