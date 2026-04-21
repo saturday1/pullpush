@@ -3,12 +3,20 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import Skeleton from '../../Skeleton/Skeleton'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Mat.module.scss'
+
+interface NativeBarcodeScanner {
+  scan(): Promise<{ value: string }>
+}
+const NativeScanner: NativeBarcodeScanner | null = Capacitor.isNativePlatform()
+  ? registerPlugin<NativeBarcodeScanner>('BarcodeScanner')
+  : null
 
 // --- Data interfaces ---
 
@@ -282,6 +290,15 @@ function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JS
     }
 
     useEffect(() => {
+        // On native iOS: use AVFoundation via BarcodeScannerPlugin
+        if (NativeScanner) {
+            NativeScanner.scan()
+                .then(({ value }) => onResult(value))
+                .catch(() => onClose())
+            return
+        }
+
+        // Web fallback: getUserMedia + zxing
         let active = true
         const video = videoRef.current!
         const reader = new BrowserMultiFormatReader()
@@ -318,6 +335,9 @@ function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JS
             stopCamera()
         }
     }, [])
+
+    // On native: the native fullscreen scanner takes over — render nothing
+    if (NativeScanner) return <></>
 
     return (
         <div className={styles.scannerOverlay} onClick={handleClose}>

@@ -13,6 +13,7 @@
 		31B0CA0B2F797E2A0083A800 /* RestTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 31B0C9F72F797E290083A800 /* RestTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31B0CA122F7981E40083A800 /* RestTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */; };
 		31B0CA142F798B320083A800 /* RestTimerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA132F798B320083A800 /* RestTimerPlugin.swift */; };
+		31B0CA162F7A00000083A800 /* BarcodeScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA172F7A00000083A800 /* BarcodeScannerPlugin.swift */; };
 		31B0CA152F7992320083A800 /* RestTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -65,6 +66,7 @@
 		31B0C9FB2F797E290083A800 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerAttributes.swift; sourceTree = "<group>"; };
 		31B0CA132F798B320083A800 /* RestTimerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerPlugin.swift; sourceTree = "<group>"; };
+		31B0CA172F7A00000083A800 /* BarcodeScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerPlugin.swift; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -156,6 +158,7 @@
 			children = (
 				31B0CA132F798B320083A800 /* RestTimerPlugin.swift */,
 				31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */,
+				31B0CA172F7A00000083A800 /* BarcodeScannerPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				AA000001AAAA00010000AA00 /* MyViewController.swift */,
@@ -318,6 +321,7 @@
 			files = (
 				31B0CA142F798B320083A800 /* RestTimerPlugin.swift in Sources */,
 				31B0CA122F7981E40083A800 /* RestTimerAttributes.swift in Sources */,
+				31B0CA162F7A00000083A800 /* BarcodeScannerPlugin.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				AA000001AAAA00010000AA01 /* MyViewController.swift in Sources */,
 			);
