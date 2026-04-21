@@ -1983,11 +1983,11 @@ export default function Traning(): React.JSX.Element {
     return () => document.removeEventListener('visibilitychange', checkInactivity)
   }, [workoutId, completedSetsInSession, allSessionDone, timerPhase])
 
-  // Keep screen awake during work and rest phases so user doesn't have to unlock mid-set
+  // Keep screen awake during all flow phases (countdown, reps, side pause, rest)
   useEffect(() => {
-    const keep = timerPhase === 'work' || timerPhase === 'rest'
+    const keep = timerPhase !== null || countdownOverlay !== null
     if (RestTimer) RestTimer.setKeepAwake({ keep }).catch(() => {})
-  }, [timerPhase])
+  }, [timerPhase, countdownOverlay])
 
   // Keep app alive (silent audio) for the entire workout so iOS doesn't kill
   // the app between sets, ensuring scheduled sounds and notifications work
