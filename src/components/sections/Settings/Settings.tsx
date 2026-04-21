@@ -12,11 +12,12 @@ import Profil from '../Profil/Profil'
 import Tips from '../Tips/Tips'
 import styles from './Settings.module.scss'
 
-const ALL_ROLES: UserRole[] = ['free', 'standard', 'premium', 'developer']
+const ALL_ROLES: UserRole[] = ['free', 'standard', 'premium', 'lifetime', 'developer']
 const ROLE_LABEL: Record<UserRole, string> = {
     free: 'Free',
     standard: 'Standard',
     premium: 'Premium',
+    lifetime: 'Lifetime',
     developer: 'Developer (full)',
 }
 

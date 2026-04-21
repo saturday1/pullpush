@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
+import { useSubscription } from '../../../context/SubscriptionContext'
 import { X } from 'lucide-react'
 import ClockIcon from '../../icons/Normal/ClockIcon'
 import WeightIcon from '../../icons/Normal/WeightIcon'
@@ -128,6 +129,7 @@ export default function Stats(): React.JSX.Element {
     const { t } = useTranslation()
     const { pathname } = useLocation()
     const isActive = pathname === '/stats'
+    const { canUse } = useSubscription()
     interface PersonalRecord { name: string; kg: number; lbs: number }
     const [weightUnit] = useWeightUnit()
     const [loading, setLoading] = useState(true)
@@ -167,13 +169,24 @@ export default function Stats(): React.JSX.Element {
             if (!user) return
 
             // Simple queries without joins — avoids FK issues
-            const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
-                supabase
+            const statsUnlimited = canUse('statsUnlimited')
+            const statsExtended = canUse('statsExtended')
+            const statsCutoff = statsUnlimited
+                ? null
+                : statsExtended
+                    ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+                    : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+            const workoutsQuery = supabase
                     .from('workouts')
                     .select('id, completed_at, started_at, session_id, session_name, is_deload')
                     .eq('user_id', user.id)
                     .not('completed_at', 'is', null)
-                    .order('completed_at', { ascending: false }),
+                    .order('completed_at', { ascending: false })
+            if (statsCutoff) workoutsQuery.gte('completed_at', statsCutoff)
+
+            const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
+                workoutsQuery,
 
                 supabase
                     .from('workout_sets')

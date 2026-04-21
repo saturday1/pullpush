@@ -13,7 +13,7 @@ export type Feature =
   | 'recurringMeals'
   | 'statsUnlimited'
 
-const ROLE_RANK: Record<UserRole, number> = { free: 0, standard: 1, premium: 2, developer: 3 }
+const ROLE_RANK: Record<UserRole, number> = { free: 0, standard: 1, premium: 2, lifetime: 3, developer: 4 }
 
 const FEATURE_REQUIRED: Record<Feature, UserRole> = {
   flow: 'standard',
@@ -56,7 +56,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }): Rea
     ? (localStorage.getItem('dev_role_override') as UserRole | null)
     : null
 
-  const effectiveRole: UserRole = devOverride ?? (role === 'developer' ? 'developer' : isTrialing ? 'premium' : role)
+  const effectiveRole: UserRole = devOverride ?? (
+    role === 'developer' ? 'developer' :
+    role === 'lifetime' ? 'lifetime' :
+    isTrialing ? 'premium' :
+    role
+  )
 
   function canUse(feature: Feature): boolean {
     return ROLE_RANK[effectiveRole] >= ROLE_RANK[FEATURE_REQUIRED[feature]]

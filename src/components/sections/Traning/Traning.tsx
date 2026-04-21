@@ -862,7 +862,7 @@ export default function Traning(): React.JSX.Element {
   const dayAbbrev = t('dayAbbrev', { returnObjects: true }) as string[]
   const dayFull   = t('dayFull',   { returnObjects: true }) as string[]
   const { sessions, sessionsLoading, programs, programsLoading, activeProgramId, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, exercisesLoading, setExercisesLoading, addSession, createProgram, switchProgram, renameProgram, deleteProgram, load: loadProfile } = useProfile()!
-  const { requireUpgrade } = useSubscription()
+  const { requireUpgrade, canUse } = useSubscription()
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
@@ -1015,9 +1015,9 @@ export default function Traning(): React.JSX.Element {
       })
     } catch { /* web fallback — no notifications */ }
 
-    // Start Live Activity (iOS lock screen countdown)
+    // Start Live Activity (iOS lock screen countdown) — Standard+ only
     try {
-      if (RestTimer) {
+      if (RestTimer && canUse('liveActivity')) {
         await RestTimer.start({ seconds: restSeconds })
       }
     } catch {}

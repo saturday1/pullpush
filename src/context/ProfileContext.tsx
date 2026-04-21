@@ -32,7 +32,7 @@ interface TrainingProgram {
   [key: string]: unknown
 }
 
-export type UserRole = 'developer' | 'premium' | 'standard' | 'free'
+export type UserRole = 'developer' | 'lifetime' | 'premium' | 'standard' | 'free'
 
 interface ProfileState {
   loading: boolean
