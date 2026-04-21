@@ -383,6 +383,7 @@ interface ManualProductFormProps {
 }
 
 function ManualProductForm({ barcode, onSave, onCancel, t }: ManualProductFormProps): React.JSX.Element {
+    useBodyScrollLock()
     const [form, setForm] = useState<ManualProductFormData>({ product_name: '', brand: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '', kcal_per_100g: '' })
     const [saving, setSaving] = useState<boolean>(false)
     const set = (k: keyof ManualProductFormData, v: string): void => setForm(f => ({ ...f, [k]: v }))
@@ -448,6 +449,8 @@ interface MealModalProps {
 }
 
 function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModalProps): React.JSX.Element {
+    useBodyScrollLock()
+
     const [form, setForm] = useState<MealFormData>(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
     const set = (k: keyof MealFormData, v: string | number | null): void => setForm(f => ({ ...f, [k]: v }))
     const valid: boolean = !!(form.label.trim() && form.food.trim())
@@ -456,6 +459,51 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
         if (closing) return
         setClosing(true)
         window.setTimeout(onClose, 200)
+    }
+
+    // Drag-to-dismiss (handle)
+    const modalRef = useRef<HTMLDivElement>(null)
+    const dragStartY = useRef<number | null>(null)
+    const isDragging = useRef(false)
+    const dragYRef = useRef(0)
+    const [dragY, setDragY] = useState(0)
+
+    useEffect(() => {
+        const modal = modalRef.current
+        if (!modal) return
+        function onTouchMove(e: TouchEvent): void {
+            if (!isDragging.current || dragStartY.current === null) return
+            const dy = e.touches[0].clientY - dragStartY.current
+            if (dy > 0) {
+                e.preventDefault()
+                dragYRef.current = dy
+                setDragY(dy)
+            }
+        }
+        modal.addEventListener('touchmove', onTouchMove, { passive: false })
+        return () => modal.removeEventListener('touchmove', onTouchMove)
+    }, [])
+
+    function onHandleTouchStart(e: React.TouchEvent): void {
+        if (closing) return
+        dragStartY.current = e.touches[0].clientY
+        isDragging.current = true
+        dragYRef.current = 0
+        setDragY(0)
+    }
+
+    function onHandleTouchEnd(): void {
+        if (!isDragging.current) return
+        isDragging.current = false
+        dragStartY.current = null
+        if (dragYRef.current > 80) {
+            dragYRef.current = 0
+            setDragY(0)
+            requestClose()
+        } else {
+            dragYRef.current = 0
+            setDragY(0)
+        }
     }
 
     const [productId, setProductId] = useState<number | null>(initial?.product_id ?? null)
@@ -724,7 +772,15 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
 
     return (
         <div className={`${styles.overlay} ${closing ? styles.overlayClosing : ''}`} onClick={requestClose}>
-            <div className={`${styles.modal} ${closing ? styles.modalClosing : ''}`} onClick={e => e.stopPropagation()}>
+            <div
+                ref={modalRef}
+                className={`${styles.modal} ${closing ? styles.modalClosing : ''}`}
+                onClick={e => e.stopPropagation()}
+                onTouchStart={e => e.stopPropagation()}
+                onTouchEnd={onHandleTouchEnd}
+                style={dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: 'none', animation: 'none' } : undefined}
+            >
+                <div className={styles.modalHandle} onTouchStart={onHandleTouchStart} />
                 <div className={styles.modalTitle}>{initial ? t('Edit meal') : t('New meal')}</div>
 
                 <div className={styles.searchSection}>

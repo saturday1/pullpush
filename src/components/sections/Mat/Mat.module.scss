@@ -711,8 +711,23 @@
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 24px 60px rgba(0,0,0,0.2);
   animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.modalHandle {
+  display: none;
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: -6px auto 14px;
+  touch-action: none;
+  cursor: grab;
+  flex-shrink: 0;
+
+  &:active { cursor: grabbing; }
 }
 
 .modalClosing {
@@ -1321,17 +1336,10 @@
     border-right: none;
     border-bottom: none;
     animation: modalSlideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 
-    // Little drag handle at the top
-    &::before {
-      content: '';
-      display: block;
-      width: 40px;
-      height: 4px;
-      border-radius: 2px;
-      background: var(--border);
-      margin: -6px auto 14px;
-    }
+  .modalHandle {
+    display: block;
   }
 
   .modalClosing {
