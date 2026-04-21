@@ -85,8 +85,11 @@ struct RestTimerLiveActivity: Widget {
 
         } dynamicIsland: { context in
             let isPaused = context.state.isPaused
+            let isExpired = context.state.endTime < Date()
             let pausedSecs = Int(context.state.pausedSecondsRemaining)
             let pausedFormatted = String(format: "%d:%02d", pausedSecs / 60, pausedSecs % 60)
+            // Guard against inverted range crash when timer has expired
+            let safeEnd = isExpired ? Date() : context.state.endTime
 
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
@@ -95,7 +98,11 @@ struct RestTimerLiveActivity: Widget {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 20, height: 20)
-                        if isPaused {
+                        if isExpired {
+                            Text("✓")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.green)
+                        } else if isPaused {
                             HStack(spacing: 4) {
                                 Image(systemName: "pause.fill")
                                     .font(.system(size: 16))
@@ -106,7 +113,7 @@ struct RestTimerLiveActivity: Widget {
                                     .foregroundColor(.primary.opacity(0.5))
                             }
                         } else {
-                            Text(timerInterval: Date()...context.state.endTime, countsDown: true)
+                            Text(timerInterval: Date()...safeEnd, countsDown: true)
                                 .font(.system(size: 24, weight: .bold, design: .rounded))
                                 .monospacedDigit()
                         }
@@ -118,12 +125,17 @@ struct RestTimerLiveActivity: Widget {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 14, height: 14)
             } compactTrailing: {
-                if isPaused {
+                if isExpired {
+                    Text("✓")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                } else if isPaused {
                     Image(systemName: "pause.fill")
                         .font(.caption2)
                         .foregroundColor(.primary.opacity(0.5))
                 } else {
-                    Text(timerInterval: Date()...context.state.endTime, countsDown: true)
+                    Text(timerInterval: Date()...safeEnd, countsDown: true)
                         .font(.caption2)
                         .fontWeight(.bold)
                         .monospacedDigit()
