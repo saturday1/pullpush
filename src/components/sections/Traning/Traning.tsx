@@ -11,6 +11,7 @@ import CirclePauseIcon from '../../icons/Normal/CirclePauseIcon'
 import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 import PlayIcon from '../../icons/Normal/PlayIcon'
+import UndoIcon from '../../icons/Normal/UndoIcon'
 import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
 import { useFlowSounds, getCountdownLength, getCountdownStyle } from '../../../hooks/useFlowSounds'
 
@@ -640,9 +641,10 @@ interface SortableRowProps {
   isTimerActive: boolean
   timerRunning: boolean
   completedSets: number
+  isDeload: boolean
 }
 
-function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets }: SortableRowProps): React.JSX.Element {
+function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, onPlay, onMaximize, onUndo, editMode, isTimerActive, timerRunning, completedSets, isDeload }: SortableRowProps): React.JSX.Element {
   const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.id, disabled: !editMode })
   const hasIndividual = setPlans.length > 0
@@ -684,7 +686,7 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
               style={{ visibility: completedSets > 0 && !isTimerActive ? 'visible' : 'hidden' }}
               onClick={(e) => { e.stopPropagation(); onUndo(ex.id) }}
               title="Undo"
-            >↩</button>
+            ><UndoIcon size={18} /></button>
           </span>
         )}
       </div>
@@ -693,32 +695,36 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
       )}
       <div className={styles.exerciseCardSets}>
         {hasIndividual ? (
-          setPlans.map((p, i) => (
-            <div key={i} className={styles.metaRow}>
-              <span className={styles.metaLabel}>Set {i + 1}</span>
-              <span className={styles.metaItem}>{p.reps} reps</span>
-              <span className={styles.metaItem}>{p.weight_kg != null ? formatWeight(p.weight_kg, weightUnit) : '–'}</span>
-            </div>
-          ))
+          setPlans.map((p, i) => {
+            const planKg = p.weight_kg != null ? (isDeload ? p.weight_kg * 0.5 : p.weight_kg) : null
+            return (
+              <div key={i} className={styles.metaRow}>
+                <span className={styles.metaLabel}>Set {i + 1}</span>
+                <span className={styles.metaItem}>{p.reps} reps</span>
+                <span className={styles.metaItem}>{planKg != null ? formatWeight(planKg, weightUnit) : '–'}</span>
+              </div>
+            )
+          })
         ) : (
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>{log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'}</span>
             <span className={styles.metaItem}>{log?.reps ?? '–'} reps{log?.unilateral ? ` ${t('per side')}` : ''}</span>
-            <span className={styles.metaItem}>{log?.kg != null ? formatWeight(log.kg, weightUnit) : '–'}</span>
+            <span className={styles.metaItem}>{log?.kg != null ? formatWeight(isDeload ? log.kg * 0.5 : log.kg, weightUnit) : '–'}</span>
           </div>
         )}
         {lastDone && !editMode && (
           <div className={styles.lastDoneRow}>
-            {relativeLabel(lastDone.date, t)}: Max {lastDone.reps}×{lastDone.kg != null ? `${lastDone.kg} kg` : '–'}
+            {isDeload && lastDone.kg != null
+              ? `Deload: ${formatWeight(lastDone.kg * 0.5, weightUnit)}`
+              : `${relativeLabel(lastDone.date, t)}: Max ${lastDone.reps}×${lastDone.kg != null ? `${lastDone.kg} kg` : '–'}`
+            }
           </div>
         )}
       </div>
     </div>
   )
 
-  const playEl = !editMode && !allDone && !isTimerActive
-    ? <div className={styles.playStrip}><PlayIcon size={22} /></div>
-    : null
+  const playEl = null
 
   return (
     <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''} ${isDisabled ? styles.exerciseDisabled : ''}`} onClick={handleClick}>
@@ -727,8 +733,8 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
         ? cardBody
         : <>
             <div className={styles.exerciseFill} />
-            <div className={styles.exerciseLayerBase}>{cardBody}{playEl}</div>
-            {fillPct > 0 && <div className={styles.exerciseLayerMask}>{cardBody}{playEl}</div>}
+            <div className={styles.exerciseLayerBase}>{playEl}{cardBody}</div>
+            {fillPct > 0 && <div className={styles.exerciseLayerMask}>{playEl}{cardBody}</div>}
           </>
       }
     </div>
@@ -857,6 +863,7 @@ export default function Traning(): React.JSX.Element {
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
+  const [deloadMode,       setDeloadMode]       = useState(() => localStorage.getItem('deload') === '1')
   const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
   const [editMode,         setEditModeRaw]      = useState<boolean>(() => localStorage.getItem('pullpush_editMode') === 'true')
   const setEditMode = (v: boolean | ((prev: boolean) => boolean)): void => {
@@ -1064,6 +1071,7 @@ export default function Traning(): React.JSX.Element {
         session_id: activeTab,
         session_name: currentSession?.name ?? null,
         program_id: activeProgramId,
+        is_deload: deloadMode,
       }).select('id').single()
       if (error || !data) {
         console.error('workouts insert failed', error)
@@ -2033,6 +2041,13 @@ export default function Traning(): React.JSX.Element {
                   {programs.map((p: TrainingProgram) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                 </select>
             }
+            {!editMode && (
+              <label className={styles.deloadSwitch}>
+                <input type="checkbox" checked={deloadMode} onChange={() => setDeloadMode(v => { const n = !v; localStorage.setItem('deload', n ? '1' : '0'); return n })} />
+                <span className={styles.flowSlider} />
+                <span className={styles.flowLabel}>Deload</span>
+              </label>
+            )}
           </div>
         </Reveal>
       )}
@@ -2210,7 +2225,7 @@ export default function Traning(): React.JSX.Element {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentExercises.map((e: Exercise) => e.id)} strategy={verticalListSortingStrategy}>
                     {currentExercises.map((ex: Exercise) => (
-                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} lastDone={lastDone[ex.id]} setPlans={individualSets[ex.id] ?? []} weightUnit={weightUnit} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onMaximize={() => setTimerMinimized(false)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} timerRunning={timerMinimized && !!(timerPhase || countdownOverlay !== null)} completedSets={completedSets[ex.id] ?? 0} />
+                      <SortableRow key={ex.id} ex={ex} log={logs[ex.id]} lastDone={lastDone[ex.id]} setPlans={individualSets[ex.id] ?? []} weightUnit={weightUnit} onName={setNaming} onLog={setLogging} onPlay={(e) => timerExId === e.id ? pauseExerciseTimer() : startExerciseTimer(e)} onMaximize={() => setTimerMinimized(false)} onUndo={undoLastSet} editMode={editMode} isTimerActive={timerExId === ex.id} timerRunning={timerMinimized && !!(timerPhase || countdownOverlay !== null)} completedSets={completedSets[ex.id] ?? 0} isDeload={deloadMode} />
                     ))}
                   </SortableContext>
                 </DndContext>

@@ -9,6 +9,7 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    LabelList,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -37,6 +38,7 @@ interface CompletedWorkout {
     started_at: string | null
     session_id: number | null
     session_name: string | null
+    is_deload: boolean
     set_count: number
     total_kg: number
     exercises: WorkoutExerciseDetail[]
@@ -55,6 +57,7 @@ interface RawWorkout {
     started_at: string | null
     session_id: number | null
     session_name: string | null
+    is_deload: boolean | null
 }
 
 interface RawSet {
@@ -124,6 +127,9 @@ export default function Stats(): React.JSX.Element {
     const [loading, setLoading] = useState(true)
     const [workouts, setWorkouts] = useState<CompletedWorkout[]>([])
     const [openWorkout, setOpenWorkout] = useState<CompletedWorkout | null>(null)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [closingModal, setClosingModal] = useState(false)
     const [favoriteExercise, setFavoriteExercise] = useState<FavoriteExercise | null>(null)
     const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([])
 
@@ -148,7 +154,7 @@ export default function Stats(): React.JSX.Element {
             const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
                 supabase
                     .from('workouts')
-                    .select('id, completed_at, started_at, session_id, session_name')
+                    .select('id, completed_at, started_at, session_id, session_name, is_deload')
                     .eq('user_id', user.id)
                     .not('completed_at', 'is', null)
                     .order('completed_at', { ascending: false }),
@@ -231,6 +237,8 @@ export default function Stats(): React.JSX.Element {
             for (const w of chronoWorkouts) {
                 const agg = workoutAggMap.get(w.id)
                 if (!agg) continue
+                // Deload workouts are excluded from PR tracking entirely
+                if (w.is_deload) continue
                 // Per workout: compute best kg per exercise first, then compare
                 const workoutBestKg = new Map<number, number>()
                 for (const [exId, sets] of agg.exerciseSets) {
@@ -245,8 +253,6 @@ export default function Stats(): React.JSX.Element {
                 for (const [exId, best] of workoutBestKg) {
                     const prev = runningMaxKg.get(exId)
                     if (prev === undefined || best > prev) {
-                        // First time we see this exercise isn't a PR — it's just the baseline.
-                        // Only count it as a PR when a previous baseline existed and was beaten.
                         if (prev !== undefined) {
                             count += 1
                             ids.push(exId)
@@ -278,6 +284,7 @@ export default function Stats(): React.JSX.Element {
                         started_at: w.started_at,
                         session_id: w.session_id,
                         session_name: w.session_name ?? (w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null),
+                        is_deload: w.is_deload ?? false,
                         set_count: agg?.setCount ?? 0,
                         total_kg: agg?.totalKg ?? 0,
                         exercises,
@@ -385,12 +392,17 @@ export default function Stats(): React.JSX.Element {
     const monthlyData: { month: string; count: number }[] = (() => {
         const map = new Map<string, number>()
         for (const w of workouts) {
-            const key = w.completed_at.slice(0, 7) // "YYYY-MM"
+            const key = w.completed_at.slice(0, 7)
             map.set(key, (map.get(key) ?? 0) + 1)
         }
-        return Array.from(map.entries())
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([month, count]) => ({ month, count }))
+        const result: { month: string; count: number }[] = []
+        const now = new Date()
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+            result.push({ month: key, count: map.get(key) ?? 0 })
+        }
+        return result
     })()
 
     const isEmpty = !loading && workouts.length === 0
@@ -438,6 +450,25 @@ export default function Stats(): React.JSX.Element {
         )
     }
 
+    function closeModal(): void {
+        setClosingModal(true)
+        setTimeout(() => {
+            setOpenWorkout(null)
+            setConfirmDelete(false)
+            setClosingModal(false)
+        }, 220)
+    }
+
+    async function handleDeleteWorkout(id: string): Promise<void> {
+        setDeletingId(id)
+        closeModal()
+        await new Promise(r => setTimeout(r, 480))
+        await supabase.from('workout_sets').delete().eq('workout_id', id)
+        await supabase.from('workouts').delete().eq('id', id)
+        setWorkouts(prev => prev.filter(w => w.id !== id))
+        setDeletingId(null)
+    }
+
     return (
         <section className={styles.container}>
             <SectionHeader number="08" title={t('Stats')} />
@@ -479,16 +510,15 @@ export default function Stats(): React.JSX.Element {
             </div>
 
             {/* ── Section 2: Workouts per month (bar chart) ── */}
-            {monthlyData.length > 0 && (
-                <>
+            <>
                     <div className={styles.sectionHeader}>{t('Workouts per month')}</div>
                     <div className={styles.chartWrap}>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={monthlyData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={monthlyData} margin={{ top: 24, right: 16, left: -16, bottom: 0 }} barCategoryGap="40%" maxBarSize={56}>
                                 <defs>
                                     <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#ff5c35" />
-                                        <stop offset="100%" stopColor="#e8197d" />
+                                        <stop offset="0%" stopColor="#ff5c35" stopOpacity={0.9} />
+                                        <stop offset="100%" stopColor="#e8197d" stopOpacity={0.7} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
@@ -496,22 +526,22 @@ export default function Stats(): React.JSX.Element {
                                     dataKey="month"
                                     tickFormatter={(v: string) => {
                                         const [, m] = v.split('-')
-                                        const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                                        const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
                                         return names[parseInt(m, 10) - 1] ?? v
                                     }}
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                    tick={{ fontFamily: 'DM Sans', fontSize: 11, fill: 'var(--muted)', fontWeight: 500 }}
                                 />
                                 <YAxis
                                     allowDecimals={false}
                                     axisLine={false}
                                     tickLine={false}
-                                    width={32}
+                                    width={28}
                                     tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
                                 />
                                 <Tooltip
-                                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                                    cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }}
                                     contentStyle={{
                                         background: 'var(--card)',
                                         border: '1px solid var(--border)',
@@ -520,14 +550,20 @@ export default function Stats(): React.JSX.Element {
                                         fontSize: 13,
                                         color: 'var(--text)',
                                     }}
-                                    formatter={(value) => [`${value}`, t('Workouts')]}
+                                    formatter={(value) => [`${value} pass`, '']}
+                                    labelFormatter={(v: string) => {
+                                        const [y, m] = v.split('-')
+                                        const names = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December']
+                                        return `${names[parseInt(m, 10) - 1]} ${y}`
+                                    }}
                                 />
-                                <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
+                                <Bar dataKey="count" fill="url(#barGradient)" radius={[8, 8, 4, 4]}>
+                                    <LabelList dataKey="count" position="top" style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, fill: 'var(--text)' }} />
+                                </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                </>
-            )}
+            </>
 
             {/* ── Section 2b: Weekly volume chart ── */}
             {weeklyVolumeData.length > 1 && (
@@ -575,12 +611,15 @@ export default function Stats(): React.JSX.Element {
                     <button
                         key={w.id}
                         type="button"
-                        className={`${styles.workoutCard} ${w.pr_count > 0 ? styles.workoutCardPr : ''}`}
+                        className={`${styles.workoutCard} ${w.pr_count > 0 ? styles.workoutCardPr : ''} ${deletingId === w.id ? styles.workoutCardDeleting : ''}`}
                         onClick={() => setOpenWorkout(w)}
                     >
                         <div className={styles.workoutCardLeft}>
                             <div className={styles.workoutDateRow}>
                                 <span className={styles.workoutDate}>{formatDisplayDate(w.completed_at)}</span>
+                                {w.is_deload && (
+                                    <span className={styles.deloadBadge}>Deload</span>
+                                )}
                                 {w.pr_count > 0 && (
                                     <span className={styles.prBadge}>
                                         <span className={styles.prBadgeIcon}>🏆</span>
@@ -600,8 +639,8 @@ export default function Stats(): React.JSX.Element {
 
             {openWorkout && (
                 <div
-                    className={styles.overlay}
-                    onClick={() => setOpenWorkout(null)}
+                    className={`${styles.overlay} ${closingModal ? styles.overlayOut : ''}`}
+                    onClick={closeModal}
                     role="presentation"
                 >
                     <div
@@ -613,13 +652,14 @@ export default function Stats(): React.JSX.Element {
                         <button
                             type="button"
                             className={styles.modalClose}
-                            onClick={() => setOpenWorkout(null)}
+                            onClick={closeModal}
                             aria-label={t('Close')}
                         >
                             <X size={20} strokeWidth={2.5} />
                         </button>
                         <div className={styles.modalTitle}>
                             {openWorkout.session_name ?? '–'}
+                            {openWorkout.is_deload && <span className={styles.deloadBadge} style={{ marginLeft: 10, verticalAlign: 'middle' }}>Deload</span>}
                         </div>
                         <div className={styles.modalSubtitle}>
                             {(() => {
@@ -663,6 +703,21 @@ export default function Stats(): React.JSX.Element {
                         </div>
 
                         <div className={styles.modalDivider} />
+
+                        {confirmDelete ? (
+                            <div className={styles.deleteConfirm}>
+                                <span>{t('Delete this workout?')}</span>
+                                <div className={styles.deleteConfirmBtns}>
+                                    <button type="button" className={styles.deleteConfirmCancel} onClick={() => setConfirmDelete(false)}>{t('Cancel')}</button>
+                                    <button type="button" className={styles.deleteConfirmOk} onClick={() => handleDeleteWorkout(openWorkout.id)}>{t('Delete')}</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className={styles.deleteConfirmBtns}>
+                                <button type="button" className={styles.deleteConfirmCancel} onClick={closeModal}>{t('Continue training')}</button>
+                                <button type="button" className={styles.deleteConfirmOk} onClick={() => setConfirmDelete(true)}>{t('Delete workout')}</button>
+                            </div>
+                        )}
 
                         <div className={styles.modalExerciseList}>
                             {openWorkout.exercises.length === 0 && (

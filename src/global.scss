@@ -40,11 +40,17 @@
   box-sizing: border-box;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input, textarea {
   -webkit-user-select: text;
   user-select: text;
+}
+
+button:active, a:active, [role="button"]:active {
+  filter: brightness(0.82);
+  transition: filter 0.08s ease;
 }
 
 html {
