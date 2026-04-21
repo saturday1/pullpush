@@ -51,7 +51,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }): Rea
     ? Math.max(0, Math.ceil((new Date(trialExpiresAt).getTime() - Date.now()) / 86_400_000))
     : 0
 
-  const effectiveRole: UserRole = role === 'developer' ? 'developer' : isTrialing ? 'premium' : role
+  // Developers can override their effective role locally for testing
+  const devOverride = role === 'developer'
+    ? (localStorage.getItem('dev_role_override') as UserRole | null)
+    : null
+
+  const effectiveRole: UserRole = devOverride ?? (role === 'developer' ? 'developer' : isTrialing ? 'premium' : role)
 
   function canUse(feature: Feature): boolean {
     return ROLE_RANK[effectiveRole] >= ROLE_RANK[FEATURE_REQUIRED[feature]]

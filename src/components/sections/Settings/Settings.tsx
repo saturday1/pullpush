@@ -3,13 +3,22 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '../../../context/ThemeContext'
 import { useWeightUnit, type WeightUnit } from '../../../hooks/useWeightUnit'
 import { useFlowSounds, getCountdownStyle, setCountdownStyle, getCountdownLength, setCountdownLength, type CountdownStyle } from '../../../hooks/useFlowSounds'
-import { useProfile } from '../../../context/ProfileContext'
+import { useProfile, type UserRole } from '../../../context/ProfileContext'
+import { useSubscription } from '../../../context/SubscriptionContext'
 import { supabase } from '../../../supabase'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Profil from '../Profil/Profil'
 import Tips from '../Tips/Tips'
 import styles from './Settings.module.scss'
+
+const ALL_ROLES: UserRole[] = ['free', 'standard', 'premium', 'developer']
+const ROLE_LABEL: Record<UserRole, string> = {
+    free: 'Free',
+    standard: 'Standard',
+    premium: 'Premium',
+    developer: 'Developer (full)',
+}
 
 type SettingsTab = 'profile' | 'settings' | 'sound' | 'time' | 'guide'
 
@@ -26,6 +35,23 @@ export default function Settings(): React.ReactElement {
     const [weightUnit, setWeightUnit] = useWeightUnit()
     const profile = useProfile()
     const updateProfile = profile?.updateProfile
+    const { effectiveRole } = useSubscription()
+    const isDeveloper = profile?.role === 'developer'
+    const [devOverride, setDevOverrideState] = useState<UserRole | null>(
+        isDeveloper ? (localStorage.getItem('dev_role_override') as UserRole | null) : null
+    )
+
+    function setDevRole(role: UserRole | null): void {
+        if (role === null || role === 'developer') {
+            localStorage.removeItem('dev_role_override')
+            setDevOverrideState(null)
+        } else {
+            localStorage.setItem('dev_role_override', role)
+            setDevOverrideState(role)
+        }
+        // Force re-render of subscription context by reloading
+        window.location.reload()
+    }
     const [restSec, setRestSec] = useState(String(profile?.restSeconds ?? 90))
     const [secPerRep, setSecPerRep] = useState(String(profile?.secPerRep ?? 4))
     const [cdSec, setCdSec] = useState(String(profile?.countdownSeconds ?? 10))
@@ -129,6 +155,32 @@ export default function Settings(): React.ReactElement {
                             </div>
                         </div>
                     </Reveal>
+
+                    {isDeveloper && (
+                        <Reveal>
+                            <div className={`${styles.card} ${styles.devCard}`}>
+                                <div className={styles.devCardHeader}>
+                                    <span className={styles.devBadge}>DEV</span>
+                                    <div className={styles.cardTitle}>Testa rollnivå</div>
+                                </div>
+                                <div className={styles.devCurrent}>
+                                    Aktiv roll: <strong>{ROLE_LABEL[effectiveRole]}</strong>
+                                    {devOverride && <span className={styles.devOverrideTag}>override</span>}
+                                </div>
+                                <div className={styles.optionRow}>
+                                    {ALL_ROLES.map(r => (
+                                        <button
+                                            key={r}
+                                            className={`${styles.optionBtn} ${(devOverride ?? 'developer') === r ? styles.optionActive : ''}`}
+                                            onClick={() => setDevRole(r === 'developer' ? null : r)}
+                                        >
+                                            {ROLE_LABEL[r]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </Reveal>
+                    )}
 
                 </>
             )}
