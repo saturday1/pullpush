@@ -435,5 +435,12 @@
   "new personal records": "nya personliga rekord",
   "Log your first weight": "Logga din första vikt",
   "Delete workout": "Ta bort pass",
-  "Delete this workout?": "Ta bort detta pass?"
+  "Delete this workout?": "Ta bort detta pass?",
+  "This week": "Denna vecka",
+  "Last week": "Förra veckan",
+  "Best streak": "Bästa streak",
+  "Exercise progress": "Övningsprogress",
+  "Session split": "Passfördelning",
+  "Activity": "Aktivitet",
+  "Max": "Max"
 }
