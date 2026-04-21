@@ -88,7 +88,7 @@ struct RestTimerLiveActivity: Widget {
             let pausedSecs = Int(context.state.pausedSecondsRemaining)
             let pausedFormatted = String(format: "%d:%02d", pausedSecs / 60, pausedSecs % 60)
 
-            DynamicIsland {
+            return DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
                     HStack(spacing: 10) {
                         Image("PullPushLogo")
