@@ -13,7 +13,6 @@ import styles from './Mat.module.scss'
 // --- Data interfaces ---
 
 interface MealFormData {
-    time_label: string
     label: string
     food: string
     note: string
@@ -105,7 +104,7 @@ interface MealTotals {
 
 // --- Constants ---
 
-const EMPTY_FORM: MealFormData = { time_label: '', label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '' }
+const EMPTY_FORM: MealFormData = { label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '' }
 
 // --- Date helpers ---
 
@@ -767,10 +766,6 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
 
                 <div className={styles.modalFields}>
                     <label className={styles.modalField}>
-                        <span className={styles.modalLabel}>{t('Time')}</span>
-                        <input className={styles.modalInput} value={form.time_label} onChange={e => set('time_label', e.target.value)} placeholder={t('e.g. 0700 or after workout')} />
-                    </label>
-                    <label className={styles.modalField}>
                         <span className={styles.modalLabel}>{t('Label')}</span>
                         <select className={styles.modalInput} value={form.label} onChange={e => set('label', e.target.value)}>
                             <option>{t('Breakfast')}</option>
@@ -828,31 +823,12 @@ interface MealTableProps {
 
 function MealTable({ meals, onEdit, onDelete, onToggleRecurring, t }: MealTableProps): React.JSX.Element {
     return (
-        <table className={styles.table}>
-            <thead>
-                <tr>
-                    <th>{t('Time')}</th>
-                    <th>{t('Food')}</th>
-                    <th style={{ color: '#f97316' }}>{t('P')}</th>
-                    <th style={{ color: '#60a5fa' }}>{t('C')}</th>
-                    <th style={{ color: '#22c55e' }}>{t('F')}</th>
-                    <th>Kcal</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {meals.map((meal: Meal) => (
-                    <tr key={meal.id}>
-                        <td>
-                            <div className={styles.mealTime}>{meal.time_label}</div>
-                            <div className={styles.mealLabel}>{meal.label}</div>
-                        </td>
-                        <td>{meal.food}{meal.note && <em className={styles.mealNote}> {meal.note}</em>}</td>
-                        <td><span className="pill pill-p">{meal.protein_g}g</span></td>
-                        <td><span className="pill pill-k">{meal.carbs_g}g</span></td>
-                        <td><span className="pill pill-f">{meal.fat_g}g</span></td>
-                        <td><span className="pill pill-kcal">{meal.kcal}</span></td>
-                        <td className={styles.actionCell}>
+        <div className={styles.mealList}>
+            {meals.map((meal: Meal) => (
+                <div key={meal.id} className={styles.mealCard}>
+                    <div className={styles.mealCardHeader}>
+                        <div className={styles.mealLabel}>{meal.label}</div>
+                        <div className={styles.mealCardActions}>
                             <button
                                 className={`${styles.starBtn} ${meal.is_recurring ? styles.starBtnActive : ''}`}
                                 onClick={() => onToggleRecurring(meal)}
@@ -862,11 +838,21 @@ function MealTable({ meals, onEdit, onDelete, onToggleRecurring, t }: MealTableP
                             </button>
                             <button className={styles.editBtn} onClick={() => onEdit(meal)} title={t('Edit')}>✏️</button>
                             <button className={styles.deleteBtn} onClick={() => onDelete(meal.id)} title={t('Delete')}>🗑</button>
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
+                        </div>
+                    </div>
+                    <div className={styles.mealCardFood}>
+                        {meal.food}
+                        {meal.note && <em className={styles.mealNote}> {meal.note}</em>}
+                    </div>
+                    <div className={styles.mealCardMacros}>
+                        <span className="pill pill-p" style={{ color: '#f97316' }}>{meal.protein_g}g P</span>
+                        <span className="pill pill-k" style={{ color: '#60a5fa' }}>{meal.carbs_g}g C</span>
+                        <span className="pill pill-f" style={{ color: '#22c55e' }}>{meal.fat_g}g F</span>
+                        <span className="pill pill-kcal">{meal.kcal} kcal</span>
+                    </div>
+                </div>
+            ))}
+        </div>
     )
 }
 
@@ -1009,8 +995,8 @@ export default function Mat(): React.JSX.Element {
         const currentMax: number = meals.reduce((acc: number, m: Meal) => Math.max(acc, m.sort_order), -1)
         const row = {
             user_id: user!.id,
+            day_type: 'default',
             sort_order: currentMax + 1,
-            time_label: form.time_label.trim(),
             label: form.label.trim(),
             food: form.food.trim(),
             note: form.note.trim() || null,
@@ -1054,7 +1040,6 @@ export default function Mat(): React.JSX.Element {
         setSaving(true)
         setSaveError('')
         const { data, error } = await supabase.from('meals').update({
-            time_label: form.time_label.trim(),
             label: form.label.trim(),
             food: form.food.trim(),
             note: form.note.trim() || null,
@@ -1254,7 +1239,7 @@ export default function Mat(): React.JSX.Element {
             )}
             {editMeal && (
                 <MealModal
-                    initial={{ ...editMeal, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '', product_id: editMeal.product_id ?? null, grams: editMeal.grams != null ? String(editMeal.grams) : '' }}
+                    initial={{ label: editMeal.label, food: editMeal.food, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '', product_id: editMeal.product_id ?? null, grams: editMeal.grams != null ? String(editMeal.grams) : '' }}
                     onSave={handleEdit}
                     onClose={() => { setEditMeal(null); setSaveError('') }}
                     saving={saving}

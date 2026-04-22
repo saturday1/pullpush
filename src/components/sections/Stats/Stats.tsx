@@ -136,6 +136,9 @@ export default function Stats(): React.JSX.Element {
     const [exerciseProgressData, setExerciseProgressData] = useState<Record<string, { date: string; kg: number }[]>>({})
     const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
     const [heatmapOffset, setHeatmapOffset] = useState(0) // 0 = current month, -1 = last month, etc.
+    const [activeTab, setActiveTab] = useState<'history' | 'strength' | 'volume'>('history')
+    const [showAllWorkouts, setShowAllWorkouts] = useState(false)
+    const [showAllPRs, setShowAllPRs] = useState(false)
 
     useEffect(() => {
         if (!openWorkout) return
@@ -656,284 +659,323 @@ export default function Stats(): React.JSX.Element {
                 </div>
             </div>
 
-            {/* ── Training Heatmap (monthly calendar) ── */}
-            <div className={styles.heatmapHeader}>
-                <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => o - 1)}>‹</button>
-                <span className={styles.sectionHeader} style={{ margin: 0 }}>{heatmapMonth.monthName}</span>
-                <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => Math.min(o + 1, 0))} disabled={heatmapOffset >= 0}>›</button>
-            </div>
-            <div className={styles.heatmap}>
-                <div className={styles.heatmapWeekRow}>
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-                        <span key={i} className={styles.heatmapDayLabel}>{d}</span>
-                    ))}
-                </div>
-                {heatmapMonth.weeks.map((week, wi) => (
-                    <div key={wi} className={styles.heatmapWeekRow}>
-                        {week.map((cell, di) => {
-                            if (!cell) return <div key={di} className={styles.heatmapCellEmpty} />
-                            const hasWorkout = cell.volume > 0
-                            const dayWorkout = hasWorkout
-                                ? workouts.find(w => w.completed_at.slice(0, 10) === cell.date)
-                                : null
-                            return (
-                                <div
-                                    key={di}
-                                    className={`${styles.heatmapCell} ${dayWorkout ? styles.heatmapCellClickable : ''}`}
-                                    data-level={cell.volume < 0 ? 'future' : cell.volume === 0 ? '0' : cell.volume < 5000 ? '1' : cell.volume < 15000 ? '2' : '3'}
-                                    title={hasWorkout ? `${cell.date}: ${Math.round(cell.volume).toLocaleString()} kg` : cell.date}
-                                    onClick={dayWorkout ? () => setOpenWorkout(dayWorkout) : undefined}
-                                >
-                                    <span className={styles.heatmapDayNum}>{cell.day}</span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                ))}
-            </div>
-
-            {/* ── This Week vs Last Week ── */}
-            <div className={styles.weekComparison}>
-                <div className={styles.comparisonCard}>
-                    <div className={styles.comparisonLabel}>{t('This week')}</div>
-                    <div className={styles.comparisonValue}>{weekComparison.thisWeekWorkouts} {t('Workouts').toLowerCase()}</div>
-                    <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.thisWeekVolume), weightUnit)}</div>
-                    {weekComparison.lastWeekWorkouts > 0 && (
-                        <div className={`${styles.comparisonArrow} ${weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? styles.comparisonUp : styles.comparisonDown}`}>
-                            {weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? '↑' : '↓'}
-                            {' '}{Math.abs(Math.round(((weekComparison.thisWeekWorkouts - weekComparison.lastWeekWorkouts) / weekComparison.lastWeekWorkouts) * 100))}%
-                        </div>
-                    )}
-                </div>
-                <div className={styles.comparisonCard}>
-                    <div className={styles.comparisonLabel}>{t('Last week')}</div>
-                    <div className={styles.comparisonValue}>{weekComparison.lastWeekWorkouts} {t('Workouts').toLowerCase()}</div>
-                    <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.lastWeekVolume), weightUnit)}</div>
-                </div>
-            </div>
-
-            {/* ── Section 2: Workouts per month (bar chart) ── */}
-            {monthlyData.length > 0 && (
-                <>
-                    <div className={styles.sectionHeader}>{t('Workouts per month')}</div>
-                    <div className={styles.chartWrap}>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={monthlyData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#ff5c35" />
-                                        <stop offset="100%" stopColor="#e8197d" />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                                <XAxis
-                                    dataKey="month"
-                                    tickFormatter={(v: string) => {
-                                        const [, m] = v.split('-')
-                                        const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                                        return names[parseInt(m, 10) - 1] ?? v
-                                    }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
-                                />
-                                <YAxis
-                                    allowDecimals={false}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    width={32}
-                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
-                                />
-                                <Tooltip
-                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                                    contentStyle={{
-                                        background: 'var(--card)',
-                                        border: '1px solid var(--border)',
-                                        borderRadius: 10,
-                                        fontFamily: 'DM Sans',
-                                        fontSize: 13,
-                                        color: 'var(--text)',
-                                    }}
-                                    formatter={(value) => [`${value}`, t('Workouts')]}
-                                />
-                                <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </>
-            )}
-
-            {/* ── Session distribution (pie chart) ── */}
-            {sessionDistData.length > 1 && (
-                <>
-                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Session split')}</div>
-                    <div className={styles.chartWrap}>
-                        <ResponsiveContainer width="100%" height={220}>
-                            <PieChart>
-                                <Pie
-                                    data={sessionDistData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={50}
-                                    outerRadius={80}
-                                    paddingAngle={3}
-                                    dataKey="value"
-                                    stroke="none"
-                                    label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                                    labelLine={false}
-                                    activeShape={((props: { cx: number; cy: number; innerRadius: number; outerRadius: number; startAngle: number; endAngle: number; fill: string }) => (
-                                        <g>
-                                            <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius} outerRadius={props.outerRadius} startAngle={props.startAngle} endAngle={props.endAngle} fill={props.fill} style={{ transition: 'all 0.2s ease' }} />
-                                            <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius - 8} outerRadius={props.outerRadius + 8} startAngle={props.startAngle} endAngle={props.endAngle} fill="rgba(255,255,255,0.08)" style={{ transition: 'all 0.2s ease' }} />
-                                        </g>
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    )) as any}
-                                >
-                                    {sessionDistData.map((_, i) => (
-                                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
-                                    formatter={(value) => [`${value}`, t('Workouts')]}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </>
-            )}
-
-            {/* ── Section 2b: Weekly volume chart ── */}
-            {weeklyVolumeData.length > 1 && (
-                <>
-                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Weekly volume')}</div>
-                    <div className={styles.chartWrap}>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={weeklyVolumeData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#7c3aed" />
-                                        <stop offset="100%" stopColor="#2563eb" />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}t`} />
-                                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value) => [`${Number(value).toLocaleString('sv-SE')} kg`, t('Volume')]} />
-                                <Bar dataKey="volume" fill="url(#volumeGradient)" radius={[6, 6, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </>
-            )}
-
-            {/* ── Section 2c: Personal Records ── */}
-            {personalRecords.length > 0 && (
-                <>
-                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Personal Records')}</div>
-                    <div className={styles.prList}>
-                        {personalRecords.map((pr, i) => (
-                            <button
-                                key={i}
-                                type="button"
-                                className={`${styles.prRow} ${prWorkoutMap[pr.name] ? styles.prRowClickable : ''}`}
-                                onClick={() => {
-                                    const wkId = prWorkoutMap[pr.name]
-                                    if (wkId) {
-                                        const w = workouts.find(w => w.id === wkId)
-                                        if (w) setOpenWorkout(w)
-                                    }
-                                }}
-                            >
-                                <span className={styles.prName}>{pr.name}</span>
-                                <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
-                            </button>
-                        ))}
-                    </div>
-                </>
-            )}
-
-            {/* ── Exercise Progress Chart ── */}
-            {activeExercise && exerciseProgressData[activeExercise] && (
-                <>
-                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Exercise progress')}</div>
-                    <div className={styles.exerciseChartTabs}>
-                        {topExercises.map(name => (
-                            <button
-                                key={name}
-                                type="button"
-                                className={`${styles.exerciseTab} ${name === activeExercise ? styles.exerciseTabActive : ''}`}
-                                onClick={() => setSelectedExercise(name)}
-                            >
-                                {name}
-                            </button>
-                        ))}
-                    </div>
-                    <div className={styles.chartWrap}>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <AreaChart data={exerciseProgressData[activeExercise]} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-                                        <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                                <XAxis
-                                    dataKey="date"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
-                                    tickFormatter={(v: string) => { const [, m, d] = v.split('-'); return `${d}/${m}` }}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
-                                    unit=" kg"
-                                    domain={['dataMin - 5', 'dataMax + 5']}
-                                />
-                                <Tooltip
-                                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }}
-                                    formatter={(value) => [`${value} kg`, t('Max')]}
-                                />
-                                <Area type="monotone" dataKey="kg" stroke="#10b981" strokeWidth={2} fill="url(#progressGradient)" dot={{ r: 3, fill: '#10b981' }} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </>
-            )}
-
-            {/* ── Section 3: Workout history ── */}
-            <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Workout History')}</div>
-            <div className={styles.workoutList}>
-                {workouts.map(w => (
+            {/* ── Tab row ── */}
+            <div className={styles.statsTabRow}>
+                {(['history', 'strength', 'volume'] as const).map(tab => (
                     <button
-                        key={w.id}
+                        key={tab}
                         type="button"
-                        className={`${styles.workoutCard} ${w.pr_count > 0 ? styles.workoutCardPr : ''}`}
-                        onClick={() => setOpenWorkout(w)}
+                        className={`${styles.statsTab} ${activeTab === tab ? styles.statsTabActive : ''}`}
+                        onClick={() => setActiveTab(tab)}
                     >
-                        <div className={styles.workoutCardLeft}>
-                            <div className={styles.workoutDateRow}>
-                                <span className={styles.workoutDate}>{formatDisplayDate(w.completed_at)}</span>
-                                {w.pr_count > 0 && (
-                                    <span className={styles.prBadge}>
-                                        <span className={styles.prBadgeIcon}>🏆</span>
-                                        <span className={styles.prBadgeText}>
-                                            {w.pr_count > 1 ? `${w.pr_count}× ${t('PR!')}` : t('New PR!')}
-                                        </span>
-                                    </span>
-                                )}
-                            </div>
-                            <div className={styles.workoutSession}>{w.session_name ?? '–'}</div>
-                        </div>
-                        <div className={styles.workoutSets}>{w.set_count} sets</div>
-                        <div className={styles.workoutCardChevron}>›</div>
+                        {tab === 'history' ? t('Historik') : tab === 'strength' ? t('Styrka') : t('Volym')}
                     </button>
                 ))}
             </div>
+
+            {/* ── History tab ── */}
+            {activeTab === 'history' && (
+                <>
+                    {/* Training Heatmap */}
+                    <div className={styles.heatmapHeader}>
+                        <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => o - 1)}>‹</button>
+                        <span className={styles.sectionHeader} style={{ margin: 0 }}>{heatmapMonth.monthName}</span>
+                        <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => Math.min(o + 1, 0))} disabled={heatmapOffset >= 0}>›</button>
+                    </div>
+                    <div className={styles.heatmap}>
+                        <div className={styles.heatmapWeekRow}>
+                            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                                <span key={i} className={styles.heatmapDayLabel}>{d}</span>
+                            ))}
+                        </div>
+                        {heatmapMonth.weeks.map((week, wi) => (
+                            <div key={wi} className={styles.heatmapWeekRow}>
+                                {week.map((cell, di) => {
+                                    if (!cell) return <div key={di} className={styles.heatmapCellEmpty} />
+                                    const hasWorkout = cell.volume > 0
+                                    const dayWorkout = hasWorkout
+                                        ? workouts.find(w => w.completed_at.slice(0, 10) === cell.date)
+                                        : null
+                                    return (
+                                        <div
+                                            key={di}
+                                            className={`${styles.heatmapCell} ${dayWorkout ? styles.heatmapCellClickable : ''}`}
+                                            data-level={cell.volume < 0 ? 'future' : cell.volume === 0 ? '0' : cell.volume < 5000 ? '1' : cell.volume < 15000 ? '2' : '3'}
+                                            title={hasWorkout ? `${cell.date}: ${Math.round(cell.volume).toLocaleString()} kg` : cell.date}
+                                            onClick={dayWorkout ? () => setOpenWorkout(dayWorkout) : undefined}
+                                        >
+                                            <span className={styles.heatmapDayNum}>{cell.day}</span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* This Week vs Last Week */}
+                    <div className={styles.weekComparison}>
+                        <div className={styles.comparisonCard}>
+                            <div className={styles.comparisonLabel}>{t('This week')}</div>
+                            <div className={styles.comparisonValue}>{weekComparison.thisWeekWorkouts} {t('Workouts').toLowerCase()}</div>
+                            <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.thisWeekVolume), weightUnit)}</div>
+                            {weekComparison.lastWeekWorkouts > 0 && (
+                                <div className={`${styles.comparisonArrow} ${weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? styles.comparisonUp : styles.comparisonDown}`}>
+                                    {weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? '↑' : '↓'}
+                                    {' '}{Math.abs(Math.round(((weekComparison.thisWeekWorkouts - weekComparison.lastWeekWorkouts) / weekComparison.lastWeekWorkouts) * 100))}%
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.comparisonCard}>
+                            <div className={styles.comparisonLabel}>{t('Last week')}</div>
+                            <div className={styles.comparisonValue}>{weekComparison.lastWeekWorkouts} {t('Workouts').toLowerCase()}</div>
+                            <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.lastWeekVolume), weightUnit)}</div>
+                        </div>
+                    </div>
+
+                    {/* Workout History */}
+                    <div className={styles.sectionHeader}>{t('Workout History')}</div>
+                    <div className={styles.workoutList}>
+                        {(showAllWorkouts ? workouts : workouts.slice(0, 5)).map(w => (
+                            <button
+                                key={w.id}
+                                type="button"
+                                className={`${styles.workoutCard} ${w.pr_count > 0 ? styles.workoutCardPr : ''}`}
+                                onClick={() => setOpenWorkout(w)}
+                            >
+                                <div className={styles.workoutCardLeft}>
+                                    <div className={styles.workoutDateRow}>
+                                        <span className={styles.workoutDate}>{formatDisplayDate(w.completed_at)}</span>
+                                        {w.pr_count > 0 && (
+                                            <span className={styles.prBadge}>
+                                                <span className={styles.prBadgeIcon}>🏆</span>
+                                                <span className={styles.prBadgeText}>
+                                                    {w.pr_count > 1 ? `${w.pr_count}× ${t('PR!')}` : t('New PR!')}
+                                                </span>
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className={styles.workoutSession}>{w.session_name ?? '–'}</div>
+                                </div>
+                                <div className={styles.workoutSets}>{w.set_count} sets</div>
+                                <div className={styles.workoutCardChevron}>›</div>
+                            </button>
+                        ))}
+                    </div>
+                    {!showAllWorkouts && workouts.length > 5 && (
+                        <button type="button" className={styles.showMoreBtn} onClick={() => setShowAllWorkouts(true)}>
+                            {t('Visa alla')} ({workouts.length})
+                        </button>
+                    )}
+                </>
+            )}
+
+            {/* ── Strength tab ── */}
+            {activeTab === 'strength' && (
+                <>
+                    {/* Personal Records */}
+                    {personalRecords.length > 0 && (
+                        <>
+                            <div className={styles.sectionHeader}>{t('Personal Records')}</div>
+                            <div className={styles.prList}>
+                                {(showAllPRs ? personalRecords : personalRecords.slice(0, 3)).map((pr, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        className={`${styles.prRow} ${prWorkoutMap[pr.name] ? styles.prRowClickable : ''}`}
+                                        onClick={() => {
+                                            const wkId = prWorkoutMap[pr.name]
+                                            if (wkId) {
+                                                const w = workouts.find(w => w.id === wkId)
+                                                if (w) setOpenWorkout(w)
+                                            }
+                                        }}
+                                    >
+                                        <span className={styles.prName}>{pr.name}</span>
+                                        <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
+                                    </button>
+                                ))}
+                                {!showAllPRs && personalRecords.length > 3 && (
+                                    <button type="button" className={styles.showMoreBtn} onClick={() => setShowAllPRs(true)}>
+                                        {t('Visa alla')} ({personalRecords.length})
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Exercise Progress Chart */}
+                    {activeExercise && exerciseProgressData[activeExercise] && (
+                        <>
+                            <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Exercise progress')}</div>
+                            <div className={styles.exerciseChartTabs}>
+                                {topExercises.map(name => (
+                                    <button
+                                        key={name}
+                                        type="button"
+                                        className={`${styles.exerciseTab} ${name === activeExercise ? styles.exerciseTabActive : ''}`}
+                                        onClick={() => setSelectedExercise(name)}
+                                    >
+                                        {name}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className={styles.chartWrap}>
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <AreaChart data={exerciseProgressData[activeExercise]} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                                                <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                        <XAxis
+                                            dataKey="date"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                            tickFormatter={(v: string) => { const [, m, d] = v.split('-'); return `${d}/${m}` }}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                            unit=" kg"
+                                            domain={['dataMin - 5', 'dataMax + 5']}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }}
+                                            formatter={(value) => [`${value} kg`, t('Max')]}
+                                        />
+                                        <Area type="monotone" dataKey="kg" stroke="#10b981" strokeWidth={2} fill="url(#progressGradient)" dot={{ r: 3, fill: '#10b981' }} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </>
+                    )}
+                </>
+            )}
+
+            {/* ── Volume tab ── */}
+            {activeTab === 'volume' && (
+                <>
+                    {/* Workouts per month */}
+                    {monthlyData.length > 0 && (
+                        <>
+                            <div className={styles.sectionHeader}>{t('Workouts per month')}</div>
+                            <div className={styles.chartWrap}>
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <BarChart data={monthlyData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#ff5c35" />
+                                                <stop offset="100%" stopColor="#e8197d" />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                        <XAxis
+                                            dataKey="month"
+                                            tickFormatter={(v: string) => {
+                                                const [, m] = v.split('-')
+                                                const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                                                return names[parseInt(m, 10) - 1] ?? v
+                                            }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                        />
+                                        <YAxis
+                                            allowDecimals={false}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            width={32}
+                                            tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                            contentStyle={{
+                                                background: 'var(--card)',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: 10,
+                                                fontFamily: 'DM Sans',
+                                                fontSize: 13,
+                                                color: 'var(--text)',
+                                            }}
+                                            formatter={(value) => [`${value}`, t('Workouts')]}
+                                        />
+                                        <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Session distribution (pie chart) */}
+                    {sessionDistData.length > 1 && (
+                        <>
+                            <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Session split')}</div>
+                            <div className={styles.chartWrap}>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <PieChart>
+                                        <Pie
+                                            data={sessionDistData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={80}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                            stroke="none"
+                                            label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                                            labelLine={false}
+                                            activeShape={((props: { cx: number; cy: number; innerRadius: number; outerRadius: number; startAngle: number; endAngle: number; fill: string }) => (
+                                                <g>
+                                                    <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius} outerRadius={props.outerRadius} startAngle={props.startAngle} endAngle={props.endAngle} fill={props.fill} style={{ transition: 'all 0.2s ease' }} />
+                                                    <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius - 8} outerRadius={props.outerRadius + 8} startAngle={props.startAngle} endAngle={props.endAngle} fill="rgba(255,255,255,0.08)" style={{ transition: 'all 0.2s ease' }} />
+                                                </g>
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            )) as any}
+                                        >
+                                            {sessionDistData.map((_, i) => (
+                                                <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: '#fff' }}
+                                            itemStyle={{ color: '#fff' }}
+                                            formatter={(value) => [`${value}`, t('Workouts')]}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Weekly volume chart */}
+                    {weeklyVolumeData.length > 1 && (
+                        <>
+                            <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Weekly volume')}</div>
+                            <div className={styles.chartWrap}>
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <BarChart data={weeklyVolumeData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#7c3aed" />
+                                                <stop offset="100%" stopColor="#2563eb" />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                        <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}t`} />
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value) => [`${Number(value).toLocaleString('sv-SE')} kg`, t('Volume')]} />
+                                        <Bar dataKey="volume" fill="url(#volumeGradient)" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </>
+                    )}
+                </>
+            )}
 
             {openWorkout && (
                 <div
