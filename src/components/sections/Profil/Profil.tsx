@@ -12,9 +12,24 @@ function formatDate(dateStr: string | null): string {
     return new Date(dateStr).toLocaleDateString('sv-SE')
 }
 
+function maskPhone(phone: string | null | undefined): string {
+    if (!phone) return '–'
+    const digits = phone.replace(/\D/g, '')
+    const last4 = digits.slice(-4)
+    const prefix = phone.startsWith('+') ? phone.slice(0, phone.indexOf(' ') > 0 ? phone.indexOf(' ') : 3) : ''
+    return `${prefix} *** *** ${last4}`
+}
+
+function maskEmail(email: string): string {
+    if (!email) return '…'
+    const [local, domain] = email.split('@')
+    if (!domain) return email
+    return `${local[0]}***@${domain}`
+}
+
 export default function Profil(): React.JSX.Element {
     const { t, i18n } = useTranslation()
-    const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, startWeight, restSeconds, secPerRep, countdownSeconds, sidePauseSeconds, updateProfile } = useProfile()!
+    const { profileLoading, firstName, lastName, birthDate, phone, age, height, goalWeight, startWeight, updateProfile } = useProfile()!
     const [email, setEmail] = useState<string>('')
 
     const [editing, setEditing] = useState<boolean>(false)
@@ -25,10 +40,6 @@ export default function Profil(): React.JSX.Element {
     const [editHeight, setEditHeight] = useState<string>('')
     const [editGoal, setEditGoal] = useState<string>('')
     const [editStart, setEditStart] = useState<string>('')
-    const [editRest, setEditRest] = useState<string>('')
-    const [editSecPerRep, setEditSecPerRep] = useState<string>('')
-    const [editCountdown, setEditCountdown] = useState<string>('')
-    const [editSidePause, setEditSidePause] = useState<string>('')
     const [saving, setSaving] = useState<boolean>(false)
 
     useEffect(() => {
@@ -45,10 +56,6 @@ export default function Profil(): React.JSX.Element {
         setEditHeight(height?.toString() ?? '')
         setEditGoal(goalWeight?.toString() ?? '')
         setEditStart(startWeight?.toString() ?? '')
-        setEditRest(restSeconds?.toString() ?? '90')
-        setEditSecPerRep(secPerRep?.toString() ?? '4')
-        setEditCountdown(countdownSeconds?.toString() ?? '10')
-        setEditSidePause(sidePauseSeconds?.toString() ?? '5')
         setEditing(true)
     }
 
@@ -63,10 +70,6 @@ export default function Profil(): React.JSX.Element {
             last_name: editLast.trim(),
             birth_date: editBirth || null,
             phone: editPhone.trim() || null,
-            rest_seconds: Math.max(0, parseInt(editRest) || 90),
-            sec_per_rep: Math.max(0, parseInt(editSecPerRep) || 4),
-            countdown_seconds: Math.max(0, parseInt(editCountdown) || 10),
-            side_pause_seconds: Math.max(0, parseInt(editSidePause) || 5),
         })
         setSaving(false)
         setEditing(false)
@@ -123,24 +126,6 @@ export default function Profil(): React.JSX.Element {
                                     <input className={styles.fieldInput} type="number" step="0.1" value={editGoal} onChange={e => setEditGoal(e.target.value)} placeholder="kg" />
                                 </label>
                             </div>
-                            <div className={styles.fieldRow}>
-                                <label className={styles.field}>
-                                    <span className={styles.fieldLabel}>{t('Rest timer (seconds)')}</span>
-                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editRest} onChange={e => setEditRest(e.target.value)} placeholder="90" />
-                                </label>
-                                <label className={styles.field}>
-                                    <span className={styles.fieldLabel}>{t('Sec per rep')}</span>
-                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editSecPerRep} onChange={e => setEditSecPerRep(e.target.value)} placeholder="4" />
-                                </label>
-                                <label className={styles.field}>
-                                    <span className={styles.fieldLabel}>{t('Countdown (sec)')}</span>
-                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editCountdown} onChange={e => setEditCountdown(e.target.value)} placeholder="10" />
-                                </label>
-                                <label className={styles.field}>
-                                    <span className={styles.fieldLabel}>{t('Side pause (sec)')}</span>
-                                    <input className={styles.fieldInput} type="number" min="0" step="1" value={editSidePause} onChange={e => setEditSidePause(e.target.value)} placeholder="5" />
-                                </label>
-                            </div>
                             <div className={styles.editActions}>
                                 <button type="button" className={styles.cancelBtn} onClick={() => setEditing(false)}>{t('Cancel')}</button>
                                 <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? t('Saving…') : t('Save')}</button>
@@ -151,14 +136,10 @@ export default function Profil(): React.JSX.Element {
                             <div className={styles.infoRow}><span>{t('Name')}</span><span>{profileLoading ? <Skeleton width={120} height={14} /> : `${firstName ?? '–'} ${lastName ?? ''}`}</span></div>
                             <div className={styles.infoRow}><span>{t('Age')}</span><span>{profileLoading ? <Skeleton width={140} height={14} /> : t('{{age}} years ({{date}})', { age: age ?? '–', date: formatDate(birthDate) })}</span></div>
                             <div className={styles.infoRow}><span>{t('Height')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : t('{{height}} cm', { height: height ?? '–' })}</span></div>
-                            <div className={styles.infoRow}><span>{t('Phone')}</span><span>{profileLoading ? <Skeleton width={100} height={14} /> : (phone ?? '–')}</span></div>
+                            <div className={styles.infoRow}><span>{t('Phone')}</span><span>{profileLoading ? <Skeleton width={100} height={14} /> : maskPhone(phone)}</span></div>
                             <div className={styles.infoRow}><span>{t('Start weight')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : (startWeight ? `${startWeight} kg` : '–')}</span></div>
                             <div className={styles.infoRow}><span>{t('Goal weight')}</span><span>{profileLoading ? <Skeleton width={60} height={14} /> : (goalWeight ? `${goalWeight} kg` : '–')}</span></div>
-                            <div className={styles.infoRow}><span>{t('Rest timer')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${restSeconds}s`}</span></div>
-                            <div className={styles.infoRow}><span>{t('Sec per rep')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${secPerRep}s`}</span></div>
-                            <div className={styles.infoRow}><span>{t('Countdown')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${countdownSeconds}s`}</span></div>
-                            <div className={styles.infoRow}><span>{t('Side pause')}</span><span>{profileLoading ? <Skeleton width={40} height={14} /> : `${sidePauseSeconds}s`}</span></div>
-                            <div className={styles.infoRow}><span>{t('Email')}</span><span>{email || '…'}</span></div>
+                            <div className={styles.infoRow}><span>{t('Email')}</span><span>{maskEmail(email)}</span></div>
                         </div>
                     )}
                 </div>

@@ -14,14 +14,26 @@
 		31B0CA122F7981E40083A800 /* RestTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */; };
 		31B0CA142F798B320083A800 /* RestTimerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA132F798B320083A800 /* RestTimerPlugin.swift */; };
 		31B0CA152F7992320083A800 /* RestTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */; };
+		31B0CA162F7A00000083A800 /* BarcodeScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0CA172F7A00000083A800 /* BarcodeScannerPlugin.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
-		AA000001AAAA00010000AA01 /* MyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AAAA00010000AA00 /* MyViewController.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		AA000001AAAA00010000AA01 /* MyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AAAA00010000AA00 /* MyViewController.swift */; };
+		AB100001AB100001AB100001 /* beep.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100001AB100001AB100000 /* beep.mp3 */; };
+		AB100002AB100002AB100002 /* go.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100002AB100002AB100000 /* go.mp3 */; };
+		AB100003AB100003AB100003 /* rest.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100003AB100003AB100000 /* rest.mp3 */; };
+		AB100004AB100004AB100004 /* rest_end.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100004AB100004AB100000 /* rest_end.mp3 */; };
+		AB100005AB100005AB100005 /* one.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100005AB100005AB100000 /* one.mp3 */; };
+		AB100006AB100006AB100006 /* two.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100006AB100006AB100000 /* two.mp3 */; };
+		AB100007AB100007AB100007 /* three.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100007AB100007AB100000 /* three.mp3 */; };
+		AB100008AB100008AB100008 /* four.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100008AB100008AB100000 /* four.mp3 */; };
+		AB100009AB100009AB100009 /* five.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = AB100009AB100009AB100000 /* five.mp3 */; };
+		AB10000AAB10000AAB10000A /* silent.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB10000AAB10000AAB100000 /* silent.wav */; };
+		AB200001AB200001AB200001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AB200001AB200001AB200000 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,16 +67,28 @@
 		31B0C9FB2F797E290083A800 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerAttributes.swift; sourceTree = "<group>"; };
 		31B0CA132F798B320083A800 /* RestTimerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerPlugin.swift; sourceTree = "<group>"; };
+		31B0CA172F7A00000083A800 /* BarcodeScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerPlugin.swift; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		AA000001AAAA00010000AA00 /* MyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyViewController.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		AA000001AAAA00010000AA00 /* MyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyViewController.swift; sourceTree = "<group>"; };
+		AB100001AB100001AB100000 /* beep.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = beep.mp3; sourceTree = "<group>"; };
+		AB100002AB100002AB100000 /* go.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = go.mp3; sourceTree = "<group>"; };
+		AB100003AB100003AB100000 /* rest.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = rest.mp3; sourceTree = "<group>"; };
+		AB100004AB100004AB100000 /* rest_end.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = rest_end.mp3; sourceTree = "<group>"; };
+		AB100005AB100005AB100000 /* one.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = one.mp3; sourceTree = "<group>"; };
+		AB100006AB100006AB100000 /* two.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = two.mp3; sourceTree = "<group>"; };
+		AB100007AB100007AB100000 /* three.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = three.mp3; sourceTree = "<group>"; };
+		AB100008AB100008AB100000 /* four.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = four.mp3; sourceTree = "<group>"; };
+		AB100009AB100009AB100000 /* five.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = five.mp3; sourceTree = "<group>"; };
+		AB10000AAB10000AAB100000 /* silent.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = silent.wav; sourceTree = "<group>"; };
+		AB200001AB200001AB200000 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -136,6 +160,7 @@
 			children = (
 				31B0CA132F798B320083A800 /* RestTimerPlugin.swift */,
 				31B0CA112F7981E40083A800 /* RestTimerAttributes.swift */,
+				31B0CA172F7A00000083A800 /* BarcodeScannerPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				AA000001AAAA00010000AA00 /* MyViewController.swift */,
@@ -145,6 +170,17 @@
 				504EC3131FED79650016851F /* Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				AB100001AB100001AB100000 /* beep.mp3 */,
+				AB100002AB100002AB100000 /* go.mp3 */,
+				AB100003AB100003AB100000 /* rest.mp3 */,
+				AB100004AB100004AB100000 /* rest_end.mp3 */,
+				AB100005AB100005AB100000 /* one.mp3 */,
+				AB100006AB100006AB100000 /* two.mp3 */,
+				AB100007AB100007AB100000 /* three.mp3 */,
+				AB100008AB100008AB100000 /* four.mp3 */,
+				AB100009AB100009AB100000 /* five.mp3 */,
+				AB10000AAB10000AAB100000 /* silent.wav */,
+				AB200001AB200001AB200000 /* PrivacyInfo.xcprivacy */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -258,6 +294,17 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				AB100001AB100001AB100001 /* beep.mp3 in Resources */,
+				AB100002AB100002AB100002 /* go.mp3 in Resources */,
+				AB100003AB100003AB100003 /* rest.mp3 in Resources */,
+				AB100004AB100004AB100004 /* rest_end.mp3 in Resources */,
+				AB100005AB100005AB100005 /* one.mp3 in Resources */,
+				AB100006AB100006AB100006 /* two.mp3 in Resources */,
+				AB100007AB100007AB100007 /* three.mp3 in Resources */,
+				AB100008AB100008AB100008 /* four.mp3 in Resources */,
+				AB100009AB100009AB100009 /* five.mp3 in Resources */,
+				AB10000AAB10000AAB10000A /* silent.wav in Resources */,
+				AB200001AB200001AB200001 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,6 +325,7 @@
 			files = (
 				31B0CA142F798B320083A800 /* RestTimerPlugin.swift in Sources */,
 				31B0CA122F7981E40083A800 /* RestTimerAttributes.swift in Sources */,
+				31B0CA162F7A00000083A800 /* BarcodeScannerPlugin.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				AA000001AAAA00010000AA01 /* MyViewController.swift in Sources */,
 			);

@@ -76,10 +76,10 @@ export default function Vikt(): React.JSX.Element {
           <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(goal, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() }   valueStyle={{ color: 'var(--green)' }} />
           <CardGridItem
             label={t('Change')}
-            value={loading ? <Skeleton width={60} height={18} /> : (() => { const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''; const abs = Math.abs(diff); const [p, s] = formatWeightJsx(abs, weightUnit); const pSigned = `${sign}${p}`; return s ? <>{pSigned}<br /><span className="lbsLight">{sign}{s}</span></> : pSigned })() }
+            value={loading ? <Skeleton width={60} height={18} /> : currentWeight == null ? <span style={{ fontSize: '13px', color: 'var(--accent)' }}>{t('Log your first weight')}</span> : (() => { const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''; const abs = Math.abs(diff); const [p, s] = formatWeightJsx(abs, weightUnit); const pSigned = `${sign}${p}`; return s ? <>{pSigned}<br /><span className="lbsLight">{sign}{s}</span></> : pSigned })() }
             valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
           />
-          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : (() => { const k = parseFloat(kvar); const [p, s] = formatWeightJsx(k, weightUnit); return s ? <>−{p} / <span className="lbsLight">−{s}</span></> : `−${p}` })() } valueStyle={{ color: 'var(--orange)' }} />
+          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : (() => { const k = parseFloat(kvar); const [p, s] = formatWeightJsx(k, weightUnit); return s ? <>−{p} / <span className="lbsLight">−{s}</span></> : `−${p}` })() } valueStyle={{ color: 'var(--green)' }} />
         </CardGrid>
       </Reveal>
 

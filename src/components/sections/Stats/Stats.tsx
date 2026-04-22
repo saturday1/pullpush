@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
+import { useSubscription } from '../../../context/SubscriptionContext'
 import { X } from 'lucide-react'
 import ClockIcon from '../../icons/Normal/ClockIcon'
 import WeightIcon from '../../icons/Normal/WeightIcon'
@@ -12,6 +13,7 @@ import {
     BarChart,
     CartesianGrid,
     Cell,
+    LabelList,
     Pie,
     PieChart,
     ResponsiveContainer,
@@ -43,6 +45,7 @@ interface CompletedWorkout {
     started_at: string | null
     session_id: number | null
     session_name: string | null
+    is_deload: boolean
     set_count: number
     total_kg: number
     exercises: WorkoutExerciseDetail[]
@@ -61,6 +64,7 @@ interface RawWorkout {
     started_at: string | null
     session_id: number | null
     session_name: string | null
+    is_deload: boolean | null
 }
 
 interface RawSet {
@@ -125,11 +129,15 @@ export default function Stats(): React.JSX.Element {
     const { t } = useTranslation()
     const { pathname } = useLocation()
     const isActive = pathname === '/stats'
+    const { canUse } = useSubscription()
     interface PersonalRecord { name: string; kg: number; lbs: number }
     const [weightUnit] = useWeightUnit()
     const [loading, setLoading] = useState(true)
     const [workouts, setWorkouts] = useState<CompletedWorkout[]>([])
     const [openWorkout, setOpenWorkout] = useState<CompletedWorkout | null>(null)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [closingModal, setClosingModal] = useState(false)
     const [favoriteExercise, setFavoriteExercise] = useState<FavoriteExercise | null>(null)
     const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([])
     const [prWorkoutMap, setPrWorkoutMap] = useState<Record<string, string>>({})
@@ -139,6 +147,12 @@ export default function Stats(): React.JSX.Element {
     const [activeTab, setActiveTab] = useState<'history' | 'strength' | 'volume'>('history')
     const [showAllWorkouts, setShowAllWorkouts] = useState(false)
     const [showAllPRs, setShowAllPRs] = useState(false)
+
+    useEffect(() => {
+        if (openWorkout) document.body.classList.add('modal-open')
+        else document.body.classList.remove('modal-open')
+        return () => document.body.classList.remove('modal-open')
+    }, [openWorkout])
 
     useEffect(() => {
         if (!openWorkout) return
@@ -158,13 +172,24 @@ export default function Stats(): React.JSX.Element {
             if (!user) return
 
             // Simple queries without joins — avoids FK issues
-            const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
-                supabase
+            const statsUnlimited = canUse('statsUnlimited')
+            const statsExtended = canUse('statsExtended')
+            const statsCutoff = statsUnlimited
+                ? null
+                : statsExtended
+                    ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+                    : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+            const workoutsQuery = supabase
                     .from('workouts')
-                    .select('id, completed_at, started_at, session_id, session_name')
+                    .select('id, completed_at, started_at, session_id, session_name, is_deload')
                     .eq('user_id', user.id)
                     .not('completed_at', 'is', null)
-                    .order('completed_at', { ascending: false }),
+                    .order('completed_at', { ascending: false })
+            if (statsCutoff) workoutsQuery.gte('completed_at', statsCutoff)
+
+            const [workoutsRes, setsRes, sessionsRes, exercisesRes] = await Promise.all([
+                workoutsQuery,
 
                 supabase
                     .from('workout_sets')
@@ -245,6 +270,8 @@ export default function Stats(): React.JSX.Element {
             for (const w of chronoWorkouts) {
                 const agg = workoutAggMap.get(w.id)
                 if (!agg) continue
+                // Deload workouts are excluded from PR tracking entirely
+                if (w.is_deload) continue
                 // Per workout: compute best kg per exercise first, then compare
                 const workoutBestKg = new Map<number, number>()
                 for (const [exId, sets] of agg.exerciseSets) {
@@ -291,6 +318,7 @@ export default function Stats(): React.JSX.Element {
                         started_at: w.started_at,
                         session_id: w.session_id,
                         session_name: w.session_name ?? (w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null),
+                        is_deload: w.is_deload ?? false,
                         set_count: agg?.setCount ?? 0,
                         total_kg: agg?.totalKg ?? 0,
                         exercises,
@@ -548,21 +576,18 @@ export default function Stats(): React.JSX.Element {
     // ── Monthly workout data (bar chart) ─────────────────────
     const monthlyData: { month: string; count: number }[] = (() => {
         const now = new Date()
-        const year = now.getFullYear()
         const map = new Map<string, number>()
-        // Initialize all 12 months for current year
-        for (let m = 1; m <= 12; m++) {
-            map.set(`${year}-${String(m).padStart(2, '0')}`, 0)
-        }
         for (const w of workouts) {
-            const key = w.completed_at.slice(0, 7) // "YYYY-MM"
-            if (map.has(key)) {
-                map.set(key, (map.get(key) ?? 0) + 1)
-            }
+            const key = w.completed_at.slice(0, 7)
+            map.set(key, (map.get(key) ?? 0) + 1)
         }
-        return Array.from(map.entries())
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([month, count]) => ({ month, count }))
+        const result: { month: string; count: number }[] = []
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+            result.push({ month: key, count: map.get(key) ?? 0 })
+        }
+        return result
     })()
 
     const isEmpty = !loading && workouts.length === 0
@@ -612,6 +637,25 @@ export default function Stats(): React.JSX.Element {
         )
     }
 
+    function closeModal(): void {
+        setClosingModal(true)
+        setTimeout(() => {
+            setOpenWorkout(null)
+            setConfirmDelete(false)
+            setClosingModal(false)
+        }, 220)
+    }
+
+    async function handleDeleteWorkout(id: string): Promise<void> {
+        setDeletingId(id)
+        closeModal()
+        await new Promise(r => setTimeout(r, 480))
+        await supabase.from('workout_sets').delete().eq('workout_id', id)
+        await supabase.from('workouts').delete().eq('id', id)
+        setWorkouts(prev => prev.filter(w => w.id !== id))
+        setDeletingId(null)
+    }
+
     return (
         <section className={styles.container}>
             <SectionHeader number="08" title={t('Stats')} />
@@ -659,16 +703,302 @@ export default function Stats(): React.JSX.Element {
                 </div>
             </div>
 
+<<<<<<< HEAD
             {/* ── Tab row ── */}
             <div className={styles.statsTabRow}>
                 {(['history', 'strength', 'volume'] as const).map(tab => (
+=======
+            {/* ── Training Heatmap (monthly calendar) ── */}
+            <div className={styles.heatmapHeader}>
+                <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => o - 1)}>‹</button>
+                <span className={styles.sectionHeader} style={{ margin: 0 }}>{heatmapMonth.monthName}</span>
+                <button type="button" className={styles.heatmapArrow} onClick={() => setHeatmapOffset(o => Math.min(o + 1, 0))} disabled={heatmapOffset >= 0}>›</button>
+            </div>
+            <div className={styles.heatmap}>
+                <div className={styles.heatmapWeekRow}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                        <span key={i} className={styles.heatmapDayLabel}>{d}</span>
+                    ))}
+                </div>
+                {heatmapMonth.weeks.map((week, wi) => (
+                    <div key={wi} className={styles.heatmapWeekRow}>
+                        {week.map((cell, di) => {
+                            if (!cell) return <div key={di} className={styles.heatmapCellEmpty} />
+                            const hasWorkout = cell.volume > 0
+                            const dayWorkout = hasWorkout
+                                ? workouts.find(w => w.completed_at.slice(0, 10) === cell.date)
+                                : null
+                            return (
+                                <div
+                                    key={di}
+                                    className={`${styles.heatmapCell} ${dayWorkout ? styles.heatmapCellClickable : ''}`}
+                                    data-level={cell.volume < 0 ? 'future' : cell.volume === 0 ? '0' : cell.volume < 5000 ? '1' : cell.volume < 15000 ? '2' : '3'}
+                                    title={hasWorkout ? `${cell.date}: ${Math.round(cell.volume).toLocaleString()} kg` : cell.date}
+                                    onClick={dayWorkout ? () => setOpenWorkout(dayWorkout) : undefined}
+                                >
+                                    <span className={styles.heatmapDayNum}>{cell.day}</span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                ))}
+            </div>
+
+            {/* ── This Week vs Last Week ── */}
+            <div className={styles.weekComparison}>
+                <div className={styles.comparisonCard}>
+                    <div className={styles.comparisonLabel}>{t('This week')}</div>
+                    <div className={styles.comparisonValue}>{weekComparison.thisWeekWorkouts} {t('Workouts').toLowerCase()}</div>
+                    <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.thisWeekVolume), weightUnit)}</div>
+                    {weekComparison.lastWeekWorkouts > 0 && (
+                        <div className={`${styles.comparisonArrow} ${weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? styles.comparisonUp : styles.comparisonDown}`}>
+                            {weekComparison.thisWeekWorkouts >= weekComparison.lastWeekWorkouts ? '↑' : '↓'}
+                            {' '}{Math.abs(Math.round(((weekComparison.thisWeekWorkouts - weekComparison.lastWeekWorkouts) / weekComparison.lastWeekWorkouts) * 100))}%
+                        </div>
+                    )}
+                </div>
+                <div className={styles.comparisonCard}>
+                    <div className={styles.comparisonLabel}>{t('Last week')}</div>
+                    <div className={styles.comparisonValue}>{weekComparison.lastWeekWorkouts} {t('Workouts').toLowerCase()}</div>
+                    <div className={styles.comparisonSub}>{formatWeight(Math.round(weekComparison.lastWeekVolume), weightUnit)}</div>
+                </div>
+            </div>
+
+            {/* ── Section 2: Workouts per month (bar chart) ── */}
+            <>
+                    <div className={styles.sectionHeader}>{t('Workouts per month')}</div>
+                    <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={monthlyData} margin={{ top: 24, right: 16, left: -16, bottom: 0 }} barCategoryGap="40%" maxBarSize={56}>
+                                <defs>
+                                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#ff5c35" stopOpacity={0.9} />
+                                        <stop offset="100%" stopColor="#e8197d" stopOpacity={0.7} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                <XAxis
+                                    dataKey="month"
+                                    tickFormatter={(v: string) => {
+                                        const [, m] = v.split('-')
+                                        const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+                                        return names[parseInt(m, 10) - 1] ?? v
+                                    }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontFamily: 'DM Sans', fontSize: 11, fill: 'var(--muted)', fontWeight: 500 }}
+                                />
+                                <YAxis
+                                    allowDecimals={false}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    width={28}
+                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 6 }}
+                                    contentStyle={{
+                                        background: 'var(--card)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 10,
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 13,
+                                        color: 'var(--text)',
+                                    }}
+                                    formatter={(value) => [`${value} pass`, '']}
+                                    labelFormatter={(v: string) => {
+                                        const [y, m] = v.split('-')
+                                        const names = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December']
+                                        return `${names[parseInt(m, 10) - 1]} ${y}`
+                                    }}
+                                />
+                                <Bar dataKey="count" fill="url(#barGradient)" radius={[8, 8, 4, 4]}>
+                                    <LabelList dataKey="count" position="top" style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, fill: 'var(--text)' }} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+            </>
+
+            {/* ── Session distribution (pie chart) ── */}
+            {sessionDistData.length > 1 && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Session split')}</div>
+                    <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={220}>
+                            <PieChart>
+                                <Pie
+                                    data={sessionDistData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={80}
+                                    paddingAngle={3}
+                                    dataKey="value"
+                                    stroke="none"
+                                    label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                                    labelLine={false}
+                                    activeShape={((props: { cx: number; cy: number; innerRadius: number; outerRadius: number; startAngle: number; endAngle: number; fill: string }) => (
+                                        <g>
+                                            <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius} outerRadius={props.outerRadius} startAngle={props.startAngle} endAngle={props.endAngle} fill={props.fill} style={{ transition: 'all 0.2s ease' }} />
+                                            <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius - 8} outerRadius={props.outerRadius + 8} startAngle={props.startAngle} endAngle={props.endAngle} fill="rgba(255,255,255,0.08)" style={{ transition: 'all 0.2s ease' }} />
+                                        </g>
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    )) as any}
+                                >
+                                    {sessionDistData.map((_, i) => (
+                                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: '#fff' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    formatter={(value) => [`${value}`, t('Workouts')]}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </>
+            )}
+
+            {/* ── Section 2b: Weekly volume chart ── */}
+            {weeklyVolumeData.length > 1 && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Weekly volume')}</div>
+                    <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={weeklyVolumeData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#7c3aed" />
+                                        <stop offset="100%" stopColor="#2563eb" />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}t`} />
+                                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value) => [`${Number(value).toLocaleString('sv-SE')} kg`, t('Volume')]} />
+                                <Bar dataKey="volume" fill="url(#volumeGradient)" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </>
+            )}
+
+            {/* ── Section 2c: Personal Records ── */}
+            {personalRecords.length > 0 && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Personal Records')}</div>
+                    <div className={styles.prList}>
+                        {personalRecords.map((pr, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                className={`${styles.prRow} ${prWorkoutMap[pr.name] ? styles.prRowClickable : ''}`}
+                                onClick={() => {
+                                    const wkId = prWorkoutMap[pr.name]
+                                    if (wkId) {
+                                        const w = workouts.find(w => w.id === wkId)
+                                        if (w) setOpenWorkout(w)
+                                    }
+                                }}
+                            >
+                                <span className={styles.prName}>{pr.name}</span>
+                                <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+
+            {/* ── Exercise Progress Chart ── */}
+            {activeExercise && exerciseProgressData[activeExercise] && (
+                <>
+                    <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Exercise progress')}</div>
+                    <div className={styles.exerciseChartTabs}>
+                        {topExercises.map(name => (
+                            <button
+                                key={name}
+                                type="button"
+                                className={`${styles.exerciseTab} ${name === activeExercise ? styles.exerciseTabActive : ''}`}
+                                onClick={() => setSelectedExercise(name)}
+                            >
+                                {name}
+                            </button>
+                        ))}
+                    </div>
+                    <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <AreaChart data={exerciseProgressData[activeExercise]} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                                        <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                    tickFormatter={(v: string) => { const [, m, d] = v.split('-'); return `${d}/${m}` }}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }}
+                                    unit=" kg"
+                                    domain={['dataMin - 5', 'dataMax + 5']}
+                                />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }}
+                                    formatter={(value) => [`${value} kg`, t('Max')]}
+                                />
+                                <Area type="monotone" dataKey="kg" stroke="#10b981" strokeWidth={2} fill="url(#progressGradient)" dot={{ r: 3, fill: '#10b981' }} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </>
+            )}
+
+            {/* ── Section 3: Workout history ── */}
+            <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Workout History')}</div>
+            <div className={styles.workoutList}>
+                {workouts.map(w => (
+>>>>>>> bfd43f4b75b8f6a321b77cabf4f1191e0cc6b137
                     <button
                         key={tab}
                         type="button"
+<<<<<<< HEAD
                         className={`${styles.statsTab} ${activeTab === tab ? styles.statsTabActive : ''}`}
                         onClick={() => setActiveTab(tab)}
                     >
                         {tab === 'history' ? t('Historik') : tab === 'strength' ? t('Styrka') : t('Volym')}
+=======
+                        className={`${styles.workoutCard} ${w.pr_count > 0 ? styles.workoutCardPr : ''} ${deletingId === w.id ? styles.workoutCardDeleting : ''}`}
+                        onClick={() => setOpenWorkout(w)}
+                    >
+                        <div className={styles.workoutCardLeft}>
+                            <div className={styles.workoutDateRow}>
+                                <span className={styles.workoutDate}>{formatDisplayDate(w.completed_at)}</span>
+                                {w.is_deload && (
+                                    <span className={styles.deloadBadge}>Deload</span>
+                                )}
+                                {w.pr_count > 0 && (
+                                    <span className={styles.prBadge}>
+                                        <span className={styles.prBadgeIcon}>🏆</span>
+                                        <span className={styles.prBadgeText}>
+                                            {w.pr_count > 1 ? `${w.pr_count}× ${t('PR!')}` : t('New PR!')}
+                                        </span>
+                                    </span>
+                                )}
+                            </div>
+                            <div className={styles.workoutSession}>{w.session_name ?? '–'}</div>
+                        </div>
+                        <div className={styles.workoutSets}>{w.set_count} sets</div>
+                        <div className={styles.workoutCardChevron}>›</div>
+>>>>>>> bfd43f4b75b8f6a321b77cabf4f1191e0cc6b137
                     </button>
                 ))}
             </div>
@@ -979,8 +1309,8 @@ export default function Stats(): React.JSX.Element {
 
             {openWorkout && (
                 <div
-                    className={styles.overlay}
-                    onClick={() => setOpenWorkout(null)}
+                    className={`${styles.overlay} ${closingModal ? styles.overlayOut : ''}`}
+                    onClick={closeModal}
                     role="presentation"
                 >
                     <div
@@ -992,13 +1322,14 @@ export default function Stats(): React.JSX.Element {
                         <button
                             type="button"
                             className={styles.modalClose}
-                            onClick={() => setOpenWorkout(null)}
+                            onClick={closeModal}
                             aria-label={t('Close')}
                         >
                             <X size={20} strokeWidth={2.5} />
                         </button>
                         <div className={styles.modalTitle}>
                             {openWorkout.session_name ?? '–'}
+                            {openWorkout.is_deload && <span className={styles.deloadBadge} style={{ marginLeft: 10, verticalAlign: 'middle' }}>Deload</span>}
                         </div>
                         <div className={styles.modalSubtitle}>
                             {(() => {
@@ -1042,6 +1373,21 @@ export default function Stats(): React.JSX.Element {
                         </div>
 
                         <div className={styles.modalDivider} />
+
+                        {confirmDelete ? (
+                            <div className={styles.deleteConfirm}>
+                                <span>{t('Delete this workout?')}</span>
+                                <div className={styles.deleteConfirmBtns}>
+                                    <button type="button" className={styles.deleteConfirmCancel} onClick={() => setConfirmDelete(false)}>{t('Cancel')}</button>
+                                    <button type="button" className={styles.deleteConfirmOk} onClick={() => handleDeleteWorkout(openWorkout.id)}>{t('Delete')}</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className={styles.deleteConfirmBtns}>
+                                <button type="button" className={styles.deleteConfirmCancel} onClick={closeModal}>{t('Continue training')}</button>
+                                <button type="button" className={styles.deleteConfirmOk} onClick={() => setConfirmDelete(true)}>{t('Delete workout')}</button>
+                            </div>
+                        )}
 
                         <div className={styles.modalExerciseList}>
                             {openWorkout.exercises.length === 0 && (

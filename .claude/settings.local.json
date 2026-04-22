@@ -8,7 +8,11 @@
       "Bash(npx tsc:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(command -v ffmpeg)",
+      "Bash(command -v sox)",
+      "Bash(command -v afinfo)",
+      "Bash(brew list *)"
     ]
   }
 }

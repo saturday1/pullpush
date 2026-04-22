@@ -683,6 +683,16 @@
   to   { opacity: 1; }
 }
 
+@keyframes overlayOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.overlayOut {
+  animation: overlayOut 0.22s ease both;
+  pointer-events: none;
+}
+
 .modal {
   position: relative;
   background: var(--card);
@@ -700,6 +710,18 @@
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(16px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes workoutCardDelete {
+  0%   { opacity: 1; transform: translateX(0);    max-height: 120px; margin-bottom: 0; }
+  45%  { opacity: 0; transform: translateX(48px); max-height: 120px; margin-bottom: 0; }
+  100% { opacity: 0; transform: translateX(48px); max-height: 0;     margin-bottom: -8px; padding-top: 0; padding-bottom: 0; }
+}
+
+.workoutCardDeleting {
+  animation: workoutCardDelete 0.48s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .modalClose {
@@ -858,4 +880,102 @@
   color: var(--text);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+// ── Delete workout ────────────────────────────────────────────
+
+.deloadBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  color: #7c3aed;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.deleteWorkoutBtn {
+  display: block;
+  width: 100%;
+  margin-bottom: 20px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8197d;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:active {
+    background: rgba(232, 25, 125, 0.06);
+    border-color: rgba(232, 25, 125, 0.4);
+  }
+}
+
+.deleteConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: rgba(232, 25, 125, 0.06);
+  border: 1px solid rgba(232, 25, 125, 0.25);
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.deleteConfirmBtns {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.deleteConfirmCancel {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg2, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:active {
+    background: var(--bg3, var(--bg2));
+  }
+}
+
+.deleteConfirmOk {
+  flex: 1;
+  padding: 10px 12px;
+  background: #e8197d;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:active {
+    opacity: 0.85;
+  }
 }

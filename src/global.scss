@@ -40,11 +40,17 @@
   box-sizing: border-box;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input, textarea {
   -webkit-user-select: text;
   user-select: text;
+}
+
+button:active, a:active, [role="button"]:active {
+  filter: brightness(0.82);
+  transition: filter 0.08s ease;
 }
 
 html {
@@ -155,6 +161,12 @@ input[type=number] { -moz-appearance: textfield; }
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-4px); }
+}
+
+// Body scroll lock — applied when any modal/overlay is open
+body.modal-open {
+  overflow: hidden;
+  max-height: 100vh;
 }
 
 // Scrollbar

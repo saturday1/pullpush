@@ -3,12 +3,22 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
+import { Capacitor, registerPlugin } from '@capacitor/core'
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock'
+import { useSubscription } from '../../../context/SubscriptionContext'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
 import Skeleton from '../../Skeleton/Skeleton'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import styles from './Mat.module.scss'
+
+interface NativeBarcodeScanner {
+  scan(): Promise<{ value: string }>
+}
+const NativeScanner: NativeBarcodeScanner | null = Capacitor.isNativePlatform()
+  ? registerPlugin<NativeBarcodeScanner>('BarcodeScanner')
+  : null
 
 // --- Data interfaces ---
 
@@ -263,6 +273,7 @@ interface BarcodeScannerProps {
 }
 
 function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JSX.Element {
+    useBodyScrollLock()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const [camError, setCamError] = useState<string | null>(null)
     const [manualCode, setManualCode] = useState<string>('')
@@ -281,6 +292,15 @@ function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JS
     }
 
     useEffect(() => {
+        // On native iOS: use AVFoundation via BarcodeScannerPlugin
+        if (NativeScanner) {
+            NativeScanner.scan()
+                .then(({ value }) => onResult(value))
+                .catch(() => onClose())
+            return
+        }
+
+        // Web fallback: getUserMedia + zxing
         let active = true
         const video = videoRef.current!
         const reader = new BrowserMultiFormatReader()
@@ -317,6 +337,9 @@ function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JS
             stopCamera()
         }
     }, [])
+
+    // On native: the native fullscreen scanner takes over — render nothing
+    if (NativeScanner) return <></>
 
     return (
         <div className={styles.scannerOverlay} onClick={handleClose}>
@@ -360,6 +383,7 @@ interface ManualProductFormProps {
 }
 
 function ManualProductForm({ barcode, onSave, onCancel, t }: ManualProductFormProps): React.JSX.Element {
+    useBodyScrollLock()
     const [form, setForm] = useState<ManualProductFormData>({ product_name: '', brand: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '', kcal_per_100g: '' })
     const [saving, setSaving] = useState<boolean>(false)
     const set = (k: keyof ManualProductFormData, v: string): void => setForm(f => ({ ...f, [k]: v }))
@@ -425,6 +449,9 @@ interface MealModalProps {
 }
 
 function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModalProps): React.JSX.Element {
+    useBodyScrollLock()
+    const { requireUpgrade, canUse } = useSubscription()
+
     const [form, setForm] = useState<MealFormData>(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
     const set = (k: keyof MealFormData, v: string | number | null): void => setForm(f => ({ ...f, [k]: v }))
     const valid: boolean = !!(form.label.trim() && form.food.trim())
@@ -433,6 +460,51 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
         if (closing) return
         setClosing(true)
         window.setTimeout(onClose, 200)
+    }
+
+    // Drag-to-dismiss (handle)
+    const modalRef = useRef<HTMLDivElement>(null)
+    const dragStartY = useRef<number | null>(null)
+    const isDragging = useRef(false)
+    const dragYRef = useRef(0)
+    const [dragY, setDragY] = useState(0)
+
+    useEffect(() => {
+        const modal = modalRef.current
+        if (!modal) return
+        function onTouchMove(e: TouchEvent): void {
+            if (!isDragging.current || dragStartY.current === null) return
+            const dy = e.touches[0].clientY - dragStartY.current
+            if (dy > 0) {
+                e.preventDefault()
+                dragYRef.current = dy
+                setDragY(dy)
+            }
+        }
+        modal.addEventListener('touchmove', onTouchMove, { passive: false })
+        return () => modal.removeEventListener('touchmove', onTouchMove)
+    }, [])
+
+    function onHandleTouchStart(e: React.TouchEvent): void {
+        if (closing) return
+        dragStartY.current = e.touches[0].clientY
+        isDragging.current = true
+        dragYRef.current = 0
+        setDragY(0)
+    }
+
+    function onHandleTouchEnd(): void {
+        if (!isDragging.current) return
+        isDragging.current = false
+        dragStartY.current = null
+        if (dragYRef.current > 80) {
+            dragYRef.current = 0
+            setDragY(0)
+            requestClose()
+        } else {
+            dragYRef.current = 0
+            setDragY(0)
+        }
     }
 
     const [productId, setProductId] = useState<number | null>(initial?.product_id ?? null)
@@ -701,7 +773,15 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
 
     return (
         <div className={`${styles.overlay} ${closing ? styles.overlayClosing : ''}`} onClick={requestClose}>
-            <div className={`${styles.modal} ${closing ? styles.modalClosing : ''}`} onClick={e => e.stopPropagation()}>
+            <div
+                ref={modalRef}
+                className={`${styles.modal} ${closing ? styles.modalClosing : ''}`}
+                onClick={e => e.stopPropagation()}
+                onTouchStart={e => e.stopPropagation()}
+                onTouchEnd={onHandleTouchEnd}
+                style={dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: 'none', animation: 'none' } : undefined}
+            >
+                <div className={styles.modalHandle} onTouchStart={onHandleTouchStart} />
                 <div className={styles.modalTitle}>{initial ? t('Edit meal') : t('New meal')}</div>
 
                 <div className={styles.searchSection}>
@@ -715,9 +795,13 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                             <input
                                 className={styles.searchInput}
                                 value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                placeholder={t('e.g. chicken breast, oats…')}
+                                onChange={e => {
+                                    if (!requireUpgrade('foodSearch')) return
+                                    setSearchQuery(e.target.value)
+                                }}
+                                placeholder={canUse('foodSearch') ? t('e.g. chicken breast, oats…') : t('Search food database — Standard required')}
                                 autoComplete="off"
+                                readOnly={!canUse('foodSearch')}
                             />
                             {searchLoading && <span className={styles.searchSpinner} />}
                             {showDropdown && (
@@ -734,7 +818,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                                 </div>
                             )}
                         </div>
-                        <button className={styles.scanBtn} type="button" onClick={() => { setScanError(''); setScannerOpen(true) }} title={t('Scan barcode')}>
+                        <button className={styles.scanBtn} type="button" onClick={() => { if (!requireUpgrade('barcodeScanner')) return; setScanError(''); setScannerOpen(true) }} title={t('Scan barcode')}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
                                 <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
@@ -950,6 +1034,7 @@ function buildTips(weight: number | null, age: number | null, totals: MealTotals
 export default function Mat(): React.JSX.Element {
     const { t } = useTranslation()
     const profile = useProfile()
+    const { canUse, requireUpgrade } = useSubscription()
     const todayStr: string = localDateStr(new Date())
     const [selectedDate, setSelectedDate] = useState<string>(todayStr)
     const todayRef = useRef<string>(todayStr)
@@ -1147,7 +1232,7 @@ export default function Mat(): React.JSX.Element {
                     </div>
                 ) : (
                     <>
-                        {profile?.macros ? (
+                        {profile?.macros && canUse('macroRings') ? (
                             <div className={styles.macroRings}>
                                 {([
                                     { key: 'kcal', label: t('KCAL'), current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
@@ -1198,7 +1283,7 @@ export default function Mat(): React.JSX.Element {
                                 <span style={{ color: '#22c55e' }}>{t('F')}: {totals.fat_g} g</span>
                             </div>
                         )}
-                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={handleToggleRecurring} t={t} />
+                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={(meal) => { if (!requireUpgrade('recurringMeals')) return; handleToggleRecurring(meal) }} t={t} />
                     </>
                 )}
             </Reveal>

@@ -3,6 +3,7 @@ import Capacitor
 class MyViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(RestTimerPlugin())
-        print("🟡 RestTimerPlugin registered via MyViewController")
+        bridge?.registerPluginInstance(BarcodeScannerPlugin())
+        print("🟡 RestTimerPlugin + BarcodeScannerPlugin registered via MyViewController")
     }
 }
