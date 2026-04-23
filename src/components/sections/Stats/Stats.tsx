@@ -160,9 +160,6 @@ export default function Stats(): React.JSX.Element {
     const [showAllWorkouts, setShowAllWorkouts] = useState(false)
     const [showAllPRs, setShowAllPRs] = useState(false)
     const [weightLog, setWeightLog] = useState<WeightEntry[]>([])
-    const [showWeightInput, setShowWeightInput] = useState(false)
-    const [weightInputKg, setWeightInputKg] = useState('')
-    const [savingWeight, setSavingWeight] = useState(false)
 
     function openModal(w: CompletedWorkout): void {
         setOpenWorkout(w)
@@ -220,9 +217,9 @@ export default function Stats(): React.JSX.Element {
 
                 supabase
                     .from('weight_log')
-                    .select('logged_at, kg')
+                    .select('date, weight_kg')
                     .eq('user_id', user.id)
-                    .order('logged_at', { ascending: true }),
+                    .order('date', { ascending: true }),
             ])
 
             if (cancelled) return
@@ -411,17 +408,17 @@ export default function Stats(): React.JSX.Element {
             }
 
             // Build weight log with 7-day rolling average
-            const rawWeights = (weightRes.data ?? []) as { logged_at: string; kg: number }[]
+            const rawWeights = (weightRes.data ?? []) as { date: string; weight_kg: number }[]
             const weightEntries: WeightEntry[] = rawWeights.map((entry, i) => {
-                const windowStart = new Date(entry.logged_at)
+                const windowStart = new Date(entry.date)
                 windowStart.setDate(windowStart.getDate() - 6)
                 const windowEntries = rawWeights
                     .slice(0, i + 1)
-                    .filter(e => new Date(e.logged_at) >= windowStart)
-                const avg = windowEntries.reduce((sum, e) => sum + Number(e.kg), 0) / windowEntries.length
+                    .filter(e => new Date(e.date) >= windowStart)
+                const avg = windowEntries.reduce((sum, e) => sum + Number(e.weight_kg), 0) / windowEntries.length
                 return {
-                    date: entry.logged_at,
-                    kg: Number(entry.kg),
+                    date: entry.date,
+                    kg: Number(entry.weight_kg),
                     avg: Math.round(avg * 10) / 10,
                 }
             })
@@ -685,29 +682,6 @@ export default function Stats(): React.JSX.Element {
         )
     }
 
-    async function handleSaveWeight(): Promise<void> {
-        const kg = parseFloat(weightInputKg.replace(',', '.'))
-        if (!kg || kg <= 0 || kg > 499) return
-        setSavingWeight(true)
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { setSavingWeight(false); return }
-        const today = new Date().toISOString().slice(0, 10)
-        await supabase.from('weight_log').upsert({ user_id: user.id, logged_at: today, kg }, { onConflict: 'user_id,logged_at' })
-        // Refresh weight log
-        const { data } = await supabase.from('weight_log').select('logged_at, kg').eq('user_id', user.id).order('logged_at', { ascending: true })
-        const rawWeights = (data ?? []) as { logged_at: string; kg: number }[]
-        const entries: WeightEntry[] = rawWeights.map((entry, i) => {
-            const windowStart = new Date(entry.logged_at)
-            windowStart.setDate(windowStart.getDate() - 6)
-            const windowEntries = rawWeights.slice(0, i + 1).filter(e => new Date(e.logged_at) >= windowStart)
-            const avg = windowEntries.reduce((sum, e) => sum + Number(e.kg), 0) / windowEntries.length
-            return { date: entry.logged_at, kg: Number(entry.kg), avg: Math.round(avg * 10) / 10 }
-        })
-        setWeightLog(entries)
-        setWeightInputKg('')
-        setShowWeightInput(false)
-        setSavingWeight(false)
-    }
 
     async function handleDeleteWorkout(id: string): Promise<void> {
         setDeletingId(id)
@@ -917,48 +891,7 @@ export default function Stats(): React.JSX.Element {
                     {/* ── Viktkurva ── */}
                     <div className={styles.weightHeader}>
                         <span className={styles.sectionHeader} style={{ margin: 0 }}>{t('Body weight')}</span>
-                        {!showWeightInput && (
-                            <button type="button" className={styles.weightLogBtn} onClick={() => { setShowWeightInput(true); setWeightInputKg('') }}>
-                                + {t('Log weight')}
-                            </button>
-                        )}
                     </div>
-
-                    {showWeightInput && (
-                        <div className={styles.weightInputCard}>
-                            <div className={styles.weightInputFields}>
-                                <label className={styles.weightInputLabel}>
-                                    <span>KG</span>
-                                    <input
-                                        className={styles.weightInput}
-                                        type="number"
-                                        step="0.1"
-                                        min="20"
-                                        max="499"
-                                        value={weightInputKg}
-                                        onChange={e => setWeightInputKg(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveWeight() }}
-                                        autoFocus
-                                    />
-                                </label>
-                                <label className={styles.weightInputLabel}>
-                                    <span>LBS</span>
-                                    <input
-                                        className={styles.weightInput}
-                                        type="text"
-                                        readOnly
-                                        value={weightInputKg ? (parseFloat(weightInputKg.replace(',', '.')) * 2.20462).toFixed(1) : ''}
-                                    />
-                                </label>
-                            </div>
-                            <div className={styles.weightInputActions}>
-                                <button type="button" className={styles.weightCancelBtn} onClick={() => setShowWeightInput(false)}>{t('Cancel')}</button>
-                                <button type="button" className={styles.weightSaveBtn} onClick={handleSaveWeight} disabled={savingWeight}>
-                                    {savingWeight ? '…' : t('Save')}
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
                     {weightLog.length > 0 ? (
                         <div className={styles.chartWrap} style={{ marginBottom: 32 }}>
@@ -977,7 +910,7 @@ export default function Stats(): React.JSX.Element {
                         </div>
                     ) : (
                         <div className={styles.weightEmpty}>
-                            <span>{t('No weight entries yet — log your first weigh-in above')}</span>
+                            <span>{t('No weight entries yet — log your weight under Vikt')}</span>
                         </div>
                     )}
 
