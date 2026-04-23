@@ -925,24 +925,38 @@ export default function Stats(): React.JSX.Element {
                     </div>
 
                     {showWeightInput && (
-                        <div className={styles.weightInputRow}>
-                            <input
-                                className={styles.weightInput}
-                                type="number"
-                                step="0.1"
-                                min="20"
-                                max="499"
-                                placeholder="75.0"
-                                value={weightInputKg}
-                                onChange={e => setWeightInputKg(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') handleSaveWeight() }}
-                                autoFocus
-                            />
-                            <span className={styles.weightInputUnit}>kg</span>
-                            <button type="button" className={styles.weightSaveBtn} onClick={handleSaveWeight} disabled={savingWeight}>
-                                {savingWeight ? '…' : t('Save')}
-                            </button>
-                            <button type="button" className={styles.weightCancelBtn} onClick={() => setShowWeightInput(false)}>✕</button>
+                        <div className={styles.weightInputCard}>
+                            <div className={styles.weightInputFields}>
+                                <label className={styles.weightInputLabel}>
+                                    <span>KG</span>
+                                    <input
+                                        className={styles.weightInput}
+                                        type="number"
+                                        step="0.1"
+                                        min="20"
+                                        max="499"
+                                        value={weightInputKg}
+                                        onChange={e => setWeightInputKg(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveWeight() }}
+                                        autoFocus
+                                    />
+                                </label>
+                                <label className={styles.weightInputLabel}>
+                                    <span>LBS</span>
+                                    <input
+                                        className={styles.weightInput}
+                                        type="text"
+                                        readOnly
+                                        value={weightInputKg ? (parseFloat(weightInputKg.replace(',', '.')) * 2.20462).toFixed(1) : ''}
+                                    />
+                                </label>
+                            </div>
+                            <div className={styles.weightInputActions}>
+                                <button type="button" className={styles.weightCancelBtn} onClick={() => setShowWeightInput(false)}>{t('Cancel')}</button>
+                                <button type="button" className={styles.weightSaveBtn} onClick={handleSaveWeight} disabled={savingWeight}>
+                                    {savingWeight ? '…' : t('Save')}
+                                </button>
+                            </div>
                         </div>
                     )}
 

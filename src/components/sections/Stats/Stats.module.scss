@@ -773,52 +773,70 @@
   }
 }
 
-.weightInputRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.weightInputCard {
   margin-bottom: 14px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 16px;
+}
+
+.weightInputFields {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.weightInputLabel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  span {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
 }
 
 .weightInput {
-  flex: 1;
+  width: 100%;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 28px;
   font-weight: 700;
   color: var(--text);
-  background: transparent;
-  border: none;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
   outline: none;
-  min-width: 0;
 
-  &::placeholder { color: var(--muted); opacity: 0.5; }
+  &[readonly] { color: var(--muted); }
+  &:focus { border-color: #e8197d; }
   &::-webkit-inner-spin-button,
   &::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
-.weightInputUnit {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  flex-shrink: 0;
+.weightInputActions {
+  display: flex;
+  gap: 8px;
 }
 
 .weightSaveBtn {
+  flex: 1;
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  padding: 8px 16px;
+  padding: 12px;
   border-radius: 10px;
   border: none;
-  background: #e8197d;
+  background: var(--gradient);
   color: #fff;
   cursor: pointer;
-  flex-shrink: 0;
   transition: opacity 0.15s;
 
   &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -829,13 +847,12 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: none;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  flex-shrink: 0;
 
   &:active { color: var(--text); }
 }
