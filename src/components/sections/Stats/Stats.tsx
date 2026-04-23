@@ -157,6 +157,8 @@ export default function Stats(): React.JSX.Element {
     const [exerciseProgressData, setExerciseProgressData] = useState<Record<string, { date: string; kg: number }[]>>({})
     const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
     const [heatmapOffset, setHeatmapOffset] = useState(0) // 0 = current month, -1 = last month, etc.
+    const [showAllWorkouts, setShowAllWorkouts] = useState(false)
+    const [showAllPRs, setShowAllPRs] = useState(false)
     const [weightLog, setWeightLog] = useState<WeightEntry[]>([])
     const [showWeightInput, setShowWeightInput] = useState(false)
     const [weightInputKg, setWeightInputKg] = useState('')
@@ -745,7 +747,7 @@ export default function Stats(): React.JSX.Element {
 
                     {viewMode === 'list' && (
                         <div className={styles.workoutList}>
-                            {workouts.map(w => (
+                            {(showAllWorkouts ? workouts : workouts.slice(0, 5)).map(w => (
                                 <button
                                     key={w.id}
                                     type="button"
@@ -769,6 +771,11 @@ export default function Stats(): React.JSX.Element {
                                     <div className={styles.workoutCardChevron}>›</div>
                                 </button>
                             ))}
+                            {!showAllWorkouts && workouts.length > 5 && (
+                                <button type="button" className={styles.showMoreBtn} onClick={() => setShowAllWorkouts(true)}>
+                                    {t('Show all')} ({workouts.length})
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -1040,7 +1047,7 @@ export default function Stats(): React.JSX.Element {
                         <>
                             <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Personal Records')}</div>
                             <div className={styles.prList}>
-                                {personalRecords.map((pr, i) => (
+                                {(showAllPRs ? personalRecords : personalRecords.slice(0, 5)).map((pr, i) => (
                                     <button key={i} type="button" className={`${styles.prRow} ${prWorkoutMap[pr.name] ? styles.prRowClickable : ''}`}
                                         onClick={() => { const wkId = prWorkoutMap[pr.name]; if (wkId) { const w = workouts.find(w => w.id === wkId); if (w) openModal(w) } }}
                                     >
@@ -1048,6 +1055,11 @@ export default function Stats(): React.JSX.Element {
                                         <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
                                     </button>
                                 ))}
+                                {!showAllPRs && personalRecords.length > 5 && (
+                                    <button type="button" className={styles.showMoreBtn} onClick={() => setShowAllPRs(true)}>
+                                        {t('Show all')} ({personalRecords.length})
+                                    </button>
+                                )}
                             </div>
                         </>
                     )}
