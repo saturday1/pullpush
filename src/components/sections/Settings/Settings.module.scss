@@ -308,37 +308,26 @@
 // ── Role pill selector ────────────────────────────────────────
 
 .roleSelector {
-    display: flex;
-    gap: 3px;
     flex-shrink: 0;
 }
 
-.rolePill {
-    width: 28px;
-    height: 28px;
+.userRoleSelect {
+    padding: 6px 10px;
     border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg2);
-    color: var(--muted);
+    color: var(--text);
     font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    appearance: none;
+    -webkit-appearance: none;
 
-    &:active { transform: scale(0.92); }
-    &:disabled { opacity: 0.35; cursor: not-allowed; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
-.rolePillActive {
-    border-color: transparent;
-    color: #fff;
-}
-
-.rolePill_free.rolePillActive    { background: var(--muted); }
-.rolePill_standard.rolePillActive { background: #60a5fa; }
-.rolePill_premium.rolePillActive  { background: #e8197d; }
-.rolePill_lifetime.rolePillActive { background: #f59e0b; }
+.userRoleSelect_free     { border-color: var(--border); }
+.userRoleSelect_standard { border-color: #60a5fa; color: #60a5fa; }
+.userRoleSelect_premium  { border-color: #e8197d; color: #e8197d; }
+.userRoleSelect_lifetime { border-color: #f59e0b; color: #f59e0b; }

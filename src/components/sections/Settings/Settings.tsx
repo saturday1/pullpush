@@ -383,18 +383,16 @@ export default function Settings(): React.ReactElement {
                                                         {name && <span className={styles.userEmail}>{user.email}</span>}
                                                     </div>
                                                     <div className={styles.roleSelector}>
-                                                        {ROLES.map(r => (
-                                                            <button
-                                                                key={r}
-                                                                type="button"
-                                                                className={`${styles.rolePill} ${user.role === r ? styles.rolePillActive : ''} ${styles[`rolePill_${r}`]}`}
-                                                                onClick={() => setUserRole(user, r)}
-                                                                disabled={isBusy}
-                                                                title={r.charAt(0).toUpperCase() + r.slice(1)}
-                                                            >
-                                                                {isBusy && user.role === r ? '…' : r.charAt(0).toUpperCase()}
-                                                            </button>
-                                                        ))}
+                                                        <select
+                                                            className={`${styles.userRoleSelect} ${styles[`userRoleSelect_${user.role}`]}`}
+                                                            value={user.role}
+                                                            disabled={isBusy}
+                                                            onChange={e => setUserRole(user, e.target.value)}
+                                                        >
+                                                            {ROLES.map(r => (
+                                                                <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 </div>
                                             )
