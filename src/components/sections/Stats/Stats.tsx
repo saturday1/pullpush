@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Drawer } from 'vaul'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { useSubscription } from '../../../context/SubscriptionContext'
+import { useProfile } from '../../../context/ProfileContext'
 import ClockIcon from '../../icons/Normal/ClockIcon'
 import WeightIcon from '../../icons/Normal/WeightIcon'
 import { useWeightUnit, formatWeight } from '../../../hooks/useWeightUnit'
@@ -139,7 +140,8 @@ export default function Stats(): React.JSX.Element {
     const { t } = useTranslation()
     const { pathname } = useLocation()
     const isActive = pathname === '/stats'
-    const { canUse } = useSubscription()
+    const { canUse, effectiveRole } = useSubscription()
+    const profile = useProfile()
     interface PersonalRecord { name: string; kg: number; lbs: number }
     const [weightUnit] = useWeightUnit()
     const [loading, setLoading] = useState(true)
@@ -155,7 +157,11 @@ export default function Stats(): React.JSX.Element {
     const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([])
     const [prWorkoutMap, setPrWorkoutMap] = useState<Record<string, string>>({})
     const [exerciseProgressData, setExerciseProgressData] = useState<Record<string, { date: string; kg: number }[]>>({})
+    const [exerciseSessionMap, setExerciseSessionMap] = useState<Record<string, number[]>>({})
+    const [progressSessions, setProgressSessions] = useState<{ id: number; name: string }[]>([])
+    const [progressSession, setProgressSession] = useState<number | null>(null)
     const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
+    const exerciseTabsRef = useRef<HTMLDivElement>(null)
     const [heatmapOffset, setHeatmapOffset] = useState(0) // 0 = current month, -1 = last month, etc.
     const [showAllWorkouts, setShowAllWorkouts] = useState(false)
     const [showAllPRs, setShowAllPRs] = useState(false)
@@ -381,6 +387,7 @@ export default function Stats(): React.JSX.Element {
 
             // Build exercise progress data (max kg per exercise per date, deduplicated)
             const progressRaw: Record<string, Map<string, number>> = {}
+            const exSessionMap: Record<string, Set<number>> = {}
             for (const w of chronoWorkouts) {
                 const agg = workoutAggMap.get(w.id)
                 if (!agg || !w.completed_at) continue
@@ -394,8 +401,10 @@ export default function Stats(): React.JSX.Element {
                         const name = exerciseMap.get(exId) ?? `Exercise ${exId}`
                         if (!progressRaw[name]) progressRaw[name] = new Map()
                         const prev = progressRaw[name].get(dateStr)
-                        if (prev === undefined || best > prev) {
-                            progressRaw[name].set(dateStr, best)
+                        if (prev === undefined || best > prev) progressRaw[name].set(dateStr, best)
+                        if (w.session_id != null) {
+                            if (!exSessionMap[name]) exSessionMap[name] = new Set()
+                            exSessionMap[name].add(w.session_id)
                         }
                     }
                 }
@@ -406,19 +415,38 @@ export default function Stats(): React.JSX.Element {
                     .sort((a, b) => a[0].localeCompare(b[0]))
                     .map(([date, kg]) => ({ date, kg }))
             }
+            const exSessionMapArr: Record<string, number[]> = {}
+            for (const [name, ids] of Object.entries(exSessionMap)) exSessionMapArr[name] = Array.from(ids)
+            // Only include sessions that have ≥1 exercise with ≥2 data points
+            const sessionsWithEnoughData = new Set(
+                Object.entries(exSessionMapArr)
+                    .filter(([name]) => (progressMap[name]?.length ?? 0) >= 2)
+                    .flatMap(([, ids]) => ids)
+            )
+            const progressSessionList = sessions
+                .filter(s => sessionsWithEnoughData.has(s.id))
+                .map(s => ({ id: s.id, name: s.name }))
 
             // Build weight log with 7-day rolling average
             const rawWeights = (weightRes.data ?? []) as { date: string; weight_kg: number }[]
-            const weightEntries: WeightEntry[] = rawWeights.map((entry, i) => {
+            // Dedup by date (last entry per day), normalize to YYYY-MM-DD
+            const dedupedWeights = Object.values(
+                rawWeights.reduce<Record<string, { date: string; weight_kg: number }>>((acc, e) => {
+                    const day = e.date.slice(0, 10)
+                    acc[day] = { date: day, weight_kg: Number(e.weight_kg) }
+                    return acc
+                }, {})
+            )
+            const weightEntries: WeightEntry[] = dedupedWeights.map((entry, i) => {
                 const windowStart = new Date(entry.date)
                 windowStart.setDate(windowStart.getDate() - 6)
-                const windowEntries = rawWeights
+                const windowEntries = dedupedWeights
                     .slice(0, i + 1)
                     .filter(e => new Date(e.date) >= windowStart)
-                const avg = windowEntries.reduce((sum, e) => sum + Number(e.weight_kg), 0) / windowEntries.length
+                const avg = windowEntries.reduce((sum, e) => sum + e.weight_kg, 0) / windowEntries.length
                 return {
                     date: entry.date,
-                    kg: Number(entry.weight_kg),
+                    kg: entry.weight_kg,
                     avg: Math.round(avg * 10) / 10,
                 }
             })
@@ -428,6 +456,8 @@ export default function Stats(): React.JSX.Element {
             setPersonalRecords(prs)
             setPrWorkoutMap(prWkMap)
             setExerciseProgressData(progressMap)
+            setExerciseSessionMap(exSessionMapArr)
+            setProgressSessions(progressSessionList)
             setWeightLog(weightEntries)
             setLoading(false)
         }
@@ -435,7 +465,7 @@ export default function Stats(): React.JSX.Element {
         setLoading(true)
         load()
         return () => { cancelled = true }
-    }, [isActive])
+    }, [isActive, effectiveRole])
 
     // ── Summary card values ────────────────────────────────────
     const totalWorkouts = workouts.length
@@ -580,14 +610,19 @@ export default function Stats(): React.JSX.Element {
         return { weeks, monthName }
     })()
 
-    // ── Exercise progress: top 5 exercises by data points ────────
+    // ── Exercise progress: filter by session if selected, else all ──
     const topExercises = Object.entries(exerciseProgressData)
-        .filter(([, pts]) => pts.length >= 2)
+        .filter(([name, pts]) => {
+            if (pts.length < 2) return false
+            if (progressSession === null) return true
+            return (exerciseSessionMap[name] ?? []).includes(progressSession)
+        })
         .sort((a, b) => b[1].length - a[1].length)
-        .slice(0, 5)
         .map(([name]) => name)
 
-    const activeExercise = selectedExercise ?? topExercises[0] ?? null
+    const activeExercise = (selectedExercise && topExercises.includes(selectedExercise))
+        ? selectedExercise
+        : topExercises[0] ?? null
 
     // ── Weekly volume data — last 12 weeks, all included (empty = 0) ──
     const weeklyVolumeData: { week: string; volume: number }[] = (() => {
@@ -861,24 +896,23 @@ export default function Stats(): React.JSX.Element {
                         <>
                             <div className={styles.sectionHeader}>{t('Session split')}</div>
                             <div className={styles.chartWrap}>
-                                <ResponsiveContainer width="100%" height={220}>
+                                <ResponsiveContainer width="100%" height={190}>
                                     <PieChart>
-                                        <Pie data={sessionDistData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" stroke="none"
-                                            label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                                            labelLine={false}
-                                            activeShape={((props: { cx: number; cy: number; innerRadius: number; outerRadius: number; startAngle: number; endAngle: number; fill: string }) => (
-                                                <g>
-                                                    <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius} outerRadius={props.outerRadius} startAngle={props.startAngle} endAngle={props.endAngle} fill={props.fill} style={{ transition: 'all 0.2s ease' }} />
-                                                    <Sector cx={props.cx} cy={props.cy} innerRadius={props.innerRadius - 8} outerRadius={props.outerRadius + 8} startAngle={props.startAngle} endAngle={props.endAngle} fill="rgba(255,255,255,0.08)" style={{ transition: 'all 0.2s ease' }} />
-                                                </g>
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            )) as any}
-                                        >
+                                        <Pie data={sessionDistData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" stroke="none">
                                             {sessionDistData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                                         </Pie>
-                                        <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: '#fff' }} itemStyle={{ color: '#fff' }} formatter={(value) => [`${value}`, t('Workouts')]} />
+                                        <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} itemStyle={{ color: 'var(--text)' }} formatter={(value, name) => [`${value} ${t('Workouts').toLowerCase()}`, name]} />
                                     </PieChart>
                                 </ResponsiveContainer>
+                                <div className={styles.pieLegend}>
+                                    {sessionDistData.map((d, i) => (
+                                        <div key={i} className={styles.pieLegendItem}>
+                                            <span className={styles.pieLegendDot} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                            <span className={styles.pieLegendName}>{d.name}</span>
+                                            <span className={styles.pieLegendPct}>{((d.value / sessionDistData.reduce((s, x) => s + x.value, 0)) * 100).toFixed(0)}%</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </>
                     )}
@@ -898,13 +932,13 @@ export default function Stats(): React.JSX.Element {
                             <ResponsiveContainer width="100%" height={200}>
                                 <LineChart data={weightLog} margin={{ top: 12, right: 16, left: -16, bottom: 0 }}>
                                     <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v: string) => { const [,m,d] = v.split('-'); return `${d}/${m}` }} interval="preserveStartEnd" />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} unit=" kg" domain={['dataMin - 2', 'dataMax + 2']} width={52} />
-                                    <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value: number, name: string) => [`${value} kg`, name === 'avg' ? t('7-day avg') : t('Logged')]} labelFormatter={(v: string) => { const [y,m,d] = v.split('-'); return `${d}/${m}/${y}` }} />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} tickFormatter={(v: string) => { const d = new Date(v); return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }).replace(/(\w+)$/, m => m.slice(0, 3)) }} interval="preserveStartEnd" minTickGap={48} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--muted)' }} domain={[(d: number) => Math.floor(d) - 1, (d: number) => Math.ceil(d) + 1]} tickCount={5} width={32} />
+                                    <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)' }} formatter={(value: number, name: string) => [`${value} kg`, name === 'avg' ? t('7-day avg') : t('Logged')]} labelFormatter={(v: string) => new Date(v).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' })} />
                                     {/* Raw entries as dots only */}
-                                    <Line dataKey="kg" stroke="transparent" dot={{ r: 3, fill: '#ff5c35', strokeWidth: 0 }} activeDot={{ r: 4, fill: '#ff5c35' }} isAnimationActive={false} />
+                                    <Line type="monotone" dataKey="kg" stroke="transparent" dot={{ r: 3, fill: '#ff5c35', strokeWidth: 0 }} activeDot={{ r: 4, fill: '#ff5c35' }} isAnimationActive={false} />
                                     {/* 7-day rolling average as smooth line */}
-                                    <Line dataKey="avg" stroke="#e8197d" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                                    <Line type="monotone" dataKey="avg" stroke="#e8197d" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -962,15 +996,23 @@ export default function Stats(): React.JSX.Element {
                         </div>
                     )}
 
-                    {activeExercise && exerciseProgressData[activeExercise] && (
+                    {Object.keys(exerciseProgressData).length > 0 && (
                         <>
                             <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Exercise progress')}</div>
-                            <div className={styles.exerciseChartTabs}>
+                            {progressSessions.length > 1 && (
+                                <div className={styles.sessionChartTabs}>
+                                    <button type="button" className={`${styles.exerciseTab} ${progressSession === null ? styles.sessionTabActive : ''}`} onClick={(e) => { setProgressSession(null); setSelectedExercise(null); e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); exerciseTabsRef.current?.scrollTo({ left: 0, behavior: 'smooth' }) }}>{t('All')}</button>
+                                    {progressSessions.map(s => (
+                                        <button key={s.id} type="button" className={`${styles.exerciseTab} ${progressSession === s.id ? styles.sessionTabActive : ''}`} onClick={(e) => { setProgressSession(s.id); setSelectedExercise(null); e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); exerciseTabsRef.current?.scrollTo({ left: 0, behavior: 'smooth' }) }}>{s.name}</button>
+                                    ))}
+                                </div>
+                            )}
+                            <div className={styles.exerciseChartTabs} ref={exerciseTabsRef}>
                                 {topExercises.map(name => (
-                                    <button key={name} type="button" className={`${styles.exerciseTab} ${name === activeExercise ? styles.exerciseTabActive : ''}`} onClick={() => setSelectedExercise(name)}>{name}</button>
+                                    <button key={name} type="button" className={`${styles.exerciseTab} ${name === activeExercise ? styles.exerciseTabActive : ''}`} onClick={(e) => { setSelectedExercise(name); e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }) }}>{name}</button>
                                 ))}
                             </div>
-                            <div className={styles.chartWrap}>
+                            {activeExercise && exerciseProgressData[activeExercise] && <div className={styles.chartWrap}>
                                 <ResponsiveContainer width="100%" height={200}>
                                     <AreaChart data={exerciseProgressData[activeExercise]} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
                                         <defs>
@@ -986,7 +1028,7 @@ export default function Stats(): React.JSX.Element {
                                         <Area type="monotone" dataKey="kg" stroke="#10b981" strokeWidth={2} fill="url(#progressGradient)" dot={{ r: 3, fill: '#10b981' }} />
                                     </AreaChart>
                                 </ResponsiveContainer>
-                            </div>
+                            </div>}
                         </>
                     )}
 

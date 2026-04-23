@@ -48,6 +48,10 @@ input, textarea {
   user-select: text;
 }
 
+*:focus, *:focus-visible {
+  outline: none;
+}
+
 button:active, a:active, [role="button"]:active {
   filter: brightness(0.82);
   transition: filter 0.08s ease;

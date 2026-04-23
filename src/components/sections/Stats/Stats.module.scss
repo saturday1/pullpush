@@ -343,6 +343,41 @@
 
 // ── Chart ─────────────────────────────────────────────────────
 
+.pieLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 16px 4px;
+}
+
+.pieLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pieLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pieLegendName {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+}
+
+.pieLegendPct {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .chartWrap {
   background: var(--card);
   border: 1px solid var(--border);
@@ -628,38 +663,90 @@
 // ── Exercise Progress Chart ──────────────────────────────────
 
 .exerciseChartTabs {
-  display: flex;
-  gap: 6px;
+  --timeout: 300ms;
+  position: relative;
+  display: inline-flex;
+  gap: 0;
   margin-bottom: 12px;
+  max-width: 100%;
   overflow-x: auto;
-  padding-bottom: 4px;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 4px;
+  isolation: isolate;
 
   &::-webkit-scrollbar { display: none; }
+
+  &::after {
+    content: '';
+    z-index: -1;
+    position: absolute;
+    position-anchor: --active-exercise-tab;
+    left: anchor(left);
+    right: anchor(right);
+    top: anchor(top);
+    bottom: anchor(bottom);
+    transition: var(--timeout) cubic-bezier(0.25, 1, 0.5, 1);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.sessionChartTabs {
+  --timeout: 300ms;
+  position: relative;
+  display: inline-flex;
+  gap: 0;
+  margin-bottom: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 4px;
+  isolation: isolate;
+
+  &::-webkit-scrollbar { display: none; }
+
+  &::after {
+    content: '';
+    z-index: -1;
+    position: absolute;
+    position-anchor: --active-session-tab;
+    left: anchor(left);
+    right: anchor(right);
+    top: anchor(top);
+    bottom: anchor(bottom);
+    transition: var(--timeout) cubic-bezier(0.25, 1, 0.5, 1);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
 }
 
 .exerciseTab {
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--card);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s;
-
-  &:hover {
-    border-color: var(--text);
-    color: var(--text);
-  }
+  transition: color var(--timeout, 300ms);
+  flex-shrink: 0;
 }
 
 .exerciseTabActive {
-  background: var(--text);
-  color: var(--card);
-  border-color: var(--text);
+  anchor-name: --active-exercise-tab;
+  color: var(--text);
+}
+
+.sessionTabActive {
+  anchor-name: --active-session-tab;
+  color: var(--text);
 }
 
 // ── Tab bar ──────────────────────────────────────────────────
@@ -713,10 +800,12 @@
 // ── Activity view toggle (List / Calendar) ───────────────────
 
 .viewToggle {
-  display: flex;
-  gap: 6px;
+  display: inline-flex;
   margin-bottom: 16px;
-  align-self: flex-start;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 2px;
 }
 
 .viewToggleBtn {
@@ -724,25 +813,21 @@
   align-items: center;
   gap: 5px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--card);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.15s;
-
-  &:active {
-    transform: scale(0.97);
-  }
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
 }
 
 .viewToggleBtnActive {
-  background: var(--text);
-  color: var(--card);
-  border-color: var(--text);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 // ── Weight chart ─────────────────────────────────────────────

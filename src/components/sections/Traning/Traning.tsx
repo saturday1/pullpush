@@ -1134,7 +1134,6 @@ export default function Traning(): React.JSX.Element {
           items.push({ name: 'go', delayMs: accum + p.duration * 1000 })
         } else if (p.phase === 'rest') {
           items.push({ name: 'rest', delayMs: accum })
-          items.push({ name: 'rest_end', delayMs: accum + p.duration * 1000 })
         }
         accum += p.duration * 1000
       }
@@ -1166,8 +1165,6 @@ export default function Traning(): React.JSX.Element {
         }
       }
       items.push({ name: 'go', delayMs: Math.round(currentPhaseRemainSecs * 1000) })
-    } else if (phase === 'rest') {
-      items.push({ name: 'rest_end', delayMs: Math.round(currentPhaseRemainSecs * 1000) })
     }
 
     let accum = Math.round(currentPhaseRemainSecs * 1000)
@@ -1183,7 +1180,6 @@ export default function Traning(): React.JSX.Element {
         items.push({ name: 'go', delayMs: Math.round(accum + p.duration * 1000) })
       } else if (p.phase === 'rest') {
         items.push({ name: 'rest', delayMs: Math.round(accum) })
-        items.push({ name: 'rest_end', delayMs: Math.round(accum + p.duration * 1000) })
       }
       accum += p.duration * 1000
     }
@@ -1219,7 +1215,7 @@ export default function Traning(): React.JSX.Element {
       timerRef.current = null
       setTimerPhase(null)
       setTimerExId(null)
-      setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
+      localStorage.removeItem('pullpush_activeFlow')
       try { RestTimer?.stop() } catch {}
 
       // Autoplay: start next set or next exercise
@@ -1249,7 +1245,13 @@ export default function Traning(): React.JSX.Element {
 
     // Countdown phase: fullscreen overlay
     if (phase === 'countdown') {
-      setCountdownOverlay(duration)
+      // Persist so a crash during countdown keeps the workout row alive on restart
+      try {
+        localStorage.setItem('pullpush_activeFlow', JSON.stringify({
+          wId: wId ?? '', exId, currentSet, setsTotal, kg, reps, phase, phaseEndAbs, step, plan,
+        }))
+      } catch {}
+      setCountdownOverlay(Math.max(1, Math.ceil((phaseEndAbs - Date.now()) / 1000)))
       timerStepRef.current = step
       if (timerRef.current) clearInterval(timerRef.current)
       const cdEnd = phaseEndAbs
@@ -1287,6 +1289,27 @@ export default function Traning(): React.JSX.Element {
     setTimerSecs(initialRemaining)
     setTimerTotalSecs(duration)
 
+    // Persist flow state so we can recover after iOS kills the WKWebView
+    try {
+      localStorage.setItem('pullpush_activeFlow', JSON.stringify({
+        wId: wId ?? '', exId, currentSet, setsTotal, kg, reps, phase, phaseEndAbs, step, plan,
+      }))
+    } catch {}
+
+    // At rest-phase start: save the completed set to DB immediately (idempotent upsert)
+    // This happens BEFORE the rest notification so a crash during rest still has the set saved
+    if (phase === 'rest') {
+      setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
+      if (wId) {
+        void (async () => {
+          const { error } = await supabase.from('workout_sets').upsert({
+            workout_id: wId, exercise_id: exId, set_number: currentSet, kg, reps,
+          }, { onConflict: 'workout_id,exercise_id,set_number' })
+          if (error) console.error('workout_sets upsert failed', error)
+        })()
+      }
+    }
+
     // Schedule notification at end of rest phase
     if (phase === 'rest') {
       const exName = currentExercises.find(e => e.id === exId)?.name ?? ''
@@ -1313,22 +1336,6 @@ export default function Traning(): React.JSX.Element {
         if (phase === 'work') {
           // Web plays rest-start sound here; native has pre-scheduled it
           if (onTime && !flowSounds.isNative) flowSounds.playRestStart()
-          setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
-          // Save completed set to database
-          if (wId) {
-            void (async () => {
-              const { error } = await supabase.from('workout_sets').insert({
-                workout_id: wId,
-                exercise_id: exId,
-                set_number: currentSet,
-                kg,
-                reps,
-              })
-              if (error) console.error('workout_sets insert failed', { wId, exId, currentSet, error })
-            })()
-          } else {
-            console.warn('workout_sets insert skipped: no workoutId')
-          }
         } else if (phase === 'rest') {
           // Web plays set-complete here; native has pre-scheduled it
           if (onTime && !flowSounds.isNative) flowSounds.playSetComplete()
@@ -1336,8 +1343,6 @@ export default function Traning(): React.JSX.Element {
 
         runTimerStep(plan, step + 1, exId, currentSet, setsTotal, kg, reps, wId)
       } else {
-        // Web keeps last-3-sec rest end warning. Native has no equivalent tick — rest_end plays at 0.
-        if (!flowSounds.isNative && phase === 'rest' && remaining <= 3 && remaining > 0 && remaining !== lastPhaseSec) { lastPhaseSec = remaining; flowSounds.playRestEnd() }
         setTimerSecs(remaining)
       }
     }, 250)
@@ -1449,6 +1454,7 @@ export default function Traning(): React.JSX.Element {
     setTimerExId(null)
     setPaused(false)
     pausedPlanRef.current = null
+    localStorage.removeItem('pullpush_activeFlow')
     try { RestTimer?.stop() } catch {}
     try { LocalNotifications.cancel({ notifications: [{ id: 2 }] }) } catch {}
   }
@@ -1702,9 +1708,91 @@ export default function Traning(): React.JSX.Element {
           setWorkoutId(openWorkout.id)
           setWorkoutSessionId(openWorkout.session_id)
           if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
+
+          // Restore active flow state if app was restarted mid-flow
+          const rawFlow = localStorage.getItem('pullpush_activeFlow')
+          if (rawFlow) {
+            try {
+              const flow = JSON.parse(rawFlow) as {
+                wId: string; exId: string; currentSet: number; setsTotal: number
+                kg: number | null; reps: number; phase: string; phaseEndAbs: number
+                step: number; plan: { phase: TimerPhase; duration: number }[]
+              }
+              const stale = Math.abs(Date.now() - flow.phaseEndAbs) > 30 * 60 * 1000
+              if (!stale && flow.wId === openWorkout.id) {
+                // Retroactive upsert only for rest phase (set already done but crash skipped Fix 1)
+                if (flow.phase === 'rest') {
+                  const alreadySaved = (restored[flow.exId] ?? 0) >= flow.currentSet
+                  if (!alreadySaved) {
+                    await supabase.from('workout_sets').upsert({
+                      workout_id: flow.wId, exercise_id: flow.exId,
+                      set_number: flow.currentSet, kg: flow.kg, reps: flow.reps,
+                    }, { onConflict: 'workout_id,exercise_id,set_number' })
+                    restored[flow.exId] = flow.currentSet
+                    setCompletedSets({ ...restored })
+                  }
+                }
+
+                const remainingMs = flow.phaseEndAbs - Date.now()
+                if (remainingMs > 0) {
+                  // Timer still running — reconstruct planStartRef and resume (any phase)
+                  const stepDuration = flow.plan[flow.step]?.duration ?? 0
+                  const elapsedBefore = flow.plan.slice(0, flow.step).reduce((s: number, p: { duration: number }) => s + p.duration, 0)
+                  planStartRef.current = flow.phaseEndAbs - (elapsedBefore + stepDuration) * 1000
+                  timerPlanRef.current = flow.plan
+                  timerArgsRef.current = { exId: flow.exId, currentSet: flow.currentSet, setsTotal: flow.setsTotal, kg: flow.kg, reps: flow.reps, wId: flow.wId }
+                  setTimerExId(flow.exId)
+                  setTimerSetsTotal(flow.setsTotal)
+                  setTimerSet(flow.currentSet)
+                  runTimerStep(flow.plan, flow.step, flow.exId, flow.currentSet, flow.setsTotal, flow.kg, flow.reps, flow.wId)
+                } else {
+                  localStorage.removeItem('pullpush_activeFlow')
+                }
+              } else {
+                localStorage.removeItem('pullpush_activeFlow')
+              }
+            } catch {
+              localStorage.removeItem('pullpush_activeFlow')
+            }
+          }
         } else {
-          // Empty workout (0 sets) — clean up stale row
-          await supabase.from('workouts').delete().eq('id', openWorkout.id)
+          // Empty workout (0 sets) — check localStorage before deleting
+          const rawFlow = localStorage.getItem('pullpush_activeFlow')
+          let keptForFlow = false
+          if (rawFlow) {
+            try {
+              const flow = JSON.parse(rawFlow) as { wId: string; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; phase: string; phaseEndAbs: number; step: number; plan: { phase: TimerPhase; duration: number }[] }
+              const stale = Math.abs(Date.now() - flow.phaseEndAbs) > 30 * 60 * 1000
+              if (!stale && flow.wId === openWorkout.id) {
+                // Workout was mid-flow (countdown/work) — keep the row and restore context
+                setWorkoutId(openWorkout.id)
+                setWorkoutSessionId(openWorkout.session_id)
+                if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
+
+                const remainingMs = flow.phaseEndAbs - Date.now()
+                if (remainingMs > 0) {
+                  // Timer still running — reconstruct planStartRef and resume (any phase)
+                  const stepDuration = flow.plan[flow.step]?.duration ?? 0
+                  const elapsedBefore = flow.plan.slice(0, flow.step).reduce((s: number, p: { duration: number }) => s + p.duration, 0)
+                  planStartRef.current = flow.phaseEndAbs - (elapsedBefore + stepDuration) * 1000
+                  timerPlanRef.current = flow.plan
+                  timerArgsRef.current = { exId: flow.exId, currentSet: flow.currentSet, setsTotal: flow.setsTotal, kg: flow.kg, reps: flow.reps, wId: flow.wId }
+                  setTimerExId(flow.exId)
+                  setTimerSetsTotal(flow.setsTotal)
+                  setTimerSet(flow.currentSet)
+                  runTimerStep(flow.plan, flow.step, flow.exId, flow.currentSet, flow.setsTotal, flow.kg, flow.reps, flow.wId)
+                } else {
+                  // Expired — workout stays open for next set, clear stale state
+                  localStorage.removeItem('pullpush_activeFlow')
+                }
+                keptForFlow = true
+              }
+            } catch { /* ignore */ }
+          }
+          if (!keptForFlow) {
+            await supabase.from('workouts').delete().eq('id', openWorkout.id)
+            localStorage.removeItem('pullpush_activeFlow')
+          }
         }
       }
     } finally {
@@ -1993,8 +2081,10 @@ export default function Traning(): React.JSX.Element {
   }, [workoutId, completedSetsInSession, allSessionDone, timerPhase])
 
   // Keep screen awake during all flow phases (countdown, reps, side pause, rest)
+  // — only if user has enabled "keep screen on" in settings (default: on)
   useEffect(() => {
-    const keep = timerPhase !== null || countdownOverlay !== null
+    const settingOn = localStorage.getItem('pullpush_keepScreenOn') !== 'false'
+    const keep = settingOn && (timerPhase !== null || countdownOverlay !== null)
     if (RestTimer) RestTimer.setKeepAwake({ keep }).catch(() => {})
   }, [timerPhase, countdownOverlay])
 

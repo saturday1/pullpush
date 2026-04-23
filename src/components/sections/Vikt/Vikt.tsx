@@ -1,5 +1,6 @@
-import { type FormEvent, useState, useEffect } from 'react'
+import { type FormEvent, useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
@@ -7,6 +8,7 @@ import Skeleton from '../../Skeleton/Skeleton'
 import { useProfile } from '../../../context/ProfileContext'
 import InfoModal from '../../InfoModal/InfoModal'
 import { useWeightUnit, formatWeightJsx } from '../../../hooks/useWeightUnit'
+import { supabase } from '../../../supabase'
 import styles from './Vikt.module.scss'
 
 interface MacroBar {
@@ -17,8 +19,25 @@ interface MacroBar {
   barWidth: string
 }
 
+interface WeightEntry {
+  date: string
+  weight_kg: number
+}
+
 const KG_TO_LBS = 2.20462
 const toLbs = (kg: number): number => +(kg * KG_TO_LBS).toFixed(1)
+
+const DAYS_SV      = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+const DAYS_SV_FULL = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
+
+function getWeighInDay(): number | null {
+  const v = localStorage.getItem('weigh_in_day')
+  return v !== null ? parseInt(v) : null
+}
+function setWeighInDay(d: number | null): void {
+  if (d === null) localStorage.removeItem('weigh_in_day')
+  else localStorage.setItem('weigh_in_day', String(d))
+}
 
 export default function Vikt(): React.JSX.Element {
   const { t } = useTranslation()
@@ -29,6 +48,13 @@ export default function Vikt(): React.JSX.Element {
   const [loggingWeight, setLoggingWeight] = useState<boolean>(false)
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false)
   const [barsVisible,   setBarsVisible]   = useState<boolean>(false)
+  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([])
+  const [weighInDay,    setWeighInDayState] = useState<number | null>(getWeighInDay)
+  const [editingDay,    setEditingDay]    = useState<boolean>(false)
+  const [pendingDay,    setPendingDay]    = useState<number>(weighInDay ?? 0)
+  const chartScrollRef = useRef<HTMLDivElement>(null)
+  const chartWrapRef   = useRef<HTMLDivElement>(null)
+  const [chartWrapWidth, setChartWrapWidth] = useState(320)
 
   const loading: boolean = weightLoading || profileLoading
 
@@ -39,6 +65,32 @@ export default function Vikt(): React.JSX.Element {
     }
   }, [loading])
 
+  const loadHistory = useCallback(async () => {
+    const { data } = await supabase
+      .from('weight_log')
+      .select('date, weight_kg')
+      .order('date', { ascending: true })
+    if (data) setWeightHistory(data as WeightEntry[])
+  }, [])
+
+  useEffect(() => { loadHistory() }, [loadHistory])
+
+  useEffect(() => {
+    if (chartWrapRef.current) setChartWrapWidth(chartWrapRef.current.offsetWidth)
+  }, [])
+
+  useEffect(() => {
+    if (chartScrollRef.current) {
+      chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth
+    }
+  }, [weightHistory.length])
+
+  function handleWeighInDay(d: number): void {
+    setWeighInDay(d)
+    setWeighInDayState(d)
+    setEditingDay(false)
+  }
+
   async function handleLogWeight(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault()
     const kg: number = parseFloat(weightInput.replace(',', '.'))
@@ -46,7 +98,9 @@ export default function Vikt(): React.JSX.Element {
     setLoggingWeight(true)
     await logWeight(kg)
     setWeightInput('')
+    setLbsInput('')
     setLoggingWeight(false)
+    loadHistory()
   }
 
   const start: number = startWeight ?? currentWeight ?? 0
@@ -57,6 +111,20 @@ export default function Vikt(): React.JSX.Element {
   const pct: number = start !== goal
     ? Math.min(100, Math.max(0, ((start - weight) / (start - goal)) * 100))
     : 0
+
+  const chartData: WeightEntry[] = (() => {
+    const deduped = Object.values(
+      weightHistory.reduce<Record<string, WeightEntry>>((acc, e) => {
+        const day = e.date.slice(0, 10)
+        acc[day] = { date: day, weight_kg: e.weight_kg }
+        return acc
+      }, {})
+    )
+    if (start > 0 && (deduped.length === 0 || deduped[0].weight_kg !== start)) {
+      return [{ date: 'start', weight_kg: start }, ...deduped]
+    }
+    return deduped
+  })()
 
   const m = macros
   const macroBars: MacroBar[] = m ? [
@@ -98,6 +166,102 @@ export default function Vikt(): React.JSX.Element {
             <span>{t('Start ({{start}} kg)', { start })}</span>
             <span>{t('Goal ({{goal}} kg)', { goal })}</span>
           </div>
+        </div>
+      </Reveal>
+
+      {chartData.length > 1 && (
+        <Reveal className={styles.section}>
+          <div className={styles.chartCard}>
+            <div className={styles.chartTitle}>{t('Weight history')}</div>
+            <div ref={chartWrapRef} style={{ width: '100%' }}>
+            <div
+              ref={chartScrollRef}
+              style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as never }}
+              className={styles.chartScroll}
+            >
+            {(() => {
+              const PX_PER_POINT = Math.max(chartWrapWidth / 8, 44)
+              const chartWidth = Math.max(chartWrapWidth, chartData.length * PX_PER_POINT)
+              return (
+              <LineChart data={chartData} width={chartWidth} height={180} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="var(--border)" strokeWidth={0.5} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(d: string) => {
+                    if (d === 'start') return 'Start'
+                    const date = new Date(d)
+                    const [day, mon] = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }).split(' ')
+                    return `${day} ${mon.slice(0, 3)}`
+                  }}
+                  tick={{ fontSize: 10, fill: 'var(--muted)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={48}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  domain={[
+                    (dataMin: number) => Math.floor(dataMin) - 1,
+                    (dataMax: number) => Math.ceil(Math.max(dataMax, start)) + 1,
+                  ]}
+                  tickCount={5}
+                  tick={{ fontSize: 10, fill: 'var(--muted)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                />
+                <Tooltip
+                  contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: 'var(--muted)' }}
+                  itemStyle={{ color: 'var(--accent)' }}
+                  labelFormatter={(d: string) => {
+                    if (d === 'start') return 'Startvikt'
+                    const date = new Date(d)
+                    return date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' })
+                  }}
+                  formatter={(v: number) => [`${v} kg`, 'Vikt']}
+                />
+{goal > 0 && chartData.length > 0 && (() => {
+                  const dataMin = Math.min(...chartData.map(e => e.weight_kg))
+                  const dataMax = Math.max(...chartData.map(e => e.weight_kg))
+                  return goal >= dataMin - 3 && goal <= dataMax + 3
+                })() && (
+                  <ReferenceLine y={goal} stroke="var(--green)" strokeDasharray="4 3" label={{ value: `Mål ${goal} kg`, fill: 'var(--green)', fontSize: 10, position: 'right' }} />
+                )}
+                <Line
+                  type="monotone"
+                  dataKey="weight_kg"
+                  stroke="url(#wGradient)"
+                  strokeWidth={2.5}
+                  dot={chartData.length <= 20}
+                  activeDot={{ r: 4 }}
+                />
+                <defs>
+                  <linearGradient id="wGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#e8197d" />
+                    <stop offset="100%" stopColor="#f97316" />
+                  </linearGradient>
+                </defs>
+              </LineChart>
+              )}
+            )()}
+            </div>
+            </div>
+          </div>
+        </Reveal>
+      )}
+
+      <Reveal className={styles.section}>
+        <div className={styles.chartCard}>
+          <div className={styles.weighInHeader}>
+            <span className={styles.chartTitle}>{t('Weigh-in day')}</span>
+            <button className={styles.weighInChange} onClick={() => { setPendingDay(weighInDay ?? 0); setEditingDay(true) }}>
+              {t('Change')}
+            </button>
+          </div>
+          <span className={styles.weighInValue}>
+            {weighInDay !== null ? DAYS_SV_FULL[weighInDay] : '—'}
+          </span>
         </div>
       </Reveal>
 
@@ -156,23 +320,27 @@ export default function Vikt(): React.JSX.Element {
             <div className={styles.weightModalTitle}>{t('Log new weight')}</div>
             <form onSubmit={(e) => { handleLogWeight(e); setShowWeightModal(false) }}>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <input
-                  type="number" step="0.1" inputMode="decimal"
-                  placeholder={`${weight} kg`}
-                  value={weightInput}
-                  onChange={e => { setWeightInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setLbsInput(!isNaN(n) ? toLbs(n).toString() : '') }}
-                  className={styles.logInput}
-                  style={{ flex: 1 }}
-                  autoFocus
-                />
-                <input
-                  type="number" step="0.1" inputMode="decimal"
-                  placeholder={`${toLbs(weight)} lbs`}
-                  value={lbsInput}
-                  onChange={e => { setLbsInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setWeightInput(!isNaN(n) ? (n / KG_TO_LBS).toFixed(1) : '') }}
-                  className={styles.logInput}
-                  style={{ flex: 1 }}
-                />
+                <div style={{ flex: 1 }}>
+                  <div className={styles.inputLabel}>KG</div>
+                  <input
+                    type="number" step="0.1" inputMode="decimal"
+                    value={weightInput}
+                    onChange={e => { setWeightInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setLbsInput(!isNaN(n) ? toLbs(n).toString() : '') }}
+                    className={styles.logInput}
+                    style={{ width: '100%' }}
+                    autoFocus
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div className={styles.inputLabel}>LBS</div>
+                  <input
+                    type="number" step="0.1" inputMode="decimal"
+                    value={lbsInput}
+                    onChange={e => { setLbsInput(e.target.value); const n = parseFloat(e.target.value.replace(',', '.')); setWeightInput(!isNaN(n) ? (n / KG_TO_LBS).toFixed(1) : '') }}
+                    className={styles.logInput}
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
               <div className={styles.weightModalActions}>
                 <button type="button" className={styles.weightModalCancel} onClick={() => setShowWeightModal(false)}>{t('Cancel')}</button>
@@ -181,6 +349,32 @@ export default function Vikt(): React.JSX.Element {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {editingDay && (
+        <div className={styles.weightOverlay} onClick={() => setEditingDay(false)}>
+          <div className={styles.weightModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.weightModalTitle}>{t('Weigh-in day')}</div>
+            <select
+              className={styles.daySelect}
+              value={pendingDay}
+              onChange={e => setPendingDay(parseInt(e.target.value))}
+            >
+              {DAYS_SV_FULL.map((label, i) => (
+                <option key={i} value={i}>{label}</option>
+              ))}
+            </select>
+            <div className={styles.weightModalActions}>
+              <button className={styles.weightModalCancel} onClick={() => setEditingDay(false)}>{t('Cancel')}</button>
+              <button
+                className={`${styles.logBtn} ${styles.weightModalSave}`}
+                onClick={() => { handleWeighInDay(pendingDay) }}
+              >
+                {t('Save')}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -42,6 +42,7 @@ export default function Settings(): React.ReactElement {
     const [countdownStyle, setCountdownStyleState] = useState<CountdownStyle>(getCountdownStyle())
     const [countdownLength, setCountdownLengthState] = useState<3 | 5>(getCountdownLength())
     const [weightUnit, setWeightUnit] = useWeightUnit()
+    const [keepScreenOn, setKeepScreenOnState] = useState(() => localStorage.getItem('pullpush_keepScreenOn') !== 'false')
     const profile = useProfile()
     const updateProfile = profile?.updateProfile
     const { effectiveRole } = useSubscription()
@@ -194,6 +195,26 @@ export default function Settings(): React.ReactElement {
                                         {u === 'both' ? 'KG / LBS' : u.toUpperCase()}
                                     </button>
                                 ))}
+                            </div>
+                        </div>
+                    </Reveal>
+
+                    <Reveal>
+                        <div className={styles.card}>
+                            <div className={styles.cardTitle}>{t('Keep screen on during exercise')}</div>
+                            <div className={styles.optionRow}>
+                                <button
+                                    className={`${styles.optionBtn} ${keepScreenOn ? styles.optionActive : ''}`}
+                                    onClick={() => { localStorage.setItem('pullpush_keepScreenOn', 'true'); setKeepScreenOnState(true) }}
+                                >
+                                    {t('On')}
+                                </button>
+                                <button
+                                    className={`${styles.optionBtn} ${!keepScreenOn ? styles.optionActive : ''}`}
+                                    onClick={() => { localStorage.setItem('pullpush_keepScreenOn', 'false'); setKeepScreenOnState(false) }}
+                                >
+                                    {t('Off')}
+                                </button>
                             </div>
                         </div>
                     </Reveal>
