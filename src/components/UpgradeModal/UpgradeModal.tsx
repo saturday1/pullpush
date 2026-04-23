@@ -1,35 +1,64 @@
-import { useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useState } from 'react'
+import { Drawer } from 'vaul'
 import type { Feature } from '../../context/SubscriptionContext'
 import { FEATURE_REQUIRED_ROLE } from '../../context/SubscriptionContext'
 import styles from './UpgradeModal.module.scss'
 
-interface FeatureInfo {
+type Tier = 'standard' | 'premium'
+
+interface PlanInfo {
+  id: Tier
   label: string
-  description: string
+  price: string
+  priceNote: string
+  color: string
+  features: string[]
 }
 
-const FEATURE_INFO: Record<Feature, FeatureInfo> = {
-  flow:            { label: 'Flow-läge',             description: 'Automatisk nedräkning, reps och vilofas med ljud' },
-  liveActivity:    { label: 'Live Activity',          description: 'Vilotimer synlig på låsskärmen och Dynamic Island' },
-  foodSearch:      { label: 'Matsökning',             description: 'Sök i USDA:s livsmedelsdatabas med 500 000+ livsmedel' },
-  statsExtended:   { label: 'Utökad statistik',       description: 'Se träningshistorik 30 dagar bakåt' },
-  barcodeScanner:  { label: 'Streckkodsskanner',      description: 'Scanna livsmedel med kameran och hämta näringsvärden direkt' },
-  macroRings:      { label: 'Makroring',              description: 'Visualisera ditt dagliga intag av kalorier, protein, kolhydrater och fett' },
-  macroGoals:      { label: 'Makromål & BMR/TDEE',    description: 'Personliga makromål beräknade från din kropp och aktivitetsnivå' },
-  recurringMeals:  { label: 'Återkommande måltider',  description: 'Spara måltider som visas automatiskt varje dag' },
-  statsUnlimited:  { label: 'Obegränsad statistik',   description: 'Se hela din träningshistorik utan tidsgräns' },
+const PLANS: PlanInfo[] = [
+  {
+    id: 'standard',
+    label: 'Standard',
+    price: '49 kr',
+    priceNote: 'per månad',
+    color: '#60a5fa',
+    features: [
+      'Flow-läge med automatisk nedräkning',
+      'Live Activity på låsskärmen',
+      'Matsökning (500 000+ livsmedel)',
+      'Statistik 30 dagar bakåt',
+    ],
+  },
+  {
+    id: 'premium',
+    label: 'Premium',
+    price: '79 kr',
+    priceNote: 'per månad',
+    color: '#e8197d',
+    features: [
+      'Allt i Standard',
+      'Streckkodsskanner',
+      'Makroringar & makromål',
+      'BMR / TDEE-beräkning',
+      'Återkommande måltider',
+      'Obegränsad statistikhistorik',
+    ],
+  },
+]
+
+const FEATURE_LABEL: Record<Feature, string> = {
+  flow:           'Flow-läge',
+  liveActivity:   'Live Activity',
+  foodSearch:     'Matsökning',
+  statsExtended:  'Utökad statistik',
+  barcodeScanner: 'Streckkodsskanner',
+  macroRings:     'Makroringar',
+  macroGoals:     'Makromål & BMR/TDEE',
+  recurringMeals: 'Återkommande måltider',
+  statsUnlimited: 'Obegränsad statistik',
 }
 
-const TIER_LABEL: Record<string, string> = {
-  standard: 'Standard',
-  premium: 'Premium',
-}
-
-const TIER_PRICE: Record<string, string> = {
-  standard: '49 kr/mån',
-  premium: '79 kr/mån',
-}
+const TIER_RANK: Record<Tier, number> = { standard: 0, premium: 1 }
 
 interface UpgradeModalProps {
   feature: Feature
@@ -37,41 +66,77 @@ interface UpgradeModalProps {
 }
 
 export default function UpgradeModal({ feature, onClose }: UpgradeModalProps): React.JSX.Element {
-  const { t } = useTranslation()
-  const info = FEATURE_INFO[feature]
-  const requiredRole = FEATURE_REQUIRED_ROLE[feature]
-  const tierLabel = TIER_LABEL[requiredRole] ?? requiredRole
-  const tierPrice = TIER_PRICE[requiredRole] ?? ''
+  const requiredRole = FEATURE_REQUIRED_ROLE[feature] as Tier
+  const defaultTab: Tier = requiredRole === 'standard' ? 'standard' : 'premium'
+  const [selected, setSelected] = useState<Tier>(defaultTab)
+  const [open, setOpen] = useState(true)
 
-  useEffect(() => {
-    document.body.classList.add('modal-open')
-    return () => document.body.classList.remove('modal-open')
-  }, [])
+  function handleClose(): void {
+    setOpen(false)
+    setTimeout(onClose, 500)
+  }
+
+  const plan = PLANS.find(p => p.id === selected)!
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.lockIcon}>🔒</div>
+    <Drawer.Root
+      open={open}
+      onOpenChange={v => { if (!v) handleClose() }}
+    >
+      <Drawer.Portal>
+        <Drawer.Overlay className={styles.overlay} />
+        <Drawer.Content className={styles.content}>
+          <Drawer.Handle className={styles.handle} />
 
-        <div className={styles.tierBadge} data-tier={requiredRole}>
-          {tierLabel}
-        </div>
+          <div className={styles.header}>
+            <div className={styles.lockIcon}>🔒</div>
+            <div className={styles.headerText}>
+              <div className={styles.headerTitle}>Uppgradera för att använda</div>
+              <Drawer.Title className={styles.featureLabel}>{FEATURE_LABEL[feature]}</Drawer.Title>
+            </div>
+          </div>
 
-        <h2 className={styles.title}>{info.label}</h2>
-        <p className={styles.description}>{info.description}</p>
+          <div className={styles.tabs}>
+            {PLANS.map(p => (
+              <button
+                key={p.id}
+                className={`${styles.tab} ${selected === p.id ? styles.tabActive : ''} ${TIER_RANK[p.id] < TIER_RANK[requiredRole] ? styles.tabDimmed : ''}`}
+                style={selected === p.id ? { '--tab-color': p.color } as React.CSSProperties : {}}
+                onClick={() => setSelected(p.id)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
-        <div className={styles.priceBox}>
-          <span className={styles.priceLabel}>{tierLabel}-abonnemang</span>
-          <span className={styles.price}>{tierPrice}</span>
-        </div>
+          <div className={styles.planCard} style={{ '--plan-color': plan.color } as React.CSSProperties}>
+            <div className={styles.priceRow}>
+              <span className={styles.price}>{plan.price}</span>
+              <span className={styles.priceNote}>{plan.priceNote}</span>
+            </div>
+            <ul className={styles.featureList}>
+              {plan.features.map(f => (
+                <li key={f} className={styles.featureItem}>
+                  <span className={styles.check}>✓</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        <button className={styles.upgradeBtn} type="button" disabled>
-          {t('Upgrade')} — {t('Coming soon')}
-        </button>
-        <button className={styles.closeBtn} type="button" onClick={onClose}>
-          {t('Maybe later')}
-        </button>
-      </div>
-    </div>
+          <button
+            className={styles.upgradeBtn}
+            type="button"
+            disabled
+            style={{ '--plan-color': plan.color } as React.CSSProperties}
+          >
+            Välj {plan.label} — Kommer snart
+          </button>
+          <button className={styles.closeBtn} type="button" onClick={handleClose}>
+            Kanske senare
+          </button>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   )
 }

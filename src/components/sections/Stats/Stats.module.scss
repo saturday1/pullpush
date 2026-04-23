@@ -594,54 +594,240 @@
   border-color: var(--text);
 }
 
-// ── Workout detail modal ──────────────────────────────────────
+// ── Tab bar ──────────────────────────────────────────────────
 
-.overlay {
+.tabBar {
+  --timeout: 300ms;
+  position: relative;
+  display: flex;
+  margin-bottom: 24px;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 4px;
+  isolation: isolate;
+
+  &::after {
+    content: '';
+    z-index: -1;
+    position: absolute;
+    position-anchor: --active-tab;
+    left: anchor(left);
+    right: anchor(right);
+    top: anchor(top);
+    bottom: anchor(bottom);
+    transition: var(--timeout) cubic-bezier(0.25, 1, 0.5, 1);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.tabBtn {
+  flex: 1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--timeout, 300ms);
+  text-align: center;
+}
+
+.tabBtnActive {
+  anchor-name: --active-tab;
+  color: var(--text);
+}
+
+// ── Activity view toggle (List / Calendar) ───────────────────
+
+.viewToggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  align-self: flex-start;
+}
+
+.viewToggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.viewToggleBtnActive {
+  background: var(--text);
+  color: var(--card);
+  border-color: var(--text);
+}
+
+// ── Weight chart ─────────────────────────────────────────────
+
+.weightHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.weightLogBtn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:active {
+    background: var(--text);
+    color: var(--card);
+    border-color: var(--text);
+  }
+}
+
+.weightInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.weightInput {
+  flex: 1;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  min-width: 0;
+
+  &::placeholder { color: var(--muted); opacity: 0.5; }
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button { -webkit-appearance: none; }
+}
+
+.weightInputUnit {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.weightSaveBtn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #e8197d;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:active { opacity: 0.8; }
+}
+
+.weightCancelBtn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:active { color: var(--text); }
+}
+
+.weightEmpty {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px 0 32px;
+}
+
+// ── Chart toggle row ─────────────────────────────────────────
+
+.chartToggleRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+// ── Vaul drawer: Workout detail ───────────────────────────────
+
+.drawerOverlay {
   position: fixed;
   inset: 0;
   z-index: 400;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
-  background: rgba(15, 14, 13, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  animation: overlayIn 0.2s ease both;
+  background: rgba(15, 14, 13, 0.5);
 }
 
-@keyframes overlayIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes overlayOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
-.overlayOut {
-  animation: overlayOut 0.22s ease both;
-  pointer-events: none;
-}
-
-.modal {
-  position: relative;
+.drawerContent {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 401;
   background: var(--card);
-  border-radius: 24px;
   border: 1px solid var(--border);
-  padding: 28px 24px 24px;
-  width: 100%;
-  max-width: 380px;
-  max-height: 100%;
-  overflow-y: auto;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.16);
-  animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  border-radius: 20px 20px 0 0;
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 92dvh;
+  outline: none;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@keyframes modalIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+.drawerHandle {
+  background: var(--border) !important;
+  width: 36px !important;
+  height: 4px !important;
+  border-radius: 2px !important;
+  margin: 14px auto 4px !important;
+  flex-shrink: 0;
+}
+
+.drawerScroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 22px calc(32px + env(safe-area-inset-bottom));
+  flex: 1;
 }
 
 @keyframes workoutCardDelete {
@@ -656,32 +842,6 @@
   pointer-events: none;
 }
 
-.modalClose {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--border);
-  background: var(--bg2, var(--bg));
-  color: var(--text);
-  cursor: pointer;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s, background 0.15s, transform 0.15s;
-  z-index: 1;
-
-  &:hover {
-    background: var(--bg3, var(--bg2));
-    transform: scale(1.05);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
 
 .modalTitle {
   font-family: 'Barlow Condensed', sans-serif;

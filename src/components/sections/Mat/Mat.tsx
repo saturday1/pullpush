@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Drawer } from 'vaul'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { Capacitor, registerPlugin } from '@capacitor/core'
-import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock'
 import { useSubscription } from '../../../context/SubscriptionContext'
 import { supabase } from '../../../supabase'
 import { useProfile } from '../../../context/ProfileContext'
@@ -274,7 +274,6 @@ interface BarcodeScannerProps {
 }
 
 function BarcodeScanner({ onResult, onClose, t }: BarcodeScannerProps): React.JSX.Element {
-    useBodyScrollLock()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const [camError, setCamError] = useState<string | null>(null)
     const [manualCode, setManualCode] = useState<string>('')
@@ -384,7 +383,6 @@ interface ManualProductFormProps {
 }
 
 function ManualProductForm({ barcode, onSave, onCancel, t }: ManualProductFormProps): React.JSX.Element {
-    useBodyScrollLock()
     const [form, setForm] = useState<ManualProductFormData>({ product_name: '', brand: '', protein_per_100g: '', carbs_per_100g: '', fat_per_100g: '', kcal_per_100g: '' })
     const [saving, setSaving] = useState<boolean>(false)
     const set = (k: keyof ManualProductFormData, v: string): void => setForm(f => ({ ...f, [k]: v }))
@@ -450,63 +448,17 @@ interface MealModalProps {
 }
 
 function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModalProps): React.JSX.Element {
-    useBodyScrollLock()
     const { requireUpgrade, canUse } = useSubscription()
+    const [open, setOpen] = useState(true)
+
+    function handleClose(): void {
+        setOpen(false)
+        setTimeout(onClose, 500)
+    }
 
     const [form, setForm] = useState<MealFormData>(initial ?? { ...EMPTY_FORM, label: t('Breakfast') })
     const set = (k: keyof MealFormData, v: string | number | null): void => setForm(f => ({ ...f, [k]: v }))
     const valid: boolean = !!(form.label.trim() && form.food.trim())
-    const [closing, setClosing] = useState<boolean>(false)
-    const requestClose = (): void => {
-        if (closing) return
-        setClosing(true)
-        window.setTimeout(onClose, 200)
-    }
-
-    // Drag-to-dismiss (handle)
-    const modalRef = useRef<HTMLDivElement>(null)
-    const dragStartY = useRef<number | null>(null)
-    const isDragging = useRef(false)
-    const dragYRef = useRef(0)
-    const [dragY, setDragY] = useState(0)
-
-    useEffect(() => {
-        const modal = modalRef.current
-        if (!modal) return
-        function onTouchMove(e: TouchEvent): void {
-            if (!isDragging.current || dragStartY.current === null) return
-            const dy = e.touches[0].clientY - dragStartY.current
-            if (dy > 0) {
-                e.preventDefault()
-                dragYRef.current = dy
-                setDragY(dy)
-            }
-        }
-        modal.addEventListener('touchmove', onTouchMove, { passive: false })
-        return () => modal.removeEventListener('touchmove', onTouchMove)
-    }, [])
-
-    function onHandleTouchStart(e: React.TouchEvent): void {
-        if (closing) return
-        dragStartY.current = e.touches[0].clientY
-        isDragging.current = true
-        dragYRef.current = 0
-        setDragY(0)
-    }
-
-    function onHandleTouchEnd(): void {
-        if (!isDragging.current) return
-        isDragging.current = false
-        dragStartY.current = null
-        if (dragYRef.current > 80) {
-            dragYRef.current = 0
-            setDragY(0)
-            requestClose()
-        } else {
-            dragYRef.current = 0
-            setDragY(0)
-        }
-    }
 
     const [productId, setProductId] = useState<number | null>(initial?.product_id ?? null)
     const [searchQuery, setSearchQuery] = useState<string>('')
@@ -773,132 +725,130 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
     }
 
     return (
-        <div className={`${styles.overlay} ${closing ? styles.overlayClosing : ''}`} onClick={requestClose}>
-            <div
-                ref={modalRef}
-                className={`${styles.modal} ${closing ? styles.modalClosing : ''}`}
-                onClick={e => e.stopPropagation()}
-                onTouchStart={e => e.stopPropagation()}
-                onTouchEnd={onHandleTouchEnd}
-                style={dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: 'none', animation: 'none' } : undefined}
-            >
-                <div className={styles.modalHandle} onTouchStart={onHandleTouchStart} />
-                <div className={styles.modalTitle}>{initial ? t('Edit meal') : t('New meal')}</div>
+        <Drawer.Root open={open} onOpenChange={v => { if (!v) handleClose() }}>
+            <Drawer.Portal>
+                <Drawer.Overlay className={styles.overlay} />
+                <Drawer.Content className={styles.modal}>
+                    <Drawer.Handle className={styles.modalHandle} />
+                    <Drawer.Title className={styles.modalTitle}>{initial ? t('Edit meal') : t('New meal')}</Drawer.Title>
 
-                <div className={styles.searchSection}>
-                    <span className={styles.searchSectionLabel}>{t('Search food database')}</span>
-                    <div className={styles.searchRow} ref={dropdownRef}>
-                        <div className={styles.searchWrap}>
-                            <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8"/>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                            </svg>
-                            <input
-                                className={styles.searchInput}
-                                value={searchQuery}
-                                onChange={e => {
-                                    if (!requireUpgrade('foodSearch')) return
-                                    setSearchQuery(e.target.value)
-                                }}
-                                placeholder={canUse('foodSearch') ? t('e.g. chicken breast, oats…') : t('Search food database — Standard required')}
-                                autoComplete="off"
-                                readOnly={!canUse('foodSearch')}
-                            />
-                            {searchLoading && <span className={styles.searchSpinner} />}
-                            {showDropdown && (
-                                <div className={styles.searchDropdown}>
-                                    {searchResults.map((p: SearchProduct, i: number) => (
-                                        <button key={i} className={styles.searchItem} type="button" onClick={() => selectProduct(p)}>
-                                            <span className={styles.searchItemName}>
-                                                {p._fromCatalog && <span className={styles.catalogBadge}>★</span>}
-                                                {p.product_name}
-                                            </span>
-                                            {p.brands && <span className={styles.searchItemBrand}>{p.brands.split(',')[0]}</span>}
-                                        </button>
-                                    ))}
+                    <div className={styles.modalScroll}>
+                        <div className={styles.searchSection}>
+                            <span className={styles.searchSectionLabel}>{t('Search food database')}</span>
+                            <div className={styles.searchRow} ref={dropdownRef}>
+                                <div className={styles.searchWrap}>
+                                    <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                    </svg>
+                                    <input
+                                        className={styles.searchInput}
+                                        value={searchQuery}
+                                        onChange={e => {
+                                            if (!requireUpgrade('foodSearch')) return
+                                            setSearchQuery(e.target.value)
+                                        }}
+                                        placeholder={canUse('foodSearch') ? t('e.g. chicken breast, oats…') : t('Search food database — Standard required')}
+                                        autoComplete="off"
+                                        readOnly={!canUse('foodSearch')}
+                                    />
+                                    {searchLoading && <span className={styles.searchSpinner} />}
+                                    {showDropdown && (
+                                        <div className={styles.searchDropdown}>
+                                            {searchResults.map((p: SearchProduct, i: number) => (
+                                                <button key={i} className={styles.searchItem} type="button" onClick={() => selectProduct(p)}>
+                                                    <span className={styles.searchItemName}>
+                                                        {p._fromCatalog && <span className={styles.catalogBadge}>★</span>}
+                                                        {p.product_name}
+                                                    </span>
+                                                    {p.brands && <span className={styles.searchItemBrand}>{p.brands.split(',')[0]}</span>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                                <button className={styles.scanBtn} type="button" onClick={() => { if (!requireUpgrade('barcodeScanner')) return; setScanError(''); setScannerOpen(true) }} title={t('Scan barcode')}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                                        <line x1="7" y1="12" x2="7" y2="12"/><line x1="12" y1="7" x2="12" y2="17"/>
+                                        <line x1="17" y1="12" x2="17" y2="12"/>
+                                    </svg>
+                                </button>
+                                <div className={styles.gramsWrap}>
+                                    <input
+                                        className={styles.gramsInput}
+                                        type="number"
+                                        min="1"
+                                        value={grams}
+                                        onChange={e => setGrams(e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.unitToggle}
+                                        onClick={() => setUnit(u => u === 'g' ? 'ml' : 'g')}
+                                        title={t('Toggle g/ml')}
+                                    >
+                                        {unit}
+                                    </button>
+                                </div>
+                            </div>
+                            {scanError && <div className={styles.scanError}>{scanError}</div>}
                         </div>
-                        <button className={styles.scanBtn} type="button" onClick={() => { if (!requireUpgrade('barcodeScanner')) return; setScanError(''); setScannerOpen(true) }} title={t('Scan barcode')}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-                                <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-                                <line x1="7" y1="12" x2="7" y2="12"/><line x1="12" y1="7" x2="12" y2="17"/>
-                                <line x1="17" y1="12" x2="17" y2="12"/>
-                            </svg>
-                        </button>
-                        <div className={styles.gramsWrap}>
-                            <input
-                                className={styles.gramsInput}
-                                type="number"
-                                min="1"
-                                value={grams}
-                                onChange={e => setGrams(e.target.value)}
-                            />
-                            <button
-                                type="button"
-                                className={styles.unitToggle}
-                                onClick={() => setUnit(u => u === 'g' ? 'ml' : 'g')}
-                                title={t('Toggle g/ml')}
-                            >
-                                {unit}
+                        {scannerOpen && <BarcodeScanner onResult={handleBarcode} onClose={() => setScannerOpen(false)} t={t} />}
+
+                        <div className={styles.modalFields}>
+                            <label className={styles.modalField}>
+                                <span className={styles.modalLabel}>{t('Time')}</span>
+                                <input className={styles.modalInput} value={form.time_label} onChange={e => set('time_label', e.target.value)} placeholder={t('e.g. 0700 or after workout')} />
+                            </label>
+                            <label className={styles.modalField}>
+                                <span className={styles.modalLabel}>{t('Label')}</span>
+                                <select className={styles.modalInput} value={form.label} onChange={e => set('label', e.target.value)}>
+                                    <option>{t('Breakfast')}</option>
+                                    <option>{t('Lunch')}</option>
+                                    <option>{t('Dinner')}</option>
+                                    <option>{t('Snack')}</option>
+                                </select>
+                            </label>
+                            <label className={styles.modalField}>
+                                <span className={styles.modalLabel}>{t('Food')}</span>
+                                <textarea className={styles.modalTextarea} value={form.food} onChange={e => set('food', e.target.value)} placeholder={t('Describe the meal…')} rows={3} />
+                            </label>
+                            <label className={styles.modalField}>
+                                <span className={styles.modalLabel}>{t('Note (optional)')}</span>
+                                <input className={styles.modalInput} value={form.note} onChange={e => set('note', e.target.value)} placeholder={t('e.g. skip the sweet potato')} />
+                            </label>
+                            <div className={styles.macroInputRow}>
+                                <label className={styles.modalField}>
+                                    <span className={styles.modalLabel} style={{ color: '#f97316' }}>{t('Protein (g)')}</span>
+                                    <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.protein_g} onChange={e => set('protein_g', e.target.value)} />
+                                </label>
+                                <label className={styles.modalField}>
+                                    <span className={styles.modalLabel} style={{ color: '#60a5fa' }}>{t('Carbs (g)')}</span>
+                                    <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.carbs_g} onChange={e => set('carbs_g', e.target.value)} />
+                                </label>
+                                <label className={styles.modalField}>
+                                    <span className={styles.modalLabel} style={{ color: '#22c55e' }}>{t('Fat (g)')}</span>
+                                    <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
+                                </label>
+                                <label className={styles.modalField}>
+                                    <span className={styles.modalLabel}>{t('Kcal')}</span>
+                                    <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.kcal} onChange={e => set('kcal', e.target.value)} />
+                                </label>
+                            </div>
+                        </div>
+                        {saveError && <div className={styles.saveError}>{saveError}</div>}
+                        <div className={styles.modalActions}>
+                            <button className={styles.cancelBtn} onClick={handleClose} type="button">{t('Cancel')}</button>
+                            <button className={styles.saveBtn} onClick={() => onSave({ ...form, product_id: productId, grams })} disabled={saving || !valid} type="button">
+                                {saving ? '…' : t('Save')}
                             </button>
                         </div>
                     </div>
-                    {scanError && <div className={styles.scanError}>{scanError}</div>}
-                </div>
-                {scannerOpen && <BarcodeScanner onResult={handleBarcode} onClose={() => setScannerOpen(false)} t={t} />}
-
-                <div className={styles.modalFields}>
-                    <label className={styles.modalField}>
-                        <span className={styles.modalLabel}>{t('Time')}</span>
-                        <input className={styles.modalInput} value={form.time_label} onChange={e => set('time_label', e.target.value)} placeholder={t('e.g. 0700 or after workout')} />
-                    </label>
-                    <label className={styles.modalField}>
-                        <span className={styles.modalLabel}>{t('Label')}</span>
-                        <select className={styles.modalInput} value={form.label} onChange={e => set('label', e.target.value)}>
-                            <option>{t('Breakfast')}</option>
-                            <option>{t('Lunch')}</option>
-                            <option>{t('Dinner')}</option>
-                            <option>{t('Snack')}</option>
-                        </select>
-                    </label>
-                    <label className={styles.modalField}>
-                        <span className={styles.modalLabel}>{t('Food')}</span>
-                        <textarea className={styles.modalTextarea} value={form.food} onChange={e => set('food', e.target.value)} placeholder={t('Describe the meal…')} rows={3} />
-                    </label>
-                    <label className={styles.modalField}>
-                        <span className={styles.modalLabel}>{t('Note (optional)')}</span>
-                        <input className={styles.modalInput} value={form.note} onChange={e => set('note', e.target.value)} placeholder={t('e.g. skip the sweet potato')} />
-                    </label>
-                    <div className={styles.macroInputRow}>
-                        <label className={styles.modalField}>
-                            <span className={styles.modalLabel} style={{ color: '#f97316' }}>{t('Protein (g)')}</span>
-                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.protein_g} onChange={e => set('protein_g', e.target.value)} />
-                        </label>
-                        <label className={styles.modalField}>
-                            <span className={styles.modalLabel} style={{ color: '#60a5fa' }}>{t('Carbs (g)')}</span>
-                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.carbs_g} onChange={e => set('carbs_g', e.target.value)} />
-                        </label>
-                        <label className={styles.modalField}>
-                            <span className={styles.modalLabel} style={{ color: '#22c55e' }}>{t('Fat (g)')}</span>
-                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
-                        </label>
-                        <label className={styles.modalField}>
-                            <span className={styles.modalLabel}>{t('Kcal')}</span>
-                            <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.kcal} onChange={e => set('kcal', e.target.value)} />
-                        </label>
-                    </div>
-                </div>
-                {saveError && <div className={styles.saveError}>{saveError}</div>}
-                <div className={styles.modalActions}>
-                    <button className={styles.cancelBtn} onClick={requestClose} type="button">{t('Cancel')}</button>
-                    <button className={styles.saveBtn} onClick={() => onSave({ ...form, product_id: productId, grams })} disabled={saving || !valid} type="button">
-                        {saving ? '…' : t('Save')}
-                    </button>
-                </div>
-            </div>
-        </div>
+                </Drawer.Content>
+            </Drawer.Portal>
+        </Drawer.Root>
     )
 }
 
@@ -1322,7 +1272,7 @@ export default function Mat(): React.JSX.Element {
                 <button
                     type="button"
                     className={styles.addMealFab}
-                    onClick={() => setAddOpen(true)}
+                    onClick={() => { if (!requireUpgrade('foodSearch')) return; setAddOpen(true) }}
                     title={t('Add meal')}
                     aria-label={t('Add meal')}
                 >+</button>

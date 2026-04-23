@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '../../../context/ThemeContext'
 import { useWeightUnit, type WeightUnit } from '../../../hooks/useWeightUnit'
@@ -12,6 +12,14 @@ import Profil from '../Profil/Profil'
 import Tips from '../Tips/Tips'
 import styles from './Settings.module.scss'
 
+interface AdminUser {
+    user_id: string
+    email: string
+    role: string
+    first_name: string | null
+    last_name: string | null
+}
+
 const ALL_ROLES: UserRole[] = ['free', 'standard', 'premium', 'lifetime', 'developer']
 const ROLE_LABEL: Record<UserRole, string> = {
     free: 'Free',
@@ -21,7 +29,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
     developer: 'Developer (full)',
 }
 
-type SettingsTab = 'profile' | 'settings' | 'sound' | 'time' | 'guide'
+type SettingsTab = 'profile' | 'settings' | 'sound' | 'time' | 'guide' | 'god'
 
 export default function Settings(): React.ReactElement {
     const { t, i18n } = useTranslation()
@@ -38,9 +46,8 @@ export default function Settings(): React.ReactElement {
     const updateProfile = profile?.updateProfile
     const { effectiveRole } = useSubscription()
     const isDeveloper = profile?.role === 'developer'
-    const [devOverride, setDevOverrideState] = useState<UserRole | null>(
-        isDeveloper ? (localStorage.getItem('dev_role_override') as UserRole | null) : null
-    )
+    const storedOverride = localStorage.getItem('dev_role_override') as UserRole | null
+    const [devOverride, setDevOverrideState] = useState<UserRole | null>(storedOverride)
 
     function setDevRole(role: UserRole | null): void {
         if (role === null || role === 'developer') {
@@ -53,6 +60,28 @@ export default function Settings(): React.ReactElement {
         // Force re-render of subscription context by reloading
         window.location.reload()
     }
+    const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
+    const [adminLoading, setAdminLoading] = useState(false)
+    const [roleFilter, setRoleFilter] = useState<string>('all')
+    const [togglingId, setTogglingId] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (tab !== 'god' || !isDeveloper) return
+        setAdminLoading(true)
+        supabase.rpc('admin_list_profiles').then(({ data }) => {
+            setAdminUsers((data as AdminUser[]) ?? [])
+            setAdminLoading(false)
+        })
+    }, [tab, isDeveloper])
+
+    async function setUserRole(user: AdminUser, newRole: string): Promise<void> {
+        if (newRole === user.role) return
+        setTogglingId(user.user_id)
+        await supabase.rpc('admin_set_role', { target_user_id: user.user_id, new_role: newRole })
+        setAdminUsers(prev => prev.map(u => u.user_id === user.user_id ? { ...u, role: newRole } : u))
+        setTogglingId(null)
+    }
+
     const [restSec, setRestSec] = useState(String(profile?.restSeconds ?? 90))
     const [secPerRep, setSecPerRep] = useState(String(profile?.secPerRep ?? 4))
     const [cdSec, setCdSec] = useState(String(profile?.countdownSeconds ?? 10))
@@ -85,11 +114,23 @@ export default function Settings(): React.ReactElement {
                 {/* <button className={`${styles.tabBtn} ${tab === 'guide' ? styles.tabBtnActive : ''}`} onClick={() => setTab('guide')}>
                     {t('Guide')}
                 </button> */}
+                {isDeveloper && (
+                    <button className={`${styles.tabBtn} ${styles.tabBtnGod} ${tab === 'god' ? styles.tabBtnActive : ''}`} onClick={() => setTab('god')}>
+                        Gud
+                    </button>
+                )}
             </div>
 
             {tab === 'profile' && (
                 <>
                     <Profil />
+                    <Reveal>
+                        <div className={styles.legalLinks}>
+                            <a className={styles.legalLink} href="/#/privacy">{t('Privacy Policy')}</a>
+                            <span className={styles.legalDot}>·</span>
+                            <a className={styles.legalLink} href="/#/terms">{t('Terms of Service')}</a>
+                        </div>
+                    </Reveal>
                     <Reveal>
                         <button className={styles.logoutBtn} onClick={() => supabase.auth.signOut()}>
                             {t('Log out')}
@@ -156,32 +197,6 @@ export default function Settings(): React.ReactElement {
                             </div>
                         </div>
                     </Reveal>
-
-                    {isDeveloper && (
-                        <Reveal>
-                            <div className={`${styles.card} ${styles.devCard}`}>
-                                <div className={styles.devCardHeader}>
-                                    <span className={styles.devBadge}>DEV</span>
-                                    <div className={styles.cardTitle}>Testa rollnivå</div>
-                                </div>
-                                <div className={styles.devCurrent}>
-                                    Aktiv roll: <strong>{ROLE_LABEL[effectiveRole]}</strong>
-                                    {devOverride && <span className={styles.devOverrideTag}>override</span>}
-                                </div>
-                                <div className={styles.optionRow}>
-                                    {ALL_ROLES.map(r => (
-                                        <button
-                                            key={r}
-                                            className={`${styles.optionBtn} ${(devOverride ?? 'developer') === r ? styles.optionActive : ''}`}
-                                            onClick={() => setDevRole(r === 'developer' ? null : r)}
-                                        >
-                                            {ROLE_LABEL[r]}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </Reveal>
-                    )}
 
                 </>
             )}
@@ -312,6 +327,88 @@ export default function Settings(): React.ReactElement {
             )}
 
             {/* {tab === 'guide' && <Tips />} */}
+
+            {tab === 'god' && isDeveloper && (
+                <>
+                    <Reveal>
+                        <div className={`${styles.card} ${styles.devCard}`}>
+                            <div className={styles.devCardHeader}>
+                                <span className={styles.devBadge}>DEV</span>
+                                <div className={styles.cardTitle}>Testa rollnivå</div>
+                            </div>
+                            <select
+                                className={styles.devSelect}
+                                value={devOverride ?? 'developer'}
+                                onChange={e => setDevRole(e.target.value === 'developer' ? null : e.target.value as UserRole)}
+                            >
+                                {ALL_ROLES.map(r => (
+                                    <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </Reveal>
+
+                    <Reveal>
+                        <div className={styles.card}>
+                            <div className={styles.cardTitle}>Användare</div>
+
+                            {/* Role filter */}
+                            <select
+                                className={styles.roleFilterSelect}
+                                value={roleFilter}
+                                onChange={e => setRoleFilter(e.target.value)}
+                            >
+                                <option value="all">Alla ({adminUsers.length})</option>
+                                {['free', 'standard', 'premium', 'lifetime'].map(f => (
+                                    <option key={f} value={f}>
+                                        {f.charAt(0).toUpperCase() + f.slice(1)} ({adminUsers.filter(u => u.role === f).length})
+                                    </option>
+                                ))}
+                            </select>
+
+                            {adminLoading ? (
+                                <div className={styles.adminLoading}>Laddar…</div>
+                            ) : (
+                                <div className={styles.userList}>
+                                    {adminUsers
+                                        .filter(u => roleFilter === 'all' || u.role === roleFilter)
+                                        .map(user => {
+                                            const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || null
+                                            const ROLES = ['free', 'standard', 'premium', 'lifetime'] as const
+                                            const isBusy = togglingId === user.user_id
+                                            return (
+                                                <div key={user.user_id} className={styles.userRow}>
+                                                    <div className={styles.userInfo}>
+                                                        <span className={styles.userName}>{name ?? user.email}</span>
+                                                        {name && <span className={styles.userEmail}>{user.email}</span>}
+                                                    </div>
+                                                    <div className={styles.roleSelector}>
+                                                        {ROLES.map(r => (
+                                                            <button
+                                                                key={r}
+                                                                type="button"
+                                                                className={`${styles.rolePill} ${user.role === r ? styles.rolePillActive : ''} ${styles[`rolePill_${r}`]}`}
+                                                                onClick={() => setUserRole(user, r)}
+                                                                disabled={isBusy}
+                                                                title={r.charAt(0).toUpperCase() + r.slice(1)}
+                                                            >
+                                                                {isBusy && user.role === r ? '…' : r.charAt(0).toUpperCase()}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    }
+                                    {adminUsers.filter(u => roleFilter === 'all' || u.role === roleFilter).length === 0 && (
+                                        <div className={styles.adminLoading}>Inga användare</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </Reveal>
+                </>
+            )}
         </section>
     )
 }

@@ -45,6 +45,19 @@
     color: var(--text);
 }
 
+.tabBtnGod {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    font-size: 16px;
+    color: var(--muted);
+    opacity: 0.5;
+
+    &:global(.tabBtnActive),
+    &#{&} {
+        opacity: 1;
+    }
+}
+
 .card {
     background: var(--card);
     border-radius: 14px;
@@ -117,6 +130,28 @@
     margin-right: 4px;
 }
 
+.legalLinks {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.legalLink {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+
+    &:active { opacity: 0.6; }
+}
+
+.legalDot {
+    color: var(--muted);
+    font-size: 13px;
+}
+
 .logoutBtn {
     width: 100%;
     padding: 14px;
@@ -169,6 +204,21 @@
     strong { color: var(--text); }
 }
 
+.devSelect {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
 .devOverrideTag {
     font-family: 'DM Sans', sans-serif;
     font-size: 10px;
@@ -180,3 +230,115 @@
     border-radius: 4px;
     padding: 2px 6px;
 }
+
+.adminLoading {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    padding: 12px 0;
+    text-align: center;
+}
+
+// ── Role filter ───────────────────────────────────────────────
+
+.roleFilterSelect {
+    width: 100%;
+    margin: 12px 0;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+// ── User list ─────────────────────────────────────────────────
+
+.userList {
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.userRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+
+    &:last-child { border-bottom: none; }
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+}
+
+.userName {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.userEmail {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+// ── Role pill selector ────────────────────────────────────────
+
+.roleSelector {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.rolePill {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:active { transform: scale(0.92); }
+    &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+.rolePillActive {
+    border-color: transparent;
+    color: #fff;
+}
+
+.rolePill_free.rolePillActive    { background: var(--muted); }
+.rolePill_standard.rolePillActive { background: #60a5fa; }
+.rolePill_premium.rolePillActive  { background: #e8197d; }
+.rolePill_lifetime.rolePillActive { background: #f59e0b; }

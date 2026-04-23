@@ -7,6 +7,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import { SubscriptionProvider } from './context/SubscriptionContext'
 import Login from './components/Login/Login'
 import Splash from './components/Splash/Splash'
+import PrivacyPolicy from './components/Legal/PrivacyPolicy'
+import Terms from './components/Legal/Terms'
 import ProfileSetupModal from './components/ProfileSetupModal/ProfileSetupModal'
 import PageHeader from './components/PageHeader/PageHeader'
 import Nav from './components/Nav/Nav'
@@ -61,6 +63,11 @@ export default function App(): React.ReactElement | null {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Public routes — accessible without login
+  const hash = window.location.hash
+  if (hash === '#/privacy') return <PrivacyPolicy />
+  if (hash === '#/terms') return <Terms />
+
   if (session === undefined) return <Splash />
   if (!session) return <Login />
 
@@ -69,10 +76,12 @@ export default function App(): React.ReactElement | null {
       <ThemeProvider>
       <ProfileProvider>
         <SubscriptionProvider>
-          <SplashOverlay />
-          <Routes>
-            <Route path="*" element={<AppRoutes />} />
-          </Routes>
+          <div vaul-drawer-wrapper="" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
+            <SplashOverlay />
+            <Routes>
+              <Route path="*" element={<AppRoutes />} />
+            </Routes>
+          </div>
         </SubscriptionProvider>
       </ProfileProvider>
       </ThemeProvider>
