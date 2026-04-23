@@ -156,7 +156,7 @@ export default function Stats(): React.JSX.Element {
     const [prWorkoutMap, setPrWorkoutMap] = useState<Record<string, string>>({})
     const [exerciseProgressData, setExerciseProgressData] = useState<Record<string, { date: string; kg: number }[]>>({})
     const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
-    const [heatmapOffset, setHeatmapOffset] = useState(0)
+    const [heatmapOffset, setHeatmapOffset] = useState(0) // 0 = current month, -1 = last month, etc.
     const [weightLog, setWeightLog] = useState<WeightEntry[]>([])
     const [showWeightInput, setShowWeightInput] = useState(false)
     const [weightInputKg, setWeightInputKg] = useState('')

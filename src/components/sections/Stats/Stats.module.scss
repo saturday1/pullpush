@@ -106,6 +106,74 @@
   text-align: right;
 }
 
+// ── Stats tab row ────────────────────────────────────────────
+
+.statsTabRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  padding: 8px 0;
+}
+
+.statsTab {
+  flex: 1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
+}
+
+.statsTabActive {
+  background: var(--text);
+  color: var(--card);
+  border-color: var(--text);
+
+  &:hover {
+    background: var(--text);
+    color: var(--card);
+    border-color: var(--text);
+    opacity: 0.85;
+  }
+}
+
+// ── Show more button ─────────────────────────────────────────
+
+.showMoreBtn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
+}
+
 // ── Section header ────────────────────────────────────────────
 
 .sectionHeader {

@@ -927,66 +927,61 @@
   .macroRingTarget { font-size: 9px; }
 }
 
-.table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-
-  th {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 11px 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-  }
-
-  td {
-    padding: 14px 16px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-    color: var(--text);
-    background: var(--card);
-  }
-
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--card2); }
+.mealList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.totalRow td {
+.mealCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: background 0.15s;
+
+  &:hover { background: var(--card2); }
+}
+
+.mealCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.mealCardActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mealCardFood {
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
-  font-weight: 500;
-  background: var(--bg2);
-  color: var(--accent);
-  border-top: 1px solid var(--border);
+  color: var(--text);
+  word-break: break-word;
+  margin-bottom: 8px;
+  line-height: 1.4;
 }
 
-.mealTime {
+.mealCardMacros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .mealLabel {
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--muted);
-  margin-top: 2px;
 }
 
 .mealNote { color: var(--muted); font-style: italic; }
@@ -1130,93 +1125,6 @@
   background-clip: text;
 }
 
-@media (max-width: 600px) {
-  .table {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-    display: block;
-
-    thead { display: none; }
-
-    tbody { display: block; }
-
-    tr {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px 10px;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      background: var(--card);
-    }
-
-    tr:last-child { border-bottom: none; }
-    tr:hover td { background: transparent; }
-
-    td {
-      display: block;
-      padding: 0;
-      border-bottom: none;
-      background: transparent;
-      font-size: 15px;
-    }
-
-    td:nth-child(1) {
-      order: 1;
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-
-    td:nth-child(7) {
-      order: 2;
-      flex: 0 0 auto;
-      margin-left: auto;
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    td:nth-child(2) {
-      order: 3;
-      flex: 1 1 100%;
-      font-size: 14px;
-      color: var(--text);
-      word-break: break-word;
-    }
-
-    td:nth-child(3) { order: 4; flex: 0 0 auto; }
-    td:nth-child(4) { order: 5; flex: 0 0 auto; }
-    td:nth-child(5) { order: 6; flex: 0 0 auto; }
-
-    td:nth-child(6) {
-      order: 7;
-      flex: 1 0 auto;
-      text-align: right;
-      font-weight: 600;
-    }
-
-    .mealTime,
-    .mealLabel {
-      display: inline;
-      margin-top: 0;
-    }
-
-    .mealTime::after {
-      content: ' · ';
-      color: var(--muted);
-    }
-
-    .editBtn,
-    .deleteBtn,
-    .starBtn {
-      min-width: 32px;
-      min-height: 32px;
-      padding: 6px 8px;
-      font-size: 16px;
-    }
-  }
-}
 
 .addMealFab {
   position: fixed;
