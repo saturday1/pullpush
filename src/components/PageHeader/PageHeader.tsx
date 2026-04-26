@@ -41,6 +41,8 @@ function useSubtitle(): string {
     }
     case '/stats':
       return t('Training statistics')
+    case '/coach':
+      return t('AI-powered coaching')
     case '/settings':
       return t('Account & Settings')
     default:

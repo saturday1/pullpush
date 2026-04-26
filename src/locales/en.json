@@ -182,5 +182,22 @@
   "Upgrade": "Upgrade",
   "Coming soon": "Coming soon",
   "Maybe later": "Maybe later",
-  "Search food database — Standard required": "Search food database — Standard required"
+  "Search food database — Standard required": "Search food database — Standard required",
+
+  "Coach": "Coach",
+  "AI Coach": "AI Coach",
+  "AI-powered coaching": "AI-powered coaching",
+  "Weekly Summary": "Weekly Summary",
+  "Ask the Coach": "Ask the Coach",
+  "Ask a question...": "Ask a question...",
+  "Ask": "Ask",
+  "Try again": "Try again",
+  "{{used}} of {{max}} questions this week": "{{used}} of {{max}} questions this week",
+  "How do I break my plateau?": "How do I break my plateau?",
+  "Am I eating enough protein?": "Am I eating enough protein?",
+  "Should I deload this week?": "Should I deload this week?",
+  "How can I improve my recovery?": "How can I improve my recovery?",
+  "Not enough data yet": "Not enough data yet",
+  "Train for at least 2 weeks and the AI Coach will generate personalized insights for you.": "Train for at least 2 weeks and the AI Coach will generate personalized insights for you.",
+  "Get personalized training insights and coaching powered by AI. Available for Premium subscribers.": "Get personalized training insights and coaching powered by AI. Available for Premium subscribers."
 }

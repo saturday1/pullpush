@@ -12,7 +12,8 @@
       "Bash(command -v ffmpeg)",
       "Bash(command -v sox)",
       "Bash(command -v afinfo)",
-      "Bash(brew list *)"
+      "Bash(brew list *)",
+      "Bash(npx supabase:*)"
     ]
   }
 }

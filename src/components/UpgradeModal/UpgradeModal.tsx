@@ -42,6 +42,7 @@ const PLANS: PlanInfo[] = [
       'BMR / TDEE-beräkning',
       'Återkommande måltider',
       'Obegränsad statistikhistorik',
+      'AI Coach — personlig träningscoach',
     ],
   },
 ]
@@ -56,6 +57,7 @@ const FEATURE_LABEL: Record<Feature, string> = {
   macroGoals:     'Makromål & BMR/TDEE',
   recurringMeals: 'Återkommande måltider',
   statsUnlimited: 'Obegränsad statistik',
+  aiCoach: 'AI Coach',
 }
 
 const TIER_RANK: Record<Tier, number> = { standard: 0, premium: 1 }

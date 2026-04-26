@@ -463,5 +463,22 @@
   "Upgrade": "Uppgradera",
   "Coming soon": "Kommer snart",
   "Maybe later": "Kanske senare",
-  "Search food database — Standard required": "Sök i livsmedel — kräver Standard"
+  "Search food database — Standard required": "Sök i livsmedel — kräver Standard",
+
+  "Coach": "Coach",
+  "AI Coach": "AI Coach",
+  "AI-powered coaching": "AI-driven coaching",
+  "Weekly Summary": "Veckosammanfattning",
+  "Ask the Coach": "Fråga Coachen",
+  "Ask a question...": "Ställ en fråga...",
+  "Ask": "Fråga",
+  "Try again": "Försök igen",
+  "{{used}} of {{max}} questions this week": "{{used}} av {{max}} frågor denna vecka",
+  "How do I break my plateau?": "Hur bryter jag min platå?",
+  "Am I eating enough protein?": "Äter jag tillräckligt protein?",
+  "Should I deload this week?": "Borde jag deloada denna vecka?",
+  "How can I improve my recovery?": "Hur kan jag förbättra min återhämtning?",
+  "Not enough data yet": "Inte tillräckligt med data ännu",
+  "Train for at least 2 weeks and the AI Coach will generate personalized insights for you.": "Träna i minst 2 veckor så genererar AI Coachen personliga insikter åt dig.",
+  "Get personalized training insights and coaching powered by AI. Available for Premium subscribers.": "Få personliga träningsinsikter och coaching driven av AI. Tillgänglig för Premium-prenumeranter."
 }
