@@ -66,11 +66,21 @@ export default function Coach(): React.JSX.Element {
     loadSummary()
   }, [isActive, hasLoaded, canUse, loadSummary])
 
-  const suggestedQuestions = [
+  const suggestedRow1 = [
     t('How do I break my plateau?'),
     t('Am I eating enough protein?'),
     t('Should I deload this week?'),
     t('How can I improve my recovery?'),
+    t('What should I eat before training?'),
+    t('How much water should I drink?'),
+  ]
+  const suggestedRow2 = [
+    t('Is my training volume enough?'),
+    t('How do I build more muscle?'),
+    t('Should I change my program?'),
+    t('How important is sleep for gains?'),
+    t('Can I train with sore muscles?'),
+    t('How do I stay motivated?'),
   ]
 
   async function handleAsk(q: string): Promise<void> {
@@ -194,18 +204,31 @@ export default function Coach(): React.JSX.Element {
       <div className={styles.askSection}>
         <div className={styles.askTitle}>{t('Ask the Coach')}</div>
 
-        <div className={styles.askChips}>
-          {suggestedQuestions.map((q, i) => (
-            <button
-              key={i}
-              type="button"
-              className={styles.askChip}
-              onClick={() => handleAsk(q)}
-              disabled={askLoading}
-            >
-              {q}
-            </button>
-          ))}
+        <div className={styles.marqueeWrap}>
+          <div className={styles.marqueeTrack}>
+            <div className={styles.marqueeSlide}>
+              {suggestedRow1.map((q, i) => (
+                <button key={i} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+              ))}
+            </div>
+            <div className={styles.marqueeSlide} aria-hidden>
+              {suggestedRow1.map((q, i) => (
+                <button key={`d-${i}`} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+              ))}
+            </div>
+          </div>
+          <div className={`${styles.marqueeTrack} ${styles.marqueeReverse}`}>
+            <div className={styles.marqueeSlide}>
+              {suggestedRow2.map((q, i) => (
+                <button key={i} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+              ))}
+            </div>
+            <div className={styles.marqueeSlide} aria-hidden>
+              {suggestedRow2.map((q, i) => (
+                <button key={`d-${i}`} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className={styles.askInputRow}>

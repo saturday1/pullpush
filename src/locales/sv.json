@@ -582,7 +582,6 @@
   "Coming soon": "Kommer snart",
   "Maybe later": "Kanske senare",
   "Search food database — Standard required": "Sök i livsmedel — kräver Standard",
-<<<<<<< HEAD
 
   "Coach": "Coach",
   "AI Coach": "AI Coach",
@@ -597,6 +596,14 @@
   "Am I eating enough protein?": "Äter jag tillräckligt protein?",
   "Should I deload this week?": "Borde jag deloada denna vecka?",
   "How can I improve my recovery?": "Hur kan jag förbättra min återhämtning?",
+  "What should I eat before training?": "Vad ska jag äta innan träning?",
+  "How much water should I drink?": "Hur mycket vatten ska jag dricka?",
+  "Is my training volume enough?": "Är min träningsvolym tillräcklig?",
+  "How do I build more muscle?": "Hur bygger jag mer muskler?",
+  "Should I change my program?": "Borde jag byta program?",
+  "How important is sleep for gains?": "Hur viktigt är sömn för gains?",
+  "Can I train with sore muscles?": "Kan jag träna med träningsvärk?",
+  "How do I stay motivated?": "Hur håller jag motivationen uppe?",
   "Not enough data yet": "Inte tillräckligt med data ännu",
   "Train for at least 2 weeks and the AI Coach will generate personalized insights for you.": "Träna i minst 2 veckor så genererar AI Coachen personliga insikter åt dig.",
   "Get personalized training insights and coaching powered by AI. Available for Premium subscribers.": "Få personliga träningsinsikter och coaching driven av AI. Tillgänglig för Premium-prenumeranter.",
@@ -607,9 +614,8 @@
 
   "Snap food photo": "Fotografera mat",
   "Analyzing photo...": "Analyserar foto...",
-  "Could not analyze photo": "Kunde inte analysera fotot"
-}
-=======
+  "Could not analyze photo": "Kunde inte analysera fotot",
+
   "Theme": "Tema",
   "Light": "Ljust",
   "Dark": "Mörkt",
@@ -630,4 +636,3 @@
   "Message sent! We will get back to you.": "Meddelande skickat! Vi återkommer.",
   "Manage subscription": "Hantera prenumeration"
 }
->>>>>>> 93bc2e9bfedf47eae0ad92dbab5b53ba918fdd58

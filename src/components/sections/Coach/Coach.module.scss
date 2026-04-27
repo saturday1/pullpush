@@ -144,11 +144,39 @@
   margin-bottom: 12px;
 }
 
-.askChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+// ── Marquee ticker ──────────────────────────────────────────
+
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marqueeWrap {
+  overflow: hidden;
   margin-bottom: 16px;
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.marqueeTrack {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 25s linear infinite;
+
+  &:hover { animation-play-state: paused; }
+}
+
+.marqueeReverse {
+  animation-direction: reverse;
+}
+
+.marqueeSlide {
+  display: flex;
+  gap: 8px;
+  padding-right: 8px;
 }
 
 .askChip {
@@ -157,14 +185,18 @@
   padding: 8px 14px;
   border-radius: 20px;
   border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--text);
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.9;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
 
   &:hover {
+    opacity: 1;
     border-color: var(--accent);
-    background: var(--bg2);
+    color: var(--text);
   }
 
   &:active {
@@ -172,7 +204,7 @@
   }
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.3;
     cursor: not-allowed;
     transform: none;
   }
