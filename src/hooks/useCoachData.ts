@@ -18,6 +18,13 @@ export interface CoachAnswer {
   questions_max: number
 }
 
+export interface CoachHistoryItem {
+  id: number
+  question: string
+  answer: string
+  created_at: string
+}
+
 interface UseCoachDataReturn {
   summary: CoachSummary | null
   summaryLoading: boolean
@@ -28,6 +35,9 @@ interface UseCoachDataReturn {
   askError: string | null
   questionsUsed: number
   questionsMax: number
+  history: CoachHistoryItem[]
+  historyLoading: boolean
+  loadHistory: () => Promise<void>
 }
 
 export function useCoachData(): UseCoachDataReturn {
@@ -38,6 +48,8 @@ export function useCoachData(): UseCoachDataReturn {
   const [askError, setAskError] = useState<string | null>(null)
   const [questionsUsed, setQuestionsUsed] = useState(0)
   const [questionsMax, setQuestionsMax] = useState(10)
+  const [history, setHistory] = useState<CoachHistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true)
@@ -46,14 +58,17 @@ export function useCoachData(): UseCoachDataReturn {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Not authenticated')
 
-      const res = await supabase.functions.invoke('ai-coach-weekly', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      const res = await fetch('https://jfayqffmmkwjrbdanqsm.supabase.co/functions/v1/ai-coach-weekly', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmYXlxZmZtbWt3anJiZGFucXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMDU0OTQsImV4cCI6MjA4ODg4MTQ5NH0.IM4xu2MRouTAe5DkzWyBtPtekW7J2o6-aKej2vXBeBU',
+        },
       })
 
-      if (res.error) throw new Error(res.error.message ?? 'Failed to load summary')
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
 
-      const data = res.data as CoachSummary
-      setSummary(data)
+      setSummary(body as CoachSummary)
     } catch (e) {
       setSummaryError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -65,27 +80,23 @@ export function useCoachData(): UseCoachDataReturn {
     setAskLoading(true)
     setAskError(null)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Not authenticated')
-
-      const res = await supabase.functions.invoke('ai-coach-ask', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      const { data, error } = await supabase.functions.invoke('ai-coach-ask', {
         body: { question },
       })
 
-      if (res.error) {
-        const errorData = res.data as { error?: string; questions_used?: number; questions_max?: number } | undefined
-        if (errorData?.questions_used !== undefined) {
-          setQuestionsUsed(errorData.questions_used)
-          setQuestionsMax(errorData.questions_max ?? 10)
+      if (error) {
+        if (typeof data === 'object' && data?.questions_used !== undefined) {
+          setQuestionsUsed(data.questions_used)
+          setQuestionsMax(data.questions_max ?? 10)
         }
-        throw new Error(errorData?.error ?? res.error.message ?? 'Failed to ask')
+        const msg = typeof data === 'object' && data?.error ? data.error : error.message
+        throw new Error(msg ?? 'Failed to ask')
       }
 
-      const data = res.data as CoachAnswer
-      setQuestionsUsed(data.questions_used)
-      setQuestionsMax(data.questions_max)
-      return data
+      const result = data as CoachAnswer
+      setQuestionsUsed(result.questions_used)
+      setQuestionsMax(result.questions_max)
+      return result
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       setAskError(msg)
@@ -93,6 +104,22 @@ export function useCoachData(): UseCoachDataReturn {
     } finally {
       setAskLoading(false)
     }
+  }, [])
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('coach_questions')
+        .select('id, question, answer, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (data) setHistory(data as CoachHistoryItem[])
+    } catch { /* ignore */ }
+    finally { setHistoryLoading(false) }
   }, [])
 
   return {
@@ -105,5 +132,8 @@ export function useCoachData(): UseCoachDataReturn {
     askError,
     questionsUsed,
     questionsMax,
+    history,
+    historyLoading,
+    loadHistory,
   }
 }

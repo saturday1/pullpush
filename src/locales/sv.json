@@ -480,5 +480,13 @@
   "How can I improve my recovery?": "Hur kan jag förbättra min återhämtning?",
   "Not enough data yet": "Inte tillräckligt med data ännu",
   "Train for at least 2 weeks and the AI Coach will generate personalized insights for you.": "Träna i minst 2 veckor så genererar AI Coachen personliga insikter åt dig.",
-  "Get personalized training insights and coaching powered by AI. Available for Premium subscribers.": "Få personliga träningsinsikter och coaching driven av AI. Tillgänglig för Premium-prenumeranter."
+  "Get personalized training insights and coaching powered by AI. Available for Premium subscribers.": "Få personliga träningsinsikter och coaching driven av AI. Tillgänglig för Premium-prenumeranter.",
+
+  "Show history": "Visa historik",
+  "Hide history": "Dölj historik",
+  "No questions yet": "Inga frågor ännu",
+
+  "Snap food photo": "Fotografera mat",
+  "Analyzing photo...": "Analyserar foto...",
+  "Could not analyze photo": "Kunde inte analysera fotot"
 }

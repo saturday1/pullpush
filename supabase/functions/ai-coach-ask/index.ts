@@ -6,26 +6,31 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 
 const MAX_QUESTIONS_PER_WEEK = 10
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+}
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
-    if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'POST required' }), { status: 405 })
-    }
+    if (req.method !== 'POST') return json({ error: 'POST required' }, 405)
 
     const { question } = await req.json()
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
-      return new Response(JSON.stringify({ error: 'Question required' }), { status: 400 })
+      return json({ error: 'Question required' }, 400)
     }
+    if (question.length > 500) return json({ error: 'Question too long (max 500 chars)' }, 400)
 
-    if (question.length > 500) {
-      return new Response(JSON.stringify({ error: 'Question too long (max 500 chars)' }), { status: 400 })
-    }
-
-    // Get user from JWT
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), { status: 401 })
-    }
+    if (!authHeader) return json({ error: 'Missing authorization' }, 401)
 
     const supabaseUser = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const { data: { user }, error: authError } = await createClient(
@@ -34,27 +39,20 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     ).auth.getUser()
 
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-    }
+    if (authError || !user) return json({ error: 'Unauthorized' }, 401)
 
-    // Verify premium role
     const { data: profile } = await supabaseUser
       .from('profile')
       .select('role, trial_expires_at')
       .eq('user_id', user.id)
       .single()
 
-    if (!profile) {
-      return new Response(JSON.stringify({ error: 'Profile not found' }), { status: 404 })
-    }
+    if (!profile) return json({ error: 'Profile not found' }, 404)
 
     const isPremium = ['premium', 'lifetime', 'developer'].includes(profile.role) ||
       (profile.trial_expires_at && new Date(profile.trial_expires_at) > new Date())
 
-    if (!isPremium) {
-      return new Response(JSON.stringify({ error: 'Premium required' }), { status: 403 })
-    }
+    if (!isPremium) return json({ error: 'Premium required' }, 403)
 
     // Rate limit: count questions this week
     const now = new Date()
@@ -71,23 +69,21 @@ Deno.serve(async (req) => {
 
     const questionsUsed = count ?? 0
     if (questionsUsed >= MAX_QUESTIONS_PER_WEEK) {
-      return new Response(JSON.stringify({
+      return json({
         error: 'Rate limit reached',
         questions_used: questionsUsed,
         questions_max: MAX_QUESTIONS_PER_WEEK,
-      }), { status: 429 })
+      }, 429)
     }
 
-    // Get coach data via RPC
     const { data: coachData, error: rpcError } = await supabaseUser
       .rpc('get_coach_data', { p_user_id: user.id })
 
     if (rpcError) {
       console.error('RPC error:', rpcError)
-      return new Response(JSON.stringify({ error: 'Failed to get data' }), { status: 500 })
+      return json({ error: 'Failed to get data' }, 500)
     }
 
-    // Call Claude Haiku
     const systemPrompt = `You are an AI fitness coach for PullPush, a Swedish training app.
 Answer the user's question based on their actual training/nutrition data.
 Be specific, reference their numbers. Keep answers concise (2-4 paragraphs max).
@@ -117,18 +113,15 @@ User's question: ${question.trim()}`
     if (!anthropicRes.ok) {
       const errBody = await anthropicRes.text()
       console.error('Anthropic API error:', anthropicRes.status, errBody)
-      return new Response(JSON.stringify({ error: 'AI service error' }), { status: 502 })
+      return json({ error: 'AI service error' }, 502)
     }
 
     const anthropicData = await anthropicRes.json()
     const answer = anthropicData.content?.find((c: { type: string }) => c.type === 'text')?.text
-    if (!answer) {
-      return new Response(JSON.stringify({ error: 'Empty AI response' }), { status: 502 })
-    }
+    if (!answer) return json({ error: 'Empty AI response' }, 502)
 
     const tokensUsed = (anthropicData.usage?.input_tokens ?? 0) + (anthropicData.usage?.output_tokens ?? 0)
 
-    // Save to DB
     await supabaseUser
       .from('coach_questions')
       .insert({
@@ -138,13 +131,13 @@ User's question: ${question.trim()}`
         tokens_used: tokensUsed,
       })
 
-    return new Response(JSON.stringify({
+    return json({
       answer,
       questions_used: questionsUsed + 1,
       questions_max: MAX_QUESTIONS_PER_WEEK,
-    }))
+    })
   } catch (e) {
     console.error('Edge function error:', e)
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 })
+    return json({ error: String(e) }, 500)
   }
 })

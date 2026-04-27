@@ -2,10 +2,22 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { useSubscription } from '../../../context/SubscriptionContext'
-import { useCoachData, type CoachAnswer } from '../../../hooks/useCoachData'
+import { useCoachData, type CoachAnswer, type CoachHistoryItem } from '../../../hooks/useCoachData'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Skeleton from '../../Skeleton/Skeleton'
 import styles from './Coach.module.scss'
+
+function formatMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, (m) => `<ul>${m}</ul>`)
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br/>')
+    .replace(/^/, '<p>')
+    .replace(/$/, '</p>')
+}
 
 const INSIGHT_TYPE_CLASS: Record<string, string> = {
   progress: styles.insightTypeProgress,
@@ -37,11 +49,16 @@ export default function Coach(): React.JSX.Element {
     askError,
     questionsUsed,
     questionsMax,
+    history,
+    historyLoading,
+    loadHistory,
   } = useCoachData()
 
   const [question, setQuestion] = useState('')
   const [lastAnswer, setLastAnswer] = useState<CoachAnswer | null>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isActive || hasLoaded || !canUse('aiCoach')) return
@@ -62,6 +79,7 @@ export default function Coach(): React.JSX.Element {
       const answer = await askQuestion(q.trim())
       setLastAnswer(answer)
       setQuestion('')
+      if (showHistory) loadHistory()
     } catch {
       // error is set in hook
     }
@@ -139,7 +157,7 @@ export default function Coach(): React.JSX.Element {
             </div>
             <ul className={styles.summaryList}>
               {summary.summary.map((item, i) => (
-                <li key={i} className={styles.summaryItem}>{item}</li>
+                <li key={i} className={styles.summaryItem} dangerouslySetInnerHTML={{ __html: formatMarkdown(item) }} />
               ))}
             </ul>
           </div>
@@ -153,7 +171,7 @@ export default function Coach(): React.JSX.Element {
                     {INSIGHT_TYPE_LABEL[insight.type] ?? insight.type}
                   </div>
                   <div className={styles.insightTitle}>{insight.title}</div>
-                  <div className={styles.insightBody}>{insight.body}</div>
+                  <div className={styles.insightBody} dangerouslySetInnerHTML={{ __html: formatMarkdown(insight.body) }} />
                 </div>
               ))}
             </div>
@@ -207,7 +225,11 @@ export default function Coach(): React.JSX.Element {
             onClick={() => handleAsk(question)}
             disabled={askLoading || !question.trim()}
           >
-            {askLoading ? '...' : t('Ask')}
+            {askLoading ? (
+              <span className={styles.askBtnDots}>
+                <span /><span /><span />
+              </span>
+            ) : t('Ask')}
           </button>
         </div>
 
@@ -215,15 +237,76 @@ export default function Coach(): React.JSX.Element {
           {t('{{used}} of {{max}} questions this week', { used: questionsUsed, max: questionsMax })}
         </div>
 
+        {askLoading && (
+          <div className={styles.thinkingCard}>
+            <div className={styles.thinkingDots}>
+              <span /><span /><span />
+            </div>
+            <span className={styles.thinkingText}>{t('AI Coach')} ...</span>
+          </div>
+        )}
+
         {askError && (
           <div className={styles.errorCard}>
             <p className={styles.errorText}>{askError}</p>
           </div>
         )}
 
-        {lastAnswer && (
+        {lastAnswer && !askLoading && (
           <div className={styles.answerCard}>
-            <div className={styles.answerText}>{lastAnswer.answer}</div>
+            <div className={styles.answerLabel}>AI Coach</div>
+            <div className={styles.answerText} dangerouslySetInnerHTML={{ __html: formatMarkdown(lastAnswer.answer) }} />
+          </div>
+        )}
+
+        {/* History toggle */}
+        <button
+          type="button"
+          className={styles.historyToggle}
+          onClick={() => {
+            const next = !showHistory
+            setShowHistory(next)
+            if (next && history.length === 0) loadHistory()
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          {showHistory ? t('Hide history') : t('Show history')}
+        </button>
+
+        {showHistory && (
+          <div className={styles.historySection}>
+            {historyLoading && (
+              <div className={styles.historyLoading}>
+                <div className={styles.thinkingDots}><span /><span /><span /></div>
+              </div>
+            )}
+            {!historyLoading && history.length === 0 && (
+              <p className={styles.historyEmpty}>{t('No questions yet')}</p>
+            )}
+            {history.map(item => (
+              <button
+                key={item.id}
+                type="button"
+                className={`${styles.historyItem} ${expandedId === item.id ? styles.historyItemExpanded : ''}`}
+                onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+              >
+                <div className={styles.historyHeader}>
+                  <span className={styles.historyQuestion}>{item.question}</span>
+                  <span className={styles.historyDate}>
+                    {new Date(item.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                  </span>
+                </div>
+                {expandedId === item.id && (
+                  <div
+                    className={styles.historyAnswer}
+                    dangerouslySetInnerHTML={{ __html: formatMarkdown(item.answer) }}
+                    onClick={e => e.stopPropagation()}
+                  />
+                )}
+              </button>
+            ))}
           </div>
         )}
       </div>

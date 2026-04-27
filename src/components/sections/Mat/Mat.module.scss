@@ -497,6 +497,37 @@
   &:hover { border-color: var(--accent); color: var(--text); background: var(--card); }
 }
 
+.photoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+
+  &:hover { border-color: var(--accent); color: var(--text); background: var(--card); }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 .barcodeInputWrap {
   display: flex;
   align-items: center;
@@ -1235,7 +1266,8 @@
     padding: 0 30px 0 10px;
   }
 
-  .scanBtn {
+  .scanBtn,
+  .photoBtn {
     height: 44px;
     width: 44px;
   }

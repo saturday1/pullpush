@@ -13,6 +13,7 @@ export type Feature =
   | 'recurringMeals'
   | 'statsUnlimited'
   | 'aiCoach'
+  | 'foodPhoto'
 
 const ROLE_RANK: Record<UserRole, number> = { free: 0, standard: 1, premium: 2, lifetime: 3, developer: 4 }
 
@@ -27,6 +28,7 @@ const FEATURE_REQUIRED: Record<Feature, UserRole> = {
   recurringMeals: 'premium',
   statsUnlimited: 'premium',
   aiCoach: 'premium',
+  foodPhoto: 'premium',
 }
 
 export const FEATURE_REQUIRED_ROLE = FEATURE_REQUIRED

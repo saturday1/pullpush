@@ -43,6 +43,7 @@ const PLANS: PlanInfo[] = [
       'Återkommande måltider',
       'Obegränsad statistikhistorik',
       'AI Coach — personlig träningscoach',
+      'AI-matfoto — fotografera och få näringsvärden',
     ],
   },
 ]
@@ -58,6 +59,7 @@ const FEATURE_LABEL: Record<Feature, string> = {
   recurringMeals: 'Återkommande måltider',
   statsUnlimited: 'Obegränsad statistik',
   aiCoach: 'AI Coach',
+  foodPhoto: 'AI Matfoto',
 }
 
 const TIER_RANK: Record<Tier, number> = { standard: 0, premium: 1 }

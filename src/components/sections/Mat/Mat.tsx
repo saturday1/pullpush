@@ -446,6 +446,47 @@ interface MealModalProps {
     t: TFunction
 }
 
+// --- Food photo helpers ---
+
+function pickFileFromInput(): Promise<File | null> {
+    return new Promise(resolve => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'image/*'
+        input.capture = 'environment'
+        input.onchange = () => resolve(input.files?.[0] ?? null)
+        // If the user cancels, resolve null after a timeout
+        const onFocus = (): void => { setTimeout(() => { if (!input.files?.length) resolve(null) }, 500); window.removeEventListener('focus', onFocus) }
+        window.addEventListener('focus', onFocus)
+        input.click()
+    })
+}
+
+function resizeImageToBase64(file: File, maxSize = 800, quality = 0.7): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+            const img = new Image()
+            img.onload = () => {
+                const scale = Math.min(maxSize / img.width, maxSize / img.height, 1)
+                const w = Math.round(img.width * scale)
+                const h = Math.round(img.height * scale)
+                const canvas = document.createElement('canvas')
+                canvas.width = w
+                canvas.height = h
+                const ctx = canvas.getContext('2d')!
+                ctx.drawImage(img, 0, 0, w, h)
+                const dataUrl = canvas.toDataURL('image/jpeg', quality)
+                resolve(dataUrl.split(',')[1]) // strip prefix, return pure base64
+            }
+            img.onerror = () => reject(new Error('Failed to load image'))
+            img.src = reader.result as string
+        }
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsDataURL(file)
+    })
+}
+
 function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModalProps): React.JSX.Element {
     const { requireUpgrade, canUse } = useSubscription()
     const [open, setOpen] = useState(true)
@@ -470,6 +511,8 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
     const [unit, setUnit] = useState<string>(parsedUnit)
     const [scannerOpen, setScannerOpen] = useState<boolean>(false)
     const [scanError, setScanError] = useState<string>('')
+    const [photoLoading, setPhotoLoading] = useState<boolean>(false)
+    const [photoError, setPhotoError] = useState<string>('')
     const [manualBarcode, setManualBarcode] = useState<string | null>(null)
     const dropdownRef = useRef<HTMLDivElement | null>(null)
     const baseNutrients = useRef<BaseNutrients | null>(null)
@@ -719,6 +762,31 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
         setManualBarcode(null)
     }
 
+    async function handleFoodPhoto(): Promise<void> {
+        if (!requireUpgrade('foodPhoto')) return
+        setPhotoError('')
+        try {
+            const file = await pickFileFromInput()
+            if (!file) return
+            setPhotoLoading(true)
+            const image_base64 = await resizeImageToBase64(file)
+            const { data, error } = await supabase.functions.invoke('ai-food-scan', { body: { image_base64 } })
+            if (error || !data) throw new Error(error?.message ?? 'No data')
+            setForm(f => ({
+                ...f,
+                food: data.food ?? f.food,
+                protein_g: data.protein_g != null ? String(Math.round(data.protein_g)) : f.protein_g,
+                carbs_g: data.carbs_g != null ? String(Math.round(data.carbs_g)) : f.carbs_g,
+                fat_g: data.fat_g != null ? String(Math.round(data.fat_g)) : f.fat_g,
+                kcal: data.kcal != null ? String(Math.round(data.kcal)) : f.kcal,
+            }))
+        } catch {
+            setPhotoError(t('Could not analyze photo'))
+        } finally {
+            setPhotoLoading(false)
+        }
+    }
+
     if (manualBarcode) {
         return <ManualProductForm barcode={manualBarcode} onSave={handleManualProduct} onCancel={() => setManualBarcode(null)} t={t} />
     }
@@ -774,6 +842,18 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                                         <line x1="17" y1="12" x2="17" y2="12"/>
                                     </svg>
                                 </button>
+                                <button className={styles.photoBtn} type="button" onClick={handleFoodPhoto} disabled={photoLoading} title={t('Snap food photo')}>
+                                    {photoLoading ? (
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.spin}>
+                                            <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"/>
+                                        </svg>
+                                    ) : (
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                            <circle cx="12" cy="13" r="4"/>
+                                        </svg>
+                                    )}
+                                </button>
                                 <div className={styles.gramsWrap}>
                                     <input
                                         className={styles.gramsInput}
@@ -793,6 +873,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                                 </div>
                             </div>
                             {scanError && <div className={styles.scanError}>{scanError}</div>}
+                            {photoError && <div className={styles.scanError}>{photoError}</div>}
                         </div>
                         {scannerOpen && <BarcodeScanner onResult={handleBarcode} onClose={() => setScannerOpen(false)} t={t} />}
 
