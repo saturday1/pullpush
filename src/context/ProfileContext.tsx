@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../supabase'
+import { DB } from '../constants/database'
+import {
+  DEFAULT_REST_SECONDS, DEFAULT_SEC_PER_REP, DEFAULT_COUNTDOWN_SECONDS, DEFAULT_SIDE_PAUSE_SECONDS,
+  TRIAL_DAYS, PROTEIN_G_PER_KG, TDEE_ACTIVITY_FACTOR, CALORIE_DEFICIT, FAT_CALORIE_RATIO,
+} from '../constants/training'
 
 interface Macros {
   bmr: number
@@ -108,13 +113,13 @@ interface ProfileContextValue extends ProfileState {
 function calcMacros(weight: number, height: number, age: number, gender: 'male' | 'female' | null): Macros {
   const genderOffset = gender === 'female' ? -161 : 5
   const bmr = Math.round(10 * weight + 6.25 * height - 5 * age + genderOffset)
-  const tdee = Math.round(bmr * 1.55)
-  const deficit = 280
+  const tdee = Math.round(bmr * TDEE_ACTIVITY_FACTOR)
+  const deficit = CALORIE_DEFICIT
   const targetKcal = tdee - deficit
 
-  const protein = Math.round(2.85 * weight)
+  const protein = Math.round(PROTEIN_G_PER_KG * weight)
   const proteinKcal = protein * 4
-  const fatKcal = Math.round(targetKcal * 0.33)
+  const fatKcal = Math.round(targetKcal * FAT_CALORIE_RATIO)
   const fat = Math.round(fatKcal / 9)
   const carbs = Math.round((targetKcal - proteinKcal - fatKcal) / 4)
 
@@ -163,17 +168,20 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     sessions: [],
     programs: [],
     activeProgramId: null,
-    restSeconds: 90,
-    secPerRep: 4,
-    countdownSeconds: 10,
-    sidePauseSeconds: 5,
+    restSeconds: DEFAULT_REST_SECONDS,
+    secPerRep: DEFAULT_SEC_PER_REP,
+    countdownSeconds: DEFAULT_COUNTDOWN_SECONDS,
+    sidePauseSeconds: DEFAULT_SIDE_PAUSE_SECONDS,
     role: 'free',
     trialExpiresAt: null,
   })
 
   async function load(silent: boolean = false): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      await supabase.auth.signOut()
+      return
+    }
 
     // Reset loading flags (skip on silent refresh to avoid splash screen)
     if (!silent) {
@@ -189,13 +197,13 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
 
     // Fire all queries in parallel, but update state as each resolves
     const profilePromise = supabase
-      .from('profile')
+      .from(DB.PROFILE)
       .select('*')
       .eq('user_id', user.id)
       .single()
 
     const latestLogPromise = supabase
-      .from('weight_log')
+      .from(DB.WEIGHT_LOG)
       .select('weight_kg')
       .eq('user_id', user.id)
       .order('id', { ascending: false })
@@ -203,7 +211,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       .single()
 
     const firstLogPromise = supabase
-      .from('weight_log')
+      .from(DB.WEIGHT_LOG)
       .select('weight_kg')
       .eq('user_id', user.id)
       .order('id', { ascending: true })
@@ -211,7 +219,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       .single()
 
     const programsPromise = supabase
-      .from('training_programs')
+      .from(DB.TRAINING_PROGRAMS)
       .select('*')
       .eq('user_id', user.id)
       .order('created_at')
@@ -252,19 +260,19 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       const lastName: string | null = profile?.last_name ?? null
       const birthDate: string | null = profile?.birth_date ?? null
       const phone: string | null = profile?.phone ?? null
-      const restSeconds: number = profile?.rest_seconds ?? 90
-      const secPerRep: number = profile?.sec_per_rep ?? 4
-      const countdownSeconds: number = profile?.countdown_seconds ?? 10
-      const sidePauseSeconds: number = profile?.side_pause_seconds ?? 5
+      const restSeconds: number = profile?.rest_seconds ?? DEFAULT_REST_SECONDS
+      const secPerRep: number = profile?.sec_per_rep ?? DEFAULT_SEC_PER_REP
+      const countdownSeconds: number = profile?.countdown_seconds ?? DEFAULT_COUNTDOWN_SECONDS
+      const sidePauseSeconds: number = profile?.side_pause_seconds ?? DEFAULT_SIDE_PAUSE_SECONDS
       const gender: 'male' | 'female' | null = profile?.gender ?? null
       const age = calcAge(birthDate)
       const role: UserRole = (profile?.role as UserRole) ?? 'free'
       let trialExpiresAt: string | null = profile?.trial_expires_at ?? null
 
-      // First-time user: set 14-day trial
+      // First-time user: set 30-day trial
       if (!trialExpiresAt && profile) {
-        trialExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-        supabase.from('profile').upsert({ user_id: user.id, trial_expires_at: trialExpiresAt }, { onConflict: 'user_id' })
+        trialExpiresAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
+        supabase.from(DB.PROFILE).upsert({ user_id: user.id, trial_expires_at: trialExpiresAt }, { onConflict: 'user_id' })
       }
 
       setState(prev => {
@@ -286,16 +294,16 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
       // If no active program, try to use the first available one
       let resolvedProgramId = activeProgramId
       if (!resolvedProgramId) {
-        const { data: progs } = await supabase.from('training_programs').select('id').eq('user_id', user.id).order('created_at').limit(1)
+        const { data: progs } = await supabase.from(DB.TRAINING_PROGRAMS).select('id').eq('user_id', user.id).order('created_at').limit(1)
         if (progs?.[0]) {
           resolvedProgramId = progs[0].id
-          await supabase.from('profile').upsert({ user_id: user.id, active_program_id: resolvedProgramId }, { onConflict: 'user_id' })
+          await supabase.from(DB.PROFILE).upsert({ user_id: user.id, active_program_id: resolvedProgramId }, { onConflict: 'user_id' })
         }
       }
 
       // Now fetch sessions based on activeProgramId
       const { data: sessionsData } = resolvedProgramId
-        ? await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', resolvedProgramId).order('day_of_week')
+        ? await supabase.from(DB.TRAINING_SESSIONS).select('*').eq('user_id', user.id).eq('program_id', resolvedProgramId).order('day_of_week')
         : { data: [] as TrainingSession[] }
 
       setState(prev => {
@@ -313,7 +321,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
     const today = new Date().toISOString().slice(0, 10)
-    const { error } = await supabase.from('weight_log').insert({ date: today, weight_kg: kg, user_id: user.id })
+    const { error } = await supabase.from(DB.WEIGHT_LOG).insert({ date: today, weight_kg: kg, user_id: user.id })
     if (!error) await load(true)
     return !error
   }
@@ -328,7 +336,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     if (countdown_seconds != null) row.countdown_seconds = countdown_seconds
     if (side_pause_seconds != null) row.side_pause_seconds = side_pause_seconds
     if (gender !== undefined) row.gender = gender
-    const { error } = await supabase.from('profile').upsert(
+    const { error } = await supabase.from(DB.PROFILE).upsert(
       row,
       { onConflict: 'user_id' }
     )
@@ -337,7 +345,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
   }
 
   async function addSession(sessionData: SessionInput): Promise<TrainingSession | null> {
-    const { data } = await supabase.from('training_sessions').insert(sessionData).select().single()
+    const { data } = await supabase.from(DB.TRAINING_SESSIONS).insert(sessionData).select().single()
     if (data) {
       setState(prev => ({
         ...prev,
@@ -350,9 +358,9 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
   async function createProgram(name: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data: prog } = await supabase.from('training_programs').insert({ user_id: user.id, name }).select().single()
+    const { data: prog } = await supabase.from(DB.TRAINING_PROGRAMS).insert({ user_id: user.id, name }).select().single()
     if (prog) {
-      await supabase.from('profile').upsert({ user_id: user.id, active_program_id: prog.id }, { onConflict: 'user_id' })
+      await supabase.from(DB.PROFILE).upsert({ user_id: user.id, active_program_id: prog.id }, { onConflict: 'user_id' })
     }
     await load(true)
   }
@@ -361,13 +369,13 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     setState(prev => ({ ...prev, activeProgramId: id, sessions: [], sessionsLoading: true }))
-    await supabase.from('profile').upsert({ user_id: user.id, active_program_id: id }, { onConflict: 'user_id' })
-    const { data: sessionsData } = await supabase.from('training_sessions').select('*').eq('user_id', user.id).eq('program_id', id).order('day_of_week')
+    await supabase.from(DB.PROFILE).upsert({ user_id: user.id, active_program_id: id }, { onConflict: 'user_id' })
+    const { data: sessionsData } = await supabase.from(DB.TRAINING_SESSIONS).select('*').eq('user_id', user.id).eq('program_id', id).order('day_of_week')
     setState(prev => ({ ...prev, sessions: (sessionsData ?? []) as TrainingSession[], sessionsLoading: false }))
   }
 
   async function renameProgram(id: string, name: string): Promise<void> {
-    await supabase.from('training_programs').update({ name }).eq('id', id)
+    await supabase.from(DB.TRAINING_PROGRAMS).update({ name }).eq('id', id)
     await load(true)
   }
 
@@ -377,18 +385,18 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
     // Switch to another program first if this is active
     const other = state.programs.find(p => p.id !== id)
     if (other) {
-      await supabase.from('profile').upsert({ user_id: user.id, active_program_id: other.id }, { onConflict: 'user_id' })
+      await supabase.from(DB.PROFILE).upsert({ user_id: user.id, active_program_id: other.id }, { onConflict: 'user_id' })
     } else {
-      await supabase.from('profile').upsert({ user_id: user.id, active_program_id: null }, { onConflict: 'user_id' })
+      await supabase.from(DB.PROFILE).upsert({ user_id: user.id, active_program_id: null }, { onConflict: 'user_id' })
     }
-    await supabase.from('training_programs').delete().eq('id', id)
+    await supabase.from(DB.TRAINING_PROGRAMS).delete().eq('id', id)
     await load(true)
   }
 
   async function saveSessions(sessionsArray: SessionSaveInput[]): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from('training_sessions').delete().eq('user_id', user.id)
+    await supabase.from(DB.TRAINING_SESSIONS).delete().eq('user_id', user.id)
     if (sessionsArray.length > 0) {
       const rows = sessionsArray.map((s, i) => ({
         user_id: user.id,
@@ -396,7 +404,7 @@ export function ProfileProvider({ children }: ProfileProviderProps): React.JSX.E
         name: s.name,
         sort_order: i,
       }))
-      await supabase.from('training_sessions').insert(rows)
+      await supabase.from(DB.TRAINING_SESSIONS).insert(rows)
     }
     await load(true)
   }

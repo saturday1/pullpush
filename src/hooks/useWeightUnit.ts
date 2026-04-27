@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react'
+import { KG_TO_LBS } from '../constants/units'
+import { STORAGE } from '../constants/storage'
 
 export type WeightUnit = 'both' | 'kg' | 'lbs'
 
-const STORAGE_KEY = 'pullpush_weightUnit'
-const KG_TO_LBS = 2.20462
-
 function getStored(): WeightUnit {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = localStorage.getItem(STORAGE.WEIGHT_UNIT)
   if (v === 'kg' || v === 'lbs' || v === 'both') return v
   return 'both'
 }
@@ -15,7 +14,7 @@ export function useWeightUnit(): [WeightUnit, (unit: WeightUnit) => void] {
   const [unit, setUnit] = useState<WeightUnit>(getStored)
   const set = useCallback((u: WeightUnit) => {
     setUnit(u)
-    localStorage.setItem(STORAGE_KEY, u)
+    localStorage.setItem(STORAGE.WEIGHT_UNIT, u)
   }, [])
   return [unit, set]
 }

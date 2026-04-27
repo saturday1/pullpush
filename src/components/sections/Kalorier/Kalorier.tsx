@@ -6,6 +6,7 @@ import Skeleton from '../../Skeleton/Skeleton'
 import InfoModal from '../../InfoModal/InfoModal'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
+import { COLOR_PROTEIN, COLOR_CARBS, COLOR_FAT } from '../../../constants/colors'
 import styles from './Kalorier.module.scss'
 
 interface MacroBar {
@@ -32,9 +33,9 @@ export default function Kalorier(): React.JSX.Element {
     const m = macros
 
     const macroBars: MacroBar[] = m ? [
-        { name: `🥩 ${t('Protein')}`, color: '#f97316', gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
-        { name: `🍚 ${t('Carbs')}`,   color: '#60a5fa', gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
-        { name: `🥑 ${t('Fat')}`,     color: '#22c55e', gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
+        { name: `🥩 ${t('Protein')}`, color: COLOR_PROTEIN, gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
+        { name: `🍚 ${t('Carbs')}`,   color: COLOR_CARBS,   gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
+        { name: `🥑 ${t('Fat')}`,     color: COLOR_FAT,     gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
     ] : []
 
     return (

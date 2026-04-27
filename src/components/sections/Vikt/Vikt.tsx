@@ -7,7 +7,11 @@ import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
 import Skeleton from '../../Skeleton/Skeleton'
 import { useProfile } from '../../../context/ProfileContext'
 import InfoModal from '../../InfoModal/InfoModal'
-import { useWeightUnit, formatWeightJsx } from '../../../hooks/useWeightUnit'
+import { useWeightUnit, formatWeightJsx, toLbs } from '../../../hooks/useWeightUnit'
+import { KG_TO_LBS } from '../../../constants/units'
+import { DB } from '../../../constants/database'
+import { STORAGE } from '../../../constants/storage'
+import { COLOR_PROTEIN, COLOR_CARBS, COLOR_FAT, COLOR_KCAL } from '../../../constants/colors'
 import { supabase } from '../../../supabase'
 import styles from './Vikt.module.scss'
 
@@ -24,19 +28,16 @@ interface WeightEntry {
   weight_kg: number
 }
 
-const KG_TO_LBS = 2.20462
-const toLbs = (kg: number): number => +(kg * KG_TO_LBS).toFixed(1)
-
 const DAYS_SV      = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
 const DAYS_SV_FULL = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
 
 function getWeighInDay(): number | null {
-  const v = localStorage.getItem('weigh_in_day')
+  const v = localStorage.getItem(STORAGE.WEIGH_IN_DAY)
   return v !== null ? parseInt(v) : null
 }
 function setWeighInDay(d: number | null): void {
-  if (d === null) localStorage.removeItem('weigh_in_day')
-  else localStorage.setItem('weigh_in_day', String(d))
+  if (d === null) localStorage.removeItem(STORAGE.WEIGH_IN_DAY)
+  else localStorage.setItem(STORAGE.WEIGH_IN_DAY, String(d))
 }
 
 export default function Vikt(): React.JSX.Element {
@@ -67,7 +68,7 @@ export default function Vikt(): React.JSX.Element {
 
   const loadHistory = useCallback(async () => {
     const { data } = await supabase
-      .from('weight_log')
+      .from(DB.WEIGHT_LOG)
       .select('date, weight_kg')
       .order('date', { ascending: true })
     if (data) setWeightHistory(data as WeightEntry[])
@@ -128,46 +129,14 @@ export default function Vikt(): React.JSX.Element {
 
   const m = macros
   const macroBars: MacroBar[] = m ? [
-    { name: `🥩 ${t('Protein')}`,  color: '#f97316', gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
-    { name: `🍚 ${t('Carbs')}`,    color: '#60a5fa', gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
-    { name: `🥑 ${t('Fat')}`,      color: '#22c55e', gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
+    { name: `🥩 ${t('Protein')}`,  color: COLOR_PROTEIN, gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
+    { name: `🍚 ${t('Carbs')}`,    color: COLOR_CARBS,   gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
+    { name: `🥑 ${t('Fat')}`,      color: COLOR_FAT,     gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
   ] : []
 
   return (
     <section id="vikt">
       <SectionHeader number="02" title={t('Weight & Calories')} />
-
-      <Reveal className={styles.section}>
-        <CardGrid>
-          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(start, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } />
-          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(weight, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } valueStyle={{ color: 'var(--accent)' }} />
-          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(goal, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() }   valueStyle={{ color: 'var(--green)' }} />
-          <CardGridItem
-            label={t('Change')}
-            value={loading ? <Skeleton width={60} height={18} /> : currentWeight == null ? <span style={{ fontSize: '13px', color: 'var(--accent)' }}>{t('Log your first weight')}</span> : (() => { const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''; const abs = Math.abs(diff); const [p, s] = formatWeightJsx(abs, weightUnit); const pSigned = `${sign}${p}`; return s ? <>{pSigned}<br /><span className="lbsLight">{sign}{s}</span></> : pSigned })() }
-            valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
-          />
-          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : (() => { const k = parseFloat(kvar); const [p, s] = formatWeightJsx(k, weightUnit); return s ? <>−{p} / <span className="lbsLight">−{s}</span></> : `−${p}` })() } valueStyle={{ color: 'var(--green)' }} />
-        </CardGrid>
-      </Reveal>
-
-      <Reveal className={styles.section}>
-        <div className={styles.goalSection}>
-          <div className={styles.goalHeader}>
-            <span className={styles.goalTitle}>{t('Weight goal — {{start}} kg → {{goal}} kg', { start, goal })}</span>
-            <span className={styles.goalNums}>
-              {t('{{pct}}% done', { pct: pct.toFixed(0) })}
-            </span>
-          </div>
-          <div className={styles.goalBarBg}>
-            <div className={styles.goalBarFill} style={{ width: loading ? '0%' : `${pct}%` }} />
-          </div>
-          <div className={styles.goalLabels}>
-            <span>{t('Start ({{start}} kg)', { start })}</span>
-            <span>{t('Goal ({{goal}} kg)', { goal })}</span>
-          </div>
-        </div>
-      </Reveal>
 
       {chartData.length > 1 && (
         <Reveal className={styles.section}>
@@ -238,8 +207,8 @@ export default function Vikt(): React.JSX.Element {
                 />
                 <defs>
                   <linearGradient id="wGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#e8197d" />
-                    <stop offset="100%" stopColor="#f97316" />
+                    <stop offset="0%" stopColor={COLOR_KCAL} />
+                    <stop offset="100%" stopColor={COLOR_PROTEIN} />
                   </linearGradient>
                 </defs>
               </LineChart>
@@ -250,6 +219,38 @@ export default function Vikt(): React.JSX.Element {
           </div>
         </Reveal>
       )}
+
+      <Reveal className={styles.section}>
+        <CardGrid>
+          <CardGridItem label={t('Start weight')}   value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(start, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } />
+          <CardGridItem label={t('Current weight')}  value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(weight, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() } valueStyle={{ color: 'var(--accent)' }} />
+          <CardGridItem label={t('Goal weight')}     value={loading ? <Skeleton width={60} height={18} /> : (() => { const [p, s] = formatWeightJsx(goal, weightUnit); return s ? <>{p}<br /><span className="lbsLight">{s}</span></> : p })() }   valueStyle={{ color: 'var(--green)' }} />
+          <CardGridItem
+            label={t('Change')}
+            value={loading ? <Skeleton width={60} height={18} /> : currentWeight == null ? <span style={{ fontSize: '13px', color: 'var(--accent)' }}>{t('Log your first weight')}</span> : (() => { const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''; const abs = Math.abs(diff); const [p, s] = formatWeightJsx(abs, weightUnit); const pSigned = `${sign}${p}`; return s ? <>{pSigned}<br /><span className="lbsLight">{sign}{s}</span></> : pSigned })() }
+            valueStyle={{ color: diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--orange)' : 'var(--muted)' }}
+          />
+          <CardGridItem label={t('Remaining')} value={loading ? <Skeleton width={60} height={18} /> : (() => { const k = parseFloat(kvar); const [p, s] = formatWeightJsx(k, weightUnit); return s ? <>−{p} / <span className="lbsLight">−{s}</span></> : `−${p}` })() } valueStyle={{ color: 'var(--green)' }} />
+        </CardGrid>
+      </Reveal>
+
+      <Reveal className={styles.section}>
+        <div className={styles.goalSection}>
+          <div className={styles.goalHeader}>
+            <span className={styles.goalTitle}>{t('Weight goal — {{start}} kg → {{goal}} kg', { start, goal })}</span>
+            <span className={styles.goalNums}>
+              {t('{{pct}}% done', { pct: pct.toFixed(0) })}
+            </span>
+          </div>
+          <div className={styles.goalBarBg}>
+            <div className={styles.goalBarFill} style={{ width: loading ? '0%' : `${pct}%` }} />
+          </div>
+          <div className={styles.goalLabels}>
+            <span>{t('Start ({{start}} kg)', { start })}</span>
+            <span>{t('Goal ({{goal}} kg)', { goal })}</span>
+          </div>
+        </div>
+      </Reveal>
 
       <Reveal className={styles.section}>
         <div className={styles.chartCard}>

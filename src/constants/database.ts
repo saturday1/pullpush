@@ -1,0 +1,15 @@
+export const DB = {
+  PROFILE:            'profile',
+  WEIGHT_LOG:         'weight_log',
+  TRAINING_PROGRAMS:  'training_programs',
+  TRAINING_SESSIONS:  'training_sessions',
+  WORKOUTS:           'workouts',
+  WORKOUT_SETS:       'workout_sets',
+  EXERCISES:          'exercises',
+  EXERCISE_CATALOG:   'exercise_catalog',
+  EXERCISE_LOG:       'exercise_log',
+  EXERCISE_SET_PLANS: 'exercise_set_plans',
+  FOOD_PRODUCTS:      'food_products',
+  MEALS:              'meals',
+  CONTACT_MESSAGES:   'contact_messages',
+} as const

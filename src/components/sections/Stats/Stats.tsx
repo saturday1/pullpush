@@ -6,7 +6,10 @@ import { useSubscription } from '../../../context/SubscriptionContext'
 import { useProfile } from '../../../context/ProfileContext'
 import ClockIcon from '../../icons/Normal/ClockIcon'
 import WeightIcon from '../../icons/Normal/WeightIcon'
-import { useWeightUnit, formatWeight } from '../../../hooks/useWeightUnit'
+import { useWeightUnit, formatWeight, toLbs } from '../../../hooks/useWeightUnit'
+import { KG_TO_LBS } from '../../../constants/units'
+import { COLOR_KCAL } from '../../../constants/colors'
+import { DB } from '../../../constants/database'
 import {
     Area,
     AreaChart,
@@ -121,9 +124,6 @@ function formatDuration(
     return m === 0 ? `${h} ${t('h')}` : `${h} ${t('h')} ${m} ${t('min')}`
 }
 
-const KG_TO_LBS = 2.20462
-const toLbs = (kg: number): number => +(kg * KG_TO_LBS).toFixed(1)
-
 function formatTotalKg(kg: number): string {
     return `${Math.round(kg).toLocaleString('sv-SE')} kg`
 }
@@ -145,6 +145,7 @@ export default function Stats(): React.JSX.Element {
     interface PersonalRecord { name: string; kg: number; lbs: number }
     const [weightUnit] = useWeightUnit()
     const [loading, setLoading] = useState(true)
+    const [loadingDetails, setLoadingDetails] = useState(true)
     const [tab, setTab] = useState<StatsTab>('history')
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
     const [chartMode, setChartMode] = useState<'count' | 'volume'>('count')
@@ -164,7 +165,7 @@ export default function Stats(): React.JSX.Element {
     const exerciseTabsRef = useRef<HTMLDivElement>(null)
     const [heatmapOffset, setHeatmapOffset] = useState(0) // 0 = current month, -1 = last month, etc.
     const [showAllWorkouts, setShowAllWorkouts] = useState(false)
-    const [showAllPRs, setShowAllPRs] = useState(false)
+const [prSort, setPrSort] = useState<'weight' | 'name'>('weight')
     const [weightLog, setWeightLog] = useState<WeightEntry[]>([])
 
     function openModal(w: CompletedWorkout): void {
@@ -186,7 +187,6 @@ export default function Stats(): React.JSX.Element {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            // Simple queries without joins — avoids FK issues
             const statsUnlimited = canUse('statsUnlimited')
             const statsExtended = canUse('statsExtended')
             const statsCutoff = statsUnlimited
@@ -195,55 +195,84 @@ export default function Stats(): React.JSX.Element {
                     ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
                     : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
+            // ── Fas 1: snabba tabeller ────────────────────────────────────────
             const workoutsQuery = supabase
-                    .from('workouts')
-                    .select('id, completed_at, started_at, session_id, session_name, is_deload')
-                    .eq('user_id', user.id)
-                    .not('completed_at', 'is', null)
-                    .order('completed_at', { ascending: false })
+                .from(DB.WORKOUTS)
+                .select('id, completed_at, started_at, session_id, session_name, is_deload')
+                .eq('user_id', user.id)
+                .not('completed_at', 'is', null)
+                .order('completed_at', { ascending: false })
             if (statsCutoff) workoutsQuery.gte('completed_at', statsCutoff)
 
-            const [workoutsRes, setsRes, sessionsRes, exercisesRes, weightRes] = await Promise.all([
+            const [workoutsRes, sessionsRes, exercisesRes, weightRes] = await Promise.all([
                 workoutsQuery,
-
-                supabase
-                    .from('workout_sets')
-                    .select('id, workout_id, exercise_id, kg, reps, set_number')
-                    .limit(5000),
-
-                supabase
-                    .from('training_sessions')
-                    .select('id, name')
-                    .eq('user_id', user.id),
-
-                supabase
-                    .from('exercises')
-                    .select('id, name')
-                    .eq('user_id', user.id),
-
-                supabase
-                    .from('weight_log')
-                    .select('date, weight_kg')
-                    .eq('user_id', user.id)
-                    .order('date', { ascending: true }),
+                supabase.from(DB.TRAINING_SESSIONS).select('id, name').eq('user_id', user.id),
+                supabase.from(DB.EXERCISES).select('id, name').eq('user_id', user.id),
+                supabase.from(DB.WEIGHT_LOG).select('date, weight_kg').eq('user_id', user.id).order('date', { ascending: true }),
             ])
 
             if (cancelled) return
 
             const rawWorkouts = (workoutsRes.data ?? []) as RawWorkout[]
-            const rawSets = (setsRes.data ?? []) as RawSet[]
             const sessions = (sessionsRes.data ?? []) as RawSession[]
             const exercises = (exercisesRes.data ?? []) as RawExercise[]
-
-            // Build lookup maps
             const sessionMap = new Map(sessions.map(s => [s.id, s.name]))
             const exerciseMap = new Map(exercises.map(e => [e.id, e.name]))
-            const workoutIds = new Set(rawWorkouts.map(w => w.id))
 
-            // Filter sets to only those belonging to user's completed workouts
-            const userSets = rawSets.filter(s => workoutIds.has(s.workout_id))
+            // Bygg workouts utan set-detaljer direkt → snabb render
+            const processedBase: CompletedWorkout[] = rawWorkouts
+                .filter(w => w.completed_at)
+                .map(w => ({
+                    id: w.id,
+                    completed_at: w.completed_at!,
+                    started_at: w.started_at,
+                    session_id: w.session_id,
+                    session_name: w.session_name ?? (w.session_id != null ? (sessionMap.get(w.session_id) ?? null) : null),
+                    is_deload: w.is_deload ?? false,
+                    set_count: 0,
+                    total_kg: 0,
+                    exercises: [],
+                    pr_count: 0,
+                    pr_exercise_ids: [],
+                }))
 
-            // Group sets per workout → per exercise (preserve first-occurrence order)
+            // Build weight log with 7-day rolling average
+            const rawWeights = (weightRes.data ?? []) as { date: string; weight_kg: number }[]
+            const dedupedWeights = Object.values(
+                rawWeights.reduce<Record<string, { date: string; weight_kg: number }>>((acc, e) => {
+                    const day = e.date.slice(0, 10)
+                    acc[day] = { date: day, weight_kg: Number(e.weight_kg) }
+                    return acc
+                }, {})
+            )
+            const weightEntries: WeightEntry[] = dedupedWeights.map((entry, i) => {
+                const windowStart = new Date(entry.date)
+                windowStart.setDate(windowStart.getDate() - 6)
+                const windowEntries = dedupedWeights
+                    .slice(0, i + 1)
+                    .filter(e => new Date(e.date) >= windowStart)
+                const avg = windowEntries.reduce((sum, e) => sum + e.weight_kg, 0) / windowEntries.length
+                return { date: entry.date, kg: entry.weight_kg, avg: Math.round(avg * 10) / 10 }
+            })
+
+            setWorkouts(processedBase)
+            setWeightLog(weightEntries)
+            setLoading(false)
+
+            // ── Fas 2: sets (filtrerat på workout_id) ────────────────────────
+            const workoutIdList = rawWorkouts.map(w => w.id)
+            if (workoutIdList.length === 0) { setLoadingDetails(false); return }
+
+            const setsRes = await supabase
+                .from(DB.WORKOUT_SETS)
+                .select('id, workout_id, exercise_id, kg, reps, set_number')
+                .in('workout_id', workoutIdList)
+
+            if (cancelled) return
+
+            const rawSets = (setsRes.data ?? []) as RawSet[]
+
+            // Group sets per workout → per exercise
             interface WorkoutAgg {
                 setCount: number
                 totalKg: number
@@ -251,16 +280,14 @@ export default function Stats(): React.JSX.Element {
                 exerciseSets: Map<number, WorkoutSetDetail[]>
             }
             const workoutAggMap = new Map<string, WorkoutAgg>()
-            for (const s of userSets) {
+            for (const s of rawSets) {
                 let agg = workoutAggMap.get(s.workout_id)
                 if (!agg) {
                     agg = { setCount: 0, totalKg: 0, exerciseOrder: [], exerciseSets: new Map() }
                     workoutAggMap.set(s.workout_id, agg)
                 }
                 agg.setCount += 1
-                if (s.kg != null && s.reps != null) {
-                    agg.totalKg += s.kg * s.reps
-                }
+                if (s.kg != null && s.reps != null) agg.totalKg += s.kg * s.reps
                 let exSets = agg.exerciseSets.get(s.exercise_id)
                 if (!exSets) {
                     exSets = []
@@ -269,20 +296,17 @@ export default function Stats(): React.JSX.Element {
                 }
                 exSets.push({ set_number: s.set_number, reps: s.reps, kg: s.kg })
             }
-
-            // Sort sets within each exercise by set_number
             for (const agg of workoutAggMap.values()) {
                 for (const sets of agg.exerciseSets.values()) {
                     sets.sort((a, b) => a.set_number - b.set_number)
                 }
             }
 
-            // PR detection — iterate workouts chronologically (oldest → newest),
-            // track running max kg per exercise, flag workouts that beat the record.
+            // PR detection
             const prCountByWorkout = new Map<string, number>()
             const prExerciseIdsByWorkout = new Map<string, number[]>()
             const runningMaxKg = new Map<number, number>()
-            const maxKgWorkoutId = new Map<number, string>() // exercise_id → workout_id that holds current max
+            const maxKgWorkoutId = new Map<number, string>()
             const chronoWorkouts = rawWorkouts
                 .filter(w => w.completed_at)
                 .slice()
@@ -290,16 +314,11 @@ export default function Stats(): React.JSX.Element {
 
             for (const w of chronoWorkouts) {
                 const agg = workoutAggMap.get(w.id)
-                if (!agg) continue
-                // Deload workouts are excluded from PR tracking entirely
-                if (w.is_deload) continue
-                // Per workout: compute best kg per exercise first, then compare
+                if (!agg || w.is_deload) continue
                 const workoutBestKg = new Map<number, number>()
                 for (const [exId, sets] of agg.exerciseSets) {
                     let best = -Infinity
-                    for (const s of sets) {
-                        if (s.kg != null && s.kg > best) best = s.kg
-                    }
+                    for (const s of sets) { if (s.kg != null && s.kg > best) best = s.kg }
                     if (best > -Infinity) workoutBestKg.set(exId, best)
                 }
                 let count = 0
@@ -307,26 +326,20 @@ export default function Stats(): React.JSX.Element {
                 for (const [exId, best] of workoutBestKg) {
                     const prev = runningMaxKg.get(exId)
                     if (prev === undefined || best > prev) {
-                        if (prev !== undefined) {
-                            count += 1
-                            ids.push(exId)
-                        }
+                        if (prev !== undefined) { count += 1; ids.push(exId) }
                         runningMaxKg.set(exId, best)
                         maxKgWorkoutId.set(exId, w.id)
                     }
                 }
-                if (count > 0) {
-                    prCountByWorkout.set(w.id, count)
-                    prExerciseIdsByWorkout.set(w.id, ids)
-                }
+                if (count > 0) { prCountByWorkout.set(w.id, count); prExerciseIdsByWorkout.set(w.id, ids) }
             }
 
-            // Process workouts (descending order, preserving rawWorkouts order)
+            // Bygg fullständiga workouts med set-detaljer
             const processed: CompletedWorkout[] = rawWorkouts
                 .filter(w => w.completed_at)
                 .map(w => {
                     const agg = workoutAggMap.get(w.id)
-                    const exercises: WorkoutExerciseDetail[] = agg
+                    const exDetails: WorkoutExerciseDetail[] = agg
                         ? agg.exerciseOrder.map(exId => ({
                             id: exId,
                             name: exerciseMap.get(exId) ?? `Exercise ${exId}`,
@@ -342,50 +355,38 @@ export default function Stats(): React.JSX.Element {
                         is_deload: w.is_deload ?? false,
                         set_count: agg?.setCount ?? 0,
                         total_kg: agg?.totalKg ?? 0,
-                        exercises,
+                        exercises: exDetails,
                         pr_count: prCountByWorkout.get(w.id) ?? 0,
                         pr_exercise_ids: prExerciseIdsByWorkout.get(w.id) ?? [],
                     }
                 })
 
-            // Favorite exercise this month
+            // Favorit denna månad
             const workoutDateMap = new Map(rawWorkouts.map(w => [w.id, w.completed_at]))
             const now = new Date()
             const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
             const favCounts = new Map<number, number>()
-            for (const s of userSets) {
+            for (const s of rawSets) {
                 const completedAt = workoutDateMap.get(s.workout_id)
-                if (!completedAt) continue
-                if (completedAt.slice(0, 7) === monthKey) {
-                    favCounts.set(s.exercise_id, (favCounts.get(s.exercise_id) ?? 0) + 1)
-                }
+                if (!completedAt || completedAt.slice(0, 7) !== monthKey) continue
+                favCounts.set(s.exercise_id, (favCounts.get(s.exercise_id) ?? 0) + 1)
             }
-            let favExId: number | null = null
-            let favBest = 0
-            for (const [exId, count] of favCounts) {
-                if (count > favBest) {
-                    favBest = count
-                    favExId = exId
-                }
-            }
+            let favExId: number | null = null; let favBest = 0
+            for (const [exId, count] of favCounts) { if (count > favBest) { favBest = count; favExId = exId } }
             const favorite: FavoriteExercise | null = favExId != null
                 ? { name: exerciseMap.get(favExId) ?? `Exercise ${favExId}`, count: favBest }
                 : null
 
-            // Build personal records from runningMaxKg
+            // PRs
             const prs: PersonalRecord[] = Array.from(runningMaxKg.entries())
                 .map(([exId, kg]) => ({ name: exerciseMap.get(exId) ?? `Exercise ${exId}`, kg, lbs: toLbs(kg) }))
                 .sort((a, b) => b.kg - a.kg)
-                .slice(0, 10)
-
-            // Map exercise name → workout id that holds the current max
             const prWkMap: Record<string, string> = {}
             for (const [exId, wkId] of maxKgWorkoutId) {
-                const name = exerciseMap.get(exId) ?? `Exercise ${exId}`
-                prWkMap[name] = wkId
+                prWkMap[exerciseMap.get(exId) ?? `Exercise ${exId}`] = wkId
             }
 
-            // Build exercise progress data (max kg per exercise per date, deduplicated)
+            // Övningsframsteg
             const progressRaw: Record<string, Map<string, number>> = {}
             const exSessionMap: Record<string, Set<number>> = {}
             for (const w of chronoWorkouts) {
@@ -394,9 +395,7 @@ export default function Stats(): React.JSX.Element {
                 const dateStr = w.completed_at.slice(0, 10)
                 for (const [exId, sets] of agg.exerciseSets) {
                     let best = -Infinity
-                    for (const s of sets) {
-                        if (s.kg != null && s.kg > best) best = s.kg
-                    }
+                    for (const s of sets) { if (s.kg != null && s.kg > best) best = s.kg }
                     if (best > -Infinity) {
                         const name = exerciseMap.get(exId) ?? `Exercise ${exId}`
                         if (!progressRaw[name]) progressRaw[name] = new Map()
@@ -417,7 +416,6 @@ export default function Stats(): React.JSX.Element {
             }
             const exSessionMapArr: Record<string, number[]> = {}
             for (const [name, ids] of Object.entries(exSessionMap)) exSessionMapArr[name] = Array.from(ids)
-            // Only include sessions that have ≥1 exercise with ≥2 data points
             const sessionsWithEnoughData = new Set(
                 Object.entries(exSessionMapArr)
                     .filter(([name]) => (progressMap[name]?.length ?? 0) >= 2)
@@ -427,30 +425,6 @@ export default function Stats(): React.JSX.Element {
                 .filter(s => sessionsWithEnoughData.has(s.id))
                 .map(s => ({ id: s.id, name: s.name }))
 
-            // Build weight log with 7-day rolling average
-            const rawWeights = (weightRes.data ?? []) as { date: string; weight_kg: number }[]
-            // Dedup by date (last entry per day), normalize to YYYY-MM-DD
-            const dedupedWeights = Object.values(
-                rawWeights.reduce<Record<string, { date: string; weight_kg: number }>>((acc, e) => {
-                    const day = e.date.slice(0, 10)
-                    acc[day] = { date: day, weight_kg: Number(e.weight_kg) }
-                    return acc
-                }, {})
-            )
-            const weightEntries: WeightEntry[] = dedupedWeights.map((entry, i) => {
-                const windowStart = new Date(entry.date)
-                windowStart.setDate(windowStart.getDate() - 6)
-                const windowEntries = dedupedWeights
-                    .slice(0, i + 1)
-                    .filter(e => new Date(e.date) >= windowStart)
-                const avg = windowEntries.reduce((sum, e) => sum + e.weight_kg, 0) / windowEntries.length
-                return {
-                    date: entry.date,
-                    kg: entry.weight_kg,
-                    avg: Math.round(avg * 10) / 10,
-                }
-            })
-
             setWorkouts(processed)
             setFavoriteExercise(favorite)
             setPersonalRecords(prs)
@@ -458,11 +432,11 @@ export default function Stats(): React.JSX.Element {
             setExerciseProgressData(progressMap)
             setExerciseSessionMap(exSessionMapArr)
             setProgressSessions(progressSessionList)
-            setWeightLog(weightEntries)
-            setLoading(false)
+            setLoadingDetails(false)
         }
 
         setLoading(true)
+        setLoadingDetails(true)
         load()
         return () => { cancelled = true }
     }, [isActive, effectiveRole])
@@ -722,8 +696,8 @@ export default function Stats(): React.JSX.Element {
         setDeletingId(id)
         closeModal()
         await new Promise(r => setTimeout(r, 520))
-        await supabase.from('workout_sets').delete().eq('workout_id', id)
-        await supabase.from('workouts').delete().eq('id', id)
+        await supabase.from(DB.WORKOUT_SETS).delete().eq('workout_id', id)
+        await supabase.from(DB.WORKOUTS).delete().eq('id', id)
         setWorkouts(prev => prev.filter(w => w.id !== id))
         setDeletingId(null)
     }
@@ -838,12 +812,12 @@ export default function Stats(): React.JSX.Element {
                             </div>
                             <div className={styles.heroDivider} />
                             <div className={styles.heroStat}>
-                                <div className={styles.heroValue}>{totalSets}</div>
+                                <div className={styles.heroValue}>{loadingDetails ? <Skeleton width={36} height={20} /> : totalSets}</div>
                                 <div className={styles.heroLabel}>{t('sets')}</div>
                             </div>
                             <div className={styles.heroDivider} />
                             <div className={styles.heroStat}>
-                                <div className={styles.heroValueSmall}>{formatWeight(Math.round(totalVolume), weightUnit)}</div>
+                                <div className={styles.heroValueSmall}>{loadingDetails ? <Skeleton width={80} height={20} /> : formatWeight(Math.round(totalVolume), weightUnit)}</div>
                                 <div className={styles.heroLabel}>{t('Volume')}</div>
                             </div>
                         </div>
@@ -938,7 +912,7 @@ export default function Stats(): React.JSX.Element {
                                     {/* Raw entries as dots only */}
                                     <Line type="monotone" dataKey="kg" stroke="transparent" dot={{ r: 3, fill: '#ff5c35', strokeWidth: 0 }} activeDot={{ r: 4, fill: '#ff5c35' }} isAnimationActive={false} />
                                     {/* 7-day rolling average as smooth line */}
-                                    <Line type="monotone" dataKey="avg" stroke="#e8197d" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                                    <Line type="monotone" dataKey="avg" stroke={COLOR_KCAL} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -961,7 +935,7 @@ export default function Stats(): React.JSX.Element {
                                     <defs>
                                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#ff5c35" stopOpacity={0.9} />
-                                            <stop offset="100%" stopColor="#e8197d" stopOpacity={0.7} />
+                                            <stop offset="100%" stopColor={COLOR_KCAL} stopOpacity={0.7} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
@@ -1034,9 +1008,13 @@ export default function Stats(): React.JSX.Element {
 
                     {personalRecords.length > 0 && (
                         <>
-                            <div className={styles.sectionHeader} style={{ marginTop: 32 }}>{t('Personal Records')}</div>
+                            <div className={styles.sectionHeader} style={{ marginTop: 32, marginBottom: 8 }}>{t('Personal Records')}</div>
+                            <div className={styles.sessionChartTabs} style={{ marginBottom: 12 }}>
+                                <button type="button" className={`${styles.exerciseTab} ${prSort === 'weight' ? styles.sessionTabActive : ''}`} onClick={() => setPrSort('weight')}>{t('Weight')}</button>
+                                <button type="button" className={`${styles.exerciseTab} ${prSort === 'name' ? styles.sessionTabActive : ''}`} onClick={() => setPrSort('name')}>{t('Name')}</button>
+                            </div>
                             <div className={styles.prList}>
-                                {(showAllPRs ? personalRecords : personalRecords.slice(0, 5)).map((pr, i) => (
+                                {[...personalRecords].sort((a, b) => prSort === 'name' ? a.name.localeCompare(b.name) : b.kg - a.kg).map((pr, i) => (
                                     <button key={i} type="button" className={`${styles.prRow} ${prWorkoutMap[pr.name] ? styles.prRowClickable : ''}`}
                                         onClick={() => { const wkId = prWorkoutMap[pr.name]; if (wkId) { const w = workouts.find(w => w.id === wkId); if (w) openModal(w) } }}
                                     >
@@ -1044,11 +1022,6 @@ export default function Stats(): React.JSX.Element {
                                         <span className={styles.prValue}>{formatWeight(pr.kg, weightUnit)}</span>
                                     </button>
                                 ))}
-                                {!showAllPRs && personalRecords.length > 5 && (
-                                    <button type="button" className={styles.showMoreBtn} onClick={() => setShowAllPRs(true)}>
-                                        {t('Show all')} ({personalRecords.length})
-                                    </button>
-                                )}
                             </div>
                         </>
                     )}

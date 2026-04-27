@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { STORAGE } from '../constants/storage'
 
 type Theme = 'light' | 'dark'
 
@@ -14,11 +15,11 @@ interface ThemeProviderProps {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
 export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) ?? 'light')
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(STORAGE.THEME) as Theme) ?? 'light')
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
+    localStorage.setItem(STORAGE.THEME, theme)
   }, [theme])
 
   const toggle = (): void => setTheme(t => t === 'light' ? 'dark' : 'light')
