@@ -10,7 +10,6 @@
   "Check your email": "Kolla din mail",
   "We sent a confirmation link to <strong>{{email}}</strong>. Click the link in the email to activate your account and log in.": "Vi har skickat en bekräftelselänk till <strong>{{email}}</strong>. Klicka på länken i mailet för att aktivera ditt konto och sedan logga in.",
   "Back to login": "Tillbaka till inloggning",
-
   "Training": "Träning",
   "Week": "Vecka",
   "Weight": "Vikt",
@@ -21,7 +20,6 @@
   "Show all": "Visa alla",
   "Privacy Policy": "Integritetspolicy",
   "Terms of Service": "Användarvillkor",
-
   "PROFILE": "PROFIL",
   "Welcome —<br/>fill in your profile": "Välkommen —<br/>fyll i din profil",
   "This information is used to calculate calories, macros and weight goals.": "Uppgifterna används för att beräkna kalorier, makros och viktmål.",
@@ -40,7 +38,6 @@
   "Get started": "Kom igång",
   "Please fill in first name, last name and birthday.": "Fyll i förnamn, efternamn och födelsedag.",
   "Please fill in current weight, goal weight and height.": "Fyll i nuvarande vikt, målvikt och längd.",
-
   "Personal information": "Personuppgifter",
   "Edit": "Redigera",
   "Done": "Klar",
@@ -101,14 +98,28 @@
   "Language": "Språk",
   "Svenska": "Svenska",
   "English": "English",
-
   "Delete": "Ta bort",
   "Add": "Lägg till",
   "Create": "Skapa",
-
   "Training sessions": "Träningspass",
-  "dayAbbrev": ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"],
-  "dayFull": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"],
+  "dayAbbrev": [
+    "Mån",
+    "Tis",
+    "Ons",
+    "Tor",
+    "Fre",
+    "Lör",
+    "Sön"
+  ],
+  "dayFull": [
+    "Måndag",
+    "Tisdag",
+    "Onsdag",
+    "Torsdag",
+    "Fredag",
+    "Lördag",
+    "Söndag"
+  ],
   "Exercise": "Övning",
   "Delete <strong>{{name}}</strong>? This cannot be undone.": "Ta bort <strong>{{name}}</strong>? Detta går inte att ångra.",
   "Delete <strong>{{name}}</strong> and all its exercises? This cannot be undone.": "Ta bort <strong>{{name}}</strong> och alla dess övningar? Detta går inte att ångra.",
@@ -124,9 +135,7 @@
   "Edit session": "Redigera pass",
   "New session": "Nytt pass",
   "New week": "Ny vecka",
-  "New exercise": "Ny övning",
   "Edit week": "Redigera vecka",
-  "Add": "Lägg till",
   "Countdown sound": "Nedräkningsljud",
   "Voice (5-4-3-2-1)": "Röst (5-4-3-2-1)",
   "Voice": "Röst",
@@ -153,11 +162,17 @@
   "Add session": "Lägg till pass",
   "Exercise name…": "Övningsnamn…",
   "+ Add exercise": "+ Lägg till övning",
-
   "Weekly overview": "Veckoöversikt",
-  "dayNames": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"],
+  "dayNames": [
+    "Måndag",
+    "Tisdag",
+    "Onsdag",
+    "Torsdag",
+    "Fredag",
+    "Lördag",
+    "Söndag"
+  ],
   "REST": "VILA",
-
   "Food & Nutrition": "Mat & Näring",
   "New meal": "Ny måltid",
   "Edit meal": "Redigera måltid",
@@ -220,7 +235,6 @@
   "Workout timers": "Träningstider",
   "Used to calculate BMR, TDEE and macro targets.": "Används för att beräkna BMR, TDEE och makromål.",
   "You can change these later in settings.": "Du kan ändra dessa senare i inställningar.",
-  "Next": "Nästa",
   "Back": "Tillbaka",
   "Gender": "Kön",
   "Gender *": "Kön *",
@@ -288,37 +302,151 @@
   "Dose": "Dos",
   "Recommendation": "Rekommendation",
   "Time": "Tid",
-
   "trainMeals": [
-    { "time": "07:00", "label": "Frukost", "food": "1 dl kvarg (140g) + 1 dl proteinpulver (30g whey) + 1 dl havregryn (40g) + 1 dl mjölk 3% (100ml)", "p": "46g", "k": "38g", "f": "8g", "kcal": 405 },
-    { "time": "10:30", "label": "Mellanmål", "food": "1 kokt ägg + 1 äpple + 10 mandlar", "p": "12g", "k": "21g", "f": "15g", "kcal": 267 },
-    { "time": "13:00", "label": "Lunch", "food": "300g kycklingfilé (ugn) + 150g sötpotatis + stor sallad + 1 msk olivolja", "p": "72g", "k": "32g", "f": "23g", "kcal": 624 },
-    { "time": "15:30", "label": "Mellanmål", "food": "2 kokta ägg + 1 äpple + 10 mandlar", "p": "19g", "k": "21g", "f": "21g", "kcal": 348 },
-    { "time": "Efter pass", "label": "Protein", "food": "1 dl whey (30g) i vatten/mjölk. Kreatin (5g) kan tas här.", "p": "23g", "k": "2g", "f": "2g", "kcal": 114 },
-    { "time": "19:00", "label": "Middag", "food": "200g lax/torsk/nöt + 100g quinoa/ris + broccoli/zucchini", "p": "46g", "k": "29g", "f": "21g", "kcal": 489 },
-    { "time": "21:00", "label": "Kvällsmål", "food": "200g kvarg + 100g bär (frysta OK) + 30g proteinpulver (i kvargen)", "p": "44g", "k": "16g", "f": "2g", "kcal": 260 }
+    {
+      "time": "07:00",
+      "label": "Frukost",
+      "food": "1 dl kvarg (140g) + 1 dl proteinpulver (30g whey) + 1 dl havregryn (40g) + 1 dl mjölk 3% (100ml)",
+      "p": "46g",
+      "k": "38g",
+      "f": "8g",
+      "kcal": 405
+    },
+    {
+      "time": "10:30",
+      "label": "Mellanmål",
+      "food": "1 kokt ägg + 1 äpple + 10 mandlar",
+      "p": "12g",
+      "k": "21g",
+      "f": "15g",
+      "kcal": 267
+    },
+    {
+      "time": "13:00",
+      "label": "Lunch",
+      "food": "300g kycklingfilé (ugn) + 150g sötpotatis + stor sallad + 1 msk olivolja",
+      "p": "72g",
+      "k": "32g",
+      "f": "23g",
+      "kcal": 624
+    },
+    {
+      "time": "15:30",
+      "label": "Mellanmål",
+      "food": "2 kokta ägg + 1 äpple + 10 mandlar",
+      "p": "19g",
+      "k": "21g",
+      "f": "21g",
+      "kcal": 348
+    },
+    {
+      "time": "Efter pass",
+      "label": "Protein",
+      "food": "1 dl whey (30g) i vatten/mjölk. Kreatin (5g) kan tas här.",
+      "p": "23g",
+      "k": "2g",
+      "f": "2g",
+      "kcal": 114
+    },
+    {
+      "time": "19:00",
+      "label": "Middag",
+      "food": "200g lax/torsk/nöt + 100g quinoa/ris + broccoli/zucchini",
+      "p": "46g",
+      "k": "29g",
+      "f": "21g",
+      "kcal": 489
+    },
+    {
+      "time": "21:00",
+      "label": "Kvällsmål",
+      "food": "200g kvarg + 100g bär (frysta OK) + 30g proteinpulver (i kvargen)",
+      "p": "44g",
+      "k": "16g",
+      "f": "2g",
+      "kcal": 260
+    }
   ],
   "restMeals": [
-    { "time": "07:00", "label": "Frukost", "food": "1 dl kvarg (140g) + 1 dl proteinpulver (30g whey) + 1 dl havregryn (40g) + 1 dl mjölk 3% (100ml)", "p": "46g", "k": "38g", "f": "8g", "kcal": 405 },
-    { "time": "10:30", "label": "Mellanmål", "food": "1 kokt ägg + 1 äpple", "p": "8g", "k": "18g", "f": "6g", "kcal": 157 },
-    { "time": "13:00", "label": "Lunch", "food": "300g kycklingfilé (ugn) + stor sallad + 1 msk olivolja", "p": "70g", "k": "3g", "f": "23g", "kcal": 499, "note": "(skippa sötpotatisen)" },
-    { "time": "15:30", "label": "Mellanmål", "food": "2 kokta ägg + 1 äpple", "p": "15g", "k": "19g", "f": "11g", "kcal": 238 },
-    { "time": "19:00", "label": "Middag", "food": "200g lax/torsk/nöt + 75g quinoa/ris + broccoli/zucchini", "p": "45g", "k": "23g", "f": "21g", "kcal": 462, "note": "(halv portion ris)" },
-    { "time": "21:00", "label": "Kvällsmål", "food": "200g kvarg + 100g bär + 30g proteinpulver (i kvargen)", "p": "44g", "k": "16g", "f": "2g", "kcal": 260 }
+    {
+      "time": "07:00",
+      "label": "Frukost",
+      "food": "1 dl kvarg (140g) + 1 dl proteinpulver (30g whey) + 1 dl havregryn (40g) + 1 dl mjölk 3% (100ml)",
+      "p": "46g",
+      "k": "38g",
+      "f": "8g",
+      "kcal": 405
+    },
+    {
+      "time": "10:30",
+      "label": "Mellanmål",
+      "food": "1 kokt ägg + 1 äpple",
+      "p": "8g",
+      "k": "18g",
+      "f": "6g",
+      "kcal": 157
+    },
+    {
+      "time": "13:00",
+      "label": "Lunch",
+      "food": "300g kycklingfilé (ugn) + stor sallad + 1 msk olivolja",
+      "p": "70g",
+      "k": "3g",
+      "f": "23g",
+      "kcal": 499,
+      "note": "(skippa sötpotatisen)"
+    },
+    {
+      "time": "15:30",
+      "label": "Mellanmål",
+      "food": "2 kokta ägg + 1 äpple",
+      "p": "15g",
+      "k": "19g",
+      "f": "11g",
+      "kcal": 238
+    },
+    {
+      "time": "19:00",
+      "label": "Middag",
+      "food": "200g lax/torsk/nöt + 75g quinoa/ris + broccoli/zucchini",
+      "p": "45g",
+      "k": "23g",
+      "f": "21g",
+      "kcal": 462,
+      "note": "(halv portion ris)"
+    },
+    {
+      "time": "21:00",
+      "label": "Kvällsmål",
+      "food": "200g kvarg + 100g bär + 30g proteinpulver (i kvargen)",
+      "p": "44g",
+      "k": "16g",
+      "f": "2g",
+      "kcal": 260
+    }
   ],
   "supplements": [
-    { "name": "Kreatin monohydrat", "dose": "5 g/dag", "info": "Timing spelar ingen roll — ta det när det passar. Ingen laddningsfas behövs. Kör konsekvent varje dag, även vilodagar." },
-    { "name": "Whey 100 (post-workout)", "dose": "1 dl (~30g)", "info": "Drick inom 1–2h efter träning. På vilodagar ingår det i kvällsmålet (i kvargen)." },
-    { "name": "Vatten", "dose": "3+ liter/dag", "info": "Kreatin ökar vattenbehovet. Tecken på underfuktning: trötthet, sämre prestanda, hunger." }
+    {
+      "name": "Kreatin monohydrat",
+      "dose": "5 g/dag",
+      "info": "Timing spelar ingen roll — ta det när det passar. Ingen laddningsfas behövs. Kör konsekvent varje dag, även vilodagar."
+    },
+    {
+      "name": "Whey 100 (post-workout)",
+      "dose": "1 dl (~30g)",
+      "info": "Drick inom 1–2h efter träning. På vilodagar ingår det i kvällsmålet (i kvargen)."
+    },
+    {
+      "name": "Vatten",
+      "dose": "3+ liter/dag",
+      "info": "Kreatin ökar vattenbehovet. Tecken på underfuktning: trötthet, sämre prestanda, hunger."
+    }
   ],
-
-  "Tips": "Tips",
   "Creatine": "Kreatin",
   "creatineTip": "{{dose}} g/dag (0.07 × {{weight}} kg) — ta det när det passar. Ingen laddningsfas behövs. Kör konsekvent varje dag.",
   "proteinTip": "{{min}}–{{max}} g/dag baserat på din vikt. Sprid över dagens måltider.",
   "waterTip": "Minst {{liters}} liter/dag. Kreatin ökar behovet. Trötthet och hunger kan vara tecken på för lite.",
   "sleepTip": "Sikta på {{hours}} timmar. Musklerna återhämtar sig under sömnen.",
-
   "Weight & Calories": "Vikt & Kalorier",
   "Start weight": "Startvikt",
   "Current weight": "Aktuell vikt",
@@ -347,13 +475,11 @@
   "Current ({{weight}} kg)": "Nuvarande ({{weight}} kg)",
   "Change goal weight": "Ändra målvikt",
   "Current goal ({{goal}} kg)": "Nuvarande mål ({{goal}} kg)",
-
   "Calorie calculation & Macros": "Kaloriberäkning & Makros",
   "BMR (Mifflin-St Jeor)": "BMR (Mifflin-St Jeor)",
   "TDEE (factor 1.55)": "TDEE (faktor 1.55)",
   "Training day total": "Träningsdag totalt",
   "Actual meal plan": "Faktiskt matschema",
-
   "Periodization": "Periodisering",
   "Progressive overload": "Progressiv överlastning",
   "If you can do more reps than the upper range with good form → increase the weight next time. Add 1.25–2.5 kg for upper body, 2.5–5 kg for legs. Always log your weights.": "Klara du fler reps än övre intervallet med bra teknik → höj vikten nästa gång. Öka med 1.25–2.5 kg för överkropp, 2.5–5 kg för ben. Logga alltid dina vikter.",
@@ -371,28 +497,23 @@
   "Diet during deload": "Kost under deload",
   "Maintenance": "Underhåll",
   "Eating a bit more supports recovery": "Äta lite mer stödjer återhämtning",
-
   "goal_bulk": "Bulk",
   "goal_cut": "Cutta",
   "goal_maintain": "Underhåll",
   "Personalized for": "Anpassat för",
   "General tips": "Generella tips",
-
   "Eat <strong>250–500 kcal above TDEE</strong> — enough surplus for muscle growth without excessive fat gain.": "Ät <strong>250–500 kcal över TDEE</strong> — tillräckligt överskott för muskeluppbyggnad utan för mycket fettökning.",
   "Keep protein at <strong>1.6–2.2 g/kg</strong> even in a bulk — muscles need building blocks to grow.": "Håll proteinet på <strong>1.6–2.2 g/kg</strong> även vid bulk — muskler behöver byggstenar för att växa.",
   "<strong>Progressive overload is essential</strong> when bulking — track every session and aim to beat your last.": "<strong>Progressiv överlastning är avgörande</strong> vid bulk — logga varje pass och försök slå ditt senaste.",
   "Don't skip cardio — <strong>2×20 min light cardio/week</strong> supports heart health and speeds up recovery.": "Hoppa inte över kardio — <strong>2×20 min lätt kardio/vecka</strong> stödjer hjärthälsa och påskyndar återhämtningen.",
-
   "Keep protein <strong>high (2–2.5 g/kg)</strong> to preserve muscle mass while in a calorie deficit.": "Håll proteinet <strong>högt (2–2.5 g/kg)</strong> för att bevara muskelmassa vid kaloriunderskott.",
   "<strong>0.3–0.5 kg/week</strong> is the sweet spot — faster and you risk losing muscle, not just fat.": "<strong>0.3–0.5 kg/vecka</strong> är rätt takt — snabbare och du riskerar att förlora muskler, inte bara fett.",
   "Keep carbs higher around workouts and lower on rest days — <strong>fuel your training, not your couch time</strong>.": "Håll kolhydraterna höga kring träning och lägre på vilodagar — <strong>bränsle till passen, inte soffan</strong>.",
   "Strength may dip slightly during a cut — that's normal. <strong>Avoid chasing new PRs</strong> when in deficit.": "Styrkan kan sjunka lite vid cuttning — det är normalt. <strong>Jaga inte nya PR:s</strong> vid kaloriunderskott.",
-
   "Body recomposition is possible at maintenance — <strong>slow muscle gain and fat loss simultaneously</strong>.": "Body recomposition är möjligt vid underhåll — <strong>gradvis muskelökning och fettminskning samtidigt</strong>.",
   "Shift focus to <strong>performance goals</strong> — strength, reps, endurance — rather than the scale.": "Flytta fokus till <strong>prestationsmål</strong> — styrka, reps, uthållighet — istället för vågen.",
   "Protein still matters at maintenance — <strong>1.6–2.0 g/kg</strong> keeps you in an anabolic state.": "Protein är fortfarande viktigt vid underhåll — <strong>1.6–2.0 g/kg</strong> håller dig i ett anabolt tillstånd.",
   "Track food occasionally to make sure you're truly at maintenance — <strong>not accidentally cutting or bulking</strong>.": "Logga maten ibland för att kontrollera att du verkligen är på underhållsnivå — <strong>inte omedvetet cutting eller bulking</strong>.",
-
   "Tips & periodization": "Tips & periodisering",
   "Recovery takes longer. <strong>7–9 hours of sleep</strong> is just as important as training.": "Återhämtning tar längre tid. <strong>7–9 timmars sömn</strong> är lika viktigt som träningen.",
   "<strong>5–10 min light cardio</strong> + dynamic stretching before the session. Always warm up properly.": "<strong>5–10 min lätt kardio</strong> + dynamisk stretch före passet. Värm alltid upp ordentligt.",
@@ -403,18 +524,15 @@
   "Photos and how your clothes fit are <strong>better metrics</strong> than just the number on the scale.": "Foton och hur kläderna sitter är <strong>bättre mätvärden</strong> än bara kilo på vågen.",
   "With 17 kg to lose you can expect <strong>6–12 months</strong> at 0.3–0.5 kg/week — realistic and sustainable.": "Med 17 kg att tappa kan du räkna med <strong>6–12 månader</strong> om du håller 0.3–0.5 kg/vecka — realistiskt och hållbart.",
   "This plan is a suggestion based on the provided information. Consult a doctor or certified nutritionist before making major dietary changes.": "Denna plan är ett förslag baserat på angivna uppgifter. Konsultera läkare eller certifierad kostrådgivare vid stora kostförändringar.",
-
   "Hi": "Hej",
   "Training & Diet Plan": "Tränings- & Kostplan",
   "{{diff}} kg since start": "{{diff}} kg sedan start",
-
   "exerciseCount_one": "{{count}} övning",
   "exerciseCount_other": "{{count}} övningar",
   "trainingDaysCount_one": "{{count}} träningsdag",
   "trainingDaysCount_other": "{{count}} träningsdagar",
   "totalExercisesCount_one": "{{count}} övning totalt",
   "totalExercisesCount_other": "{{count}} övningar totalt",
-
   "Stats": "Statistik",
   "Training statistics": "Träningsstatistik",
   "Workout History": "Träningshistorik",
@@ -464,6 +582,7 @@
   "Coming soon": "Kommer snart",
   "Maybe later": "Kanske senare",
   "Search food database — Standard required": "Sök i livsmedel — kräver Standard",
+<<<<<<< HEAD
 
   "Coach": "Coach",
   "AI Coach": "AI Coach",
@@ -490,3 +609,25 @@
   "Analyzing photo...": "Analyserar foto...",
   "Could not analyze photo": "Kunde inte analysera fotot"
 }
+=======
+  "Theme": "Tema",
+  "Light": "Ljust",
+  "Dark": "Mörkt",
+  "We sent a 6-digit code to {{email}}.": "Vi skickade en 6-siffrig kod till {{email}}.",
+  "Code (6 digits)": "Kod (6 siffror)",
+  "Confirm": "Bekräfta",
+  "Resend code": "Skicka ny kod",
+  "Code sent!": "Kod skickad!",
+  "Invalid or expired code.": "Ogiltig eller utgången kod.",
+  "agreeTerms": "Jag godkänner <termsLink>användarvillkoren</termsLink>",
+  "Contact support": "Kontakta support",
+  "Subject": "Ämne",
+  "Technical problem": "Tekniskt problem",
+  "Feedback": "Feedback",
+  "Other": "Övrigt",
+  "Your message": "Ditt meddelande",
+  "Send": "Skicka",
+  "Message sent! We will get back to you.": "Meddelande skickat! Vi återkommer.",
+  "Manage subscription": "Hantera prenumeration"
+}
+>>>>>>> 93bc2e9bfedf47eae0ad92dbab5b53ba918fdd58

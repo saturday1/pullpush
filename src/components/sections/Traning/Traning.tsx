@@ -12,10 +12,13 @@ import MinimizeIcon from '../../icons/Normal/MinimizeIcon'
 import MaximizeIcon from '../../icons/Normal/MaximizeIcon'
 import PlayIcon from '../../icons/Normal/PlayIcon'
 import UndoIcon from '../../icons/Normal/UndoIcon'
-import { useWeightUnit, formatWeight, formatWeightJsx, toLbs as toLbsShared } from '../../../hooks/useWeightUnit'
+import { useWeightUnit, formatWeight, formatWeightJsx } from '../../../hooks/useWeightUnit'
+import { KG_TO_LBS } from '../../../constants/units'
 import { useFlowSounds, getCountdownLength, getCountdownStyle } from '../../../hooks/useFlowSounds'
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock'
 import { useSubscription } from '../../../context/SubscriptionContext'
+import { DB } from '../../../constants/database'
+import { STORAGE } from '../../../constants/storage'
 
 interface RestTimerPlugin {
   start(options: { seconds: number; label?: string; endTime?: number }): Promise<void>
@@ -94,7 +97,6 @@ interface SessionData {
 
 // --- Constants ---
 
-const KG_TO_LBS: number = 2.20462
 const toKg  = (lbs: number): number => +(lbs / KG_TO_LBS).toFixed(2)
 const toLbs = (kg: number): number  => +(kg  * KG_TO_LBS).toFixed(1)
 
@@ -868,27 +870,27 @@ export default function Traning(): React.JSX.Element {
   const sensors = useSensors(pointerSensor, touchSensor)
   const todayStr = (): string => new Date().toISOString().slice(0, 10)
   const [activeTab, setActiveTab] = useState<string | null>(() => {
-    if (localStorage.getItem('pullpush_activeDate') === todayStr()) return localStorage.getItem('pullpush_activeTab')
+    if (localStorage.getItem(STORAGE.ACTIVE_DATE) === todayStr()) return localStorage.getItem(STORAGE.ACTIVE_TAB)
     return null
   })
   const [exercises,        setExercises]        = useState<Record<string, Exercise[]>>({})
   const [logs,             setLogs]             = useState<Record<string, ExerciseLog>>({})
   const [lastDone,         setLastDone]         = useState<Record<string, ExerciseLastDone>>({})
-  const [deloadMode,       setDeloadMode]       = useState(() => localStorage.getItem('deload') === '1')
+  const [deloadMode,       setDeloadMode]       = useState(() => localStorage.getItem(STORAGE.DELOAD_MODE) === '1')
   const [individualSets,  setIndividualSets]   = useState<Record<string, SetPlan[]>>({})
-  const [editMode,         setEditModeRaw]      = useState<boolean>(() => localStorage.getItem('pullpush_editMode') === 'true')
+  const [editMode,         setEditModeRaw]      = useState<boolean>(() => localStorage.getItem(STORAGE.EDIT_MODE) === 'true')
   const setEditMode = (v: boolean | ((prev: boolean) => boolean)): void => {
     setEditModeRaw(prev => {
       const next = typeof v === 'function' ? v(prev) : v
-      localStorage.setItem('pullpush_editMode', String(next))
+      localStorage.setItem(STORAGE.EDIT_MODE, String(next))
       return next
     })
   }
   const [addingExercise,   setAddingExercise]   = useState<boolean>(false)
   const [pickerDay,        setPickerDay]        = useState<number | null>(null)
   const [selectedRestDow, setSelectedRestDow] = useState<number | null>(() => {
-    if (localStorage.getItem('pullpush_activeDate') === todayStr()) {
-      const v = localStorage.getItem('pullpush_selectedRestDow')
+    if (localStorage.getItem(STORAGE.ACTIVE_DATE) === todayStr()) {
+      const v = localStorage.getItem(STORAGE.SELECTED_REST_DOW)
       return v ? Number(v) : null
     }
     return null
@@ -915,9 +917,10 @@ export default function Traning(): React.JSX.Element {
   const [countdownOverlay, setCountdownOverlay] = useState<number | null>(null)
   const [paused,           setPaused]           = useState<boolean>(false)
   const [timerMinimized,   setTimerMinimized]   = useState<boolean>(false)
-  const [autoplay,         setAutoplay]         = useState<boolean>(() => localStorage.getItem('pullpush_autoplay') === 'true')
+  const [autoplay,         setAutoplay]         = useState<boolean>(() => localStorage.getItem(STORAGE.AUTOPLAY) === 'true')
   const [fabMenuOpen,      setFabMenuOpen]      = useState<boolean>(false)
   const autoplayRef = useRef(autoplay)
+  const logsRef = useRef(logs)
   const completedSetsRef = useRef(completedSets)
   const pausedRemainRef = useRef<number>(0)
   const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
@@ -1048,7 +1051,7 @@ export default function Traning(): React.JSX.Element {
   async function startExerciseTimer(ex: Exercise): Promise<void> {
     flowSounds.warmUp() // Unlock AudioContext during user gesture
     setTimerMinimized(false)
-    const log = logs[ex.id]
+    const log = logsRef.current[ex.id]
     const indPlans = individualSets[ex.id]
     const currentSet = (completedSetsRef.current[ex.id] ?? 0) + 1
 
@@ -1073,11 +1076,11 @@ export default function Traning(): React.JSX.Element {
     }
     if (!wId && userId && activeTab && activeProgramId) {
       // Clean up old unfinished workouts
-      await supabase.from('workouts').delete().eq('user_id', userId).is('completed_at', null)
+      await supabase.from(DB.WORKOUTS).delete().eq('user_id', userId).is('completed_at', null)
 
       // Snapshot session name so renames don't change history
       const currentSession = sessions.find((s: TrainingSession) => s.id === activeTab)
-      const { data, error } = await supabase.from('workouts').insert({
+      const { data, error } = await supabase.from(DB.WORKOUTS).insert({
         user_id: userId,
         session_id: activeTab,
         session_name: currentSession?.name ?? null,
@@ -1215,7 +1218,7 @@ export default function Traning(): React.JSX.Element {
       timerRef.current = null
       setTimerPhase(null)
       setTimerExId(null)
-      localStorage.removeItem('pullpush_activeFlow')
+      localStorage.removeItem(STORAGE.ACTIVE_FLOW)
       try { RestTimer?.stop() } catch {}
 
       // Autoplay: start next set or next exercise
@@ -1247,7 +1250,7 @@ export default function Traning(): React.JSX.Element {
     if (phase === 'countdown') {
       // Persist so a crash during countdown keeps the workout row alive on restart
       try {
-        localStorage.setItem('pullpush_activeFlow', JSON.stringify({
+        localStorage.setItem(STORAGE.ACTIVE_FLOW, JSON.stringify({
           wId: wId ?? '', exId, currentSet, setsTotal, kg, reps, phase, phaseEndAbs, step, plan,
         }))
       } catch {}
@@ -1291,7 +1294,7 @@ export default function Traning(): React.JSX.Element {
 
     // Persist flow state so we can recover after iOS kills the WKWebView
     try {
-      localStorage.setItem('pullpush_activeFlow', JSON.stringify({
+      localStorage.setItem(STORAGE.ACTIVE_FLOW, JSON.stringify({
         wId: wId ?? '', exId, currentSet, setsTotal, kg, reps, phase, phaseEndAbs, step, plan,
       }))
     } catch {}
@@ -1302,7 +1305,7 @@ export default function Traning(): React.JSX.Element {
       setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
       if (wId) {
         void (async () => {
-          const { error } = await supabase.from('workout_sets').upsert({
+          const { error } = await supabase.from(DB.WORKOUT_SETS).upsert({
             workout_id: wId, exercise_id: exId, set_number: currentSet, kg, reps,
           }, { onConflict: 'workout_id,exercise_id,set_number' })
           if (error) console.error('workout_sets upsert failed', error)
@@ -1434,7 +1437,7 @@ export default function Traning(): React.JSX.Element {
         if (phase === 'work') {
           setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
           if (wId) {
-            supabase.from('workout_sets').insert({
+            supabase.from(DB.WORKOUT_SETS).insert({
               workout_id: wId, exercise_id: exId, set_number: currentSet, kg, reps,
             }).then(() => {})
           }
@@ -1454,7 +1457,7 @@ export default function Traning(): React.JSX.Element {
     setTimerExId(null)
     setPaused(false)
     pausedPlanRef.current = null
-    localStorage.removeItem('pullpush_activeFlow')
+    localStorage.removeItem(STORAGE.ACTIVE_FLOW)
     try { RestTimer?.stop() } catch {}
     try { LocalNotifications.cancel({ notifications: [{ id: 2 }] }) } catch {}
   }
@@ -1473,7 +1476,7 @@ export default function Traning(): React.JSX.Element {
         const kg = ctx?.kg ?? exLog?.kg ?? null
         const reps = ctx?.reps ?? exLog?.reps ?? 10
         setCompletedSets(prev => ({ ...prev, [exId]: currentSet }))
-        await supabase.from('workout_sets').insert({
+        await supabase.from(DB.WORKOUT_SETS).insert({
           workout_id: workoutId, exercise_id: exId, set_number: currentSet, kg, reps,
         })
       }
@@ -1484,7 +1487,7 @@ export default function Traning(): React.JSX.Element {
       // If set was already saved (rest phase), undo it
       if (currentPhase === 'rest') {
         setCompletedSets(prev => ({ ...prev, [exId]: Math.max(0, currentSet - 1) }))
-        await supabase.from('workout_sets')
+        await supabase.from(DB.WORKOUT_SETS)
           .delete()
           .eq('workout_id', workoutId)
           .eq('exercise_id', exId)
@@ -1503,12 +1506,12 @@ export default function Traning(): React.JSX.Element {
     stopExerciseTimer()
     if (workoutId) {
       if (save) {
-        await supabase.from('workouts').update({ completed_at: new Date().toISOString() }).eq('id', workoutId)
+        await supabase.from(DB.WORKOUTS).update({ completed_at: new Date().toISOString() }).eq('id', workoutId)
         // Find next session day name
         const nextDayName = dayFull[dayOfWeek - 1] ?? ''
         setShowCompleteModal(`${sessionName}|${nextDayName}`)
       } else {
-        await supabase.from('workouts').delete().eq('id', workoutId)
+        await supabase.from(DB.WORKOUTS).delete().eq('id', workoutId)
       }
     }
     setWorkoutId(null)
@@ -1524,7 +1527,7 @@ export default function Traning(): React.JSX.Element {
     setCompletedSets(next)
     // Delete from database
     if (workoutId) {
-      const { error } = await supabase.from('workout_sets')
+      const { error } = await supabase.from(DB.WORKOUT_SETS)
         .delete()
         .eq('workout_id', workoutId)
         .eq('exercise_id', exId)
@@ -1534,7 +1537,7 @@ export default function Traning(): React.JSX.Element {
       // If no sets remain across the entire workout, delete the workout instance
       const totalSetsRemaining = Object.values(next).reduce((sum, n) => sum + n, 0)
       if (totalSetsRemaining === 0) {
-        await supabase.from('workouts').delete().eq('id', workoutId)
+        await supabase.from(DB.WORKOUTS).delete().eq('id', workoutId)
         setWorkoutId(null)
         setWorkoutSessionId(null)
       }
@@ -1548,16 +1551,16 @@ export default function Traning(): React.JSX.Element {
   // Persist active tab + rest day selection with today's date
   useEffect(() => {
     const today = todayStr()
-    localStorage.setItem('pullpush_activeDate', today)
+    localStorage.setItem(STORAGE.ACTIVE_DATE, today)
     if (activeTab) {
-      localStorage.setItem('pullpush_activeTab', activeTab)
-      localStorage.removeItem('pullpush_selectedRestDow')
+      localStorage.setItem(STORAGE.ACTIVE_TAB, activeTab)
+      localStorage.removeItem(STORAGE.SELECTED_REST_DOW)
     } else if (selectedRestDow != null) {
-      localStorage.removeItem('pullpush_activeTab')
-      localStorage.setItem('pullpush_selectedRestDow', String(selectedRestDow))
+      localStorage.removeItem(STORAGE.ACTIVE_TAB)
+      localStorage.setItem(STORAGE.SELECTED_REST_DOW, String(selectedRestDow))
     } else {
-      localStorage.removeItem('pullpush_activeTab')
-      localStorage.removeItem('pullpush_selectedRestDow')
+      localStorage.removeItem(STORAGE.ACTIVE_TAB)
+      localStorage.removeItem(STORAGE.SELECTED_REST_DOW)
     }
   }, [activeTab, selectedRestDow])
 
@@ -1585,7 +1588,7 @@ export default function Traning(): React.JSX.Element {
     }
 
     const checkDayReset = () => {
-      if (localStorage.getItem('pullpush_activeDate') !== todayStr()) selectToday()
+      if (localStorage.getItem(STORAGE.ACTIVE_DATE) !== todayStr()) selectToday()
     }
 
     // Schedule reset at midnight
@@ -1603,13 +1606,17 @@ export default function Traning(): React.JSX.Element {
   }, [sessions])
 
   useEffect(() => {
-    localStorage.setItem('pullpush_autoplay', String(autoplay))
+    localStorage.setItem(STORAGE.AUTOPLAY, String(autoplay))
     autoplayRef.current = autoplay
   }, [autoplay])
 
   useEffect(() => {
     completedSetsRef.current = completedSets
   }, [completedSets])
+
+  useEffect(() => {
+    logsRef.current = logs
+  }, [logs])
 
   async function loadAll(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
@@ -1618,7 +1625,7 @@ export default function Traning(): React.JSX.Element {
     setExercisesLoading(true)
 
     const [{ data: exData }, { data: logData }] = await Promise.all([
-      supabase.from('exercises').select('*, exercise_catalog(name)').eq('user_id', user.id).order('sort_order'),
+      supabase.from(DB.EXERCISES).select('*, exercise_catalog(name)').eq('user_id', user.id).order('sort_order'),
       supabase.rpc('get_latest_exercise_logs', { p_user_id: user.id }),
     ])
 
@@ -1644,7 +1651,7 @@ export default function Traning(): React.JSX.Element {
 
     // Latest "done" date per exercise from workout_sets joined with workouts
     const { data: lastDoneData } = await supabase
-      .from('workout_sets')
+      .from(DB.WORKOUT_SETS)
       .select('exercise_id, reps, kg, workouts!inner(completed_at, user_id)')
       .eq('workouts.user_id', user.id)
       .not('workouts.completed_at', 'is', null)
@@ -1666,7 +1673,7 @@ export default function Traning(): React.JSX.Element {
     const allExIds = Object.values(grouped).flat().map(e => e.id)
     if (allExIds.length > 0) {
       const { data: planData } = await supabase
-        .from('exercise_set_plans')
+        .from(DB.EXERCISE_SET_PLANS)
         .select('exercise_id, set_number, reps, weight_kg')
         .in('exercise_id', allExIds)
         .order('set_number')
@@ -1682,7 +1689,7 @@ export default function Traning(): React.JSX.Element {
 
     // Resume unfinished workout if exists
     try {
-      const { data: openWorkouts, error: wErr } = await supabase.from('workouts')
+      const { data: openWorkouts, error: wErr } = await supabase.from(DB.WORKOUTS)
         .select('id, session_id, started_at')
         .eq('user_id', user.id)
         .is('completed_at', null)
@@ -1692,12 +1699,15 @@ export default function Traning(): React.JSX.Element {
 
       if (openWorkouts && openWorkouts.length > 0) {
         const openWorkout = openWorkouts[0] as { id: string; session_id: string | null; started_at: string | null }
-        const { data: sets, error: sErr } = await supabase.from('workout_sets')
+        const { data: sets, error: sErr } = await supabase.from(DB.WORKOUT_SETS)
           .select('exercise_id, set_number')
           .eq('workout_id', openWorkout.id)
-        if (sErr) console.error('workout_sets query failed', sErr)
-
-        if (sets && sets.length > 0) {
+        if (sErr) {
+          console.error('workout_sets query failed — keeping workout, skipping restore', sErr)
+          setWorkoutId(openWorkout.id)
+          setWorkoutSessionId(openWorkout.session_id)
+          if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
+        } else if (sets && sets.length > 0) {
           // Has actual sets — restore workout state
           const restored: Record<string, number> = {}
           for (const s of sets as Array<{ exercise_id: string | number; set_number: number }>) {
@@ -1710,7 +1720,7 @@ export default function Traning(): React.JSX.Element {
           if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
 
           // Restore active flow state if app was restarted mid-flow
-          const rawFlow = localStorage.getItem('pullpush_activeFlow')
+          const rawFlow = localStorage.getItem(STORAGE.ACTIVE_FLOW)
           if (rawFlow) {
             try {
               const flow = JSON.parse(rawFlow) as {
@@ -1724,7 +1734,7 @@ export default function Traning(): React.JSX.Element {
                 if (flow.phase === 'rest') {
                   const alreadySaved = (restored[flow.exId] ?? 0) >= flow.currentSet
                   if (!alreadySaved) {
-                    await supabase.from('workout_sets').upsert({
+                    await supabase.from(DB.WORKOUT_SETS).upsert({
                       workout_id: flow.wId, exercise_id: flow.exId,
                       set_number: flow.currentSet, kg: flow.kg, reps: flow.reps,
                     }, { onConflict: 'workout_id,exercise_id,set_number' })
@@ -1746,18 +1756,18 @@ export default function Traning(): React.JSX.Element {
                   setTimerSet(flow.currentSet)
                   runTimerStep(flow.plan, flow.step, flow.exId, flow.currentSet, flow.setsTotal, flow.kg, flow.reps, flow.wId)
                 } else {
-                  localStorage.removeItem('pullpush_activeFlow')
+                  localStorage.removeItem(STORAGE.ACTIVE_FLOW)
                 }
               } else {
-                localStorage.removeItem('pullpush_activeFlow')
+                localStorage.removeItem(STORAGE.ACTIVE_FLOW)
               }
             } catch {
-              localStorage.removeItem('pullpush_activeFlow')
+              localStorage.removeItem(STORAGE.ACTIVE_FLOW)
             }
           }
         } else {
           // Empty workout (0 sets) — check localStorage before deleting
-          const rawFlow = localStorage.getItem('pullpush_activeFlow')
+          const rawFlow = localStorage.getItem(STORAGE.ACTIVE_FLOW)
           let keptForFlow = false
           if (rawFlow) {
             try {
@@ -1783,15 +1793,15 @@ export default function Traning(): React.JSX.Element {
                   runTimerStep(flow.plan, flow.step, flow.exId, flow.currentSet, flow.setsTotal, flow.kg, flow.reps, flow.wId)
                 } else {
                   // Expired — workout stays open for next set, clear stale state
-                  localStorage.removeItem('pullpush_activeFlow')
+                  localStorage.removeItem(STORAGE.ACTIVE_FLOW)
                 }
                 keptForFlow = true
               }
             } catch { /* ignore */ }
           }
           if (!keptForFlow) {
-            await supabase.from('workouts').delete().eq('id', openWorkout.id)
-            localStorage.removeItem('pullpush_activeFlow')
+            await supabase.from(DB.WORKOUTS).delete().eq('id', openWorkout.id)
+            localStorage.removeItem(STORAGE.ACTIVE_FLOW)
           }
         }
       }
@@ -1802,13 +1812,13 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function handleLogSave(exerciseId: string, kg: number, sets: number | null, reps: number, unilateral: boolean = false): Promise<void> {
-    await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps, unilateral })
+    await supabase.from(DB.EXERCISE_LOG).insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps, unilateral })
     setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps, unilateral } }))
     setLogging(null)
   }
 
   async function handleSaveNote(exerciseId: string, noteText: string): Promise<void> {
-    await supabase.from('exercises').update({ note: noteText || null }).eq('id', exerciseId)
+    await supabase.from(DB.EXERCISES).update({ note: noteText || null }).eq('id', exerciseId)
     setExercises(prev => {
       const next = { ...prev }
       for (const key of Object.keys(next)) {
@@ -1819,9 +1829,9 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function handleSaveSetPlans(exerciseId: string, plans: SetPlan[]): Promise<void> {
-    await supabase.from('exercise_set_plans').delete().eq('exercise_id', exerciseId)
+    await supabase.from(DB.EXERCISE_SET_PLANS).delete().eq('exercise_id', exerciseId)
     if (plans.length > 0) {
-      await supabase.from('exercise_set_plans').insert(
+      await supabase.from(DB.EXERCISE_SET_PLANS).insert(
         plans.map(p => ({ exercise_id: exerciseId, set_number: p.set_number, reps: p.reps, weight_kg: p.weight_kg }))
       )
     }
@@ -1837,16 +1847,16 @@ export default function Traning(): React.JSX.Element {
     const trimmed = name.trim()
     if (!trimmed || trimmed === exercise.name) return
     let catalogId: number | null = null
-    const { data: existing } = await supabase.from('exercise_catalog')
+    const { data: existing } = await supabase.from(DB.EXERCISE_CATALOG)
       .select('id').ilike('name', trimmed).limit(1).single()
     if (existing) {
       catalogId = (existing as { id: number }).id
     } else {
-      const { data: created } = await supabase.from('exercise_catalog')
+      const { data: created } = await supabase.from(DB.EXERCISE_CATALOG)
         .insert({ name: trimmed }).select('id').single()
       if (created) catalogId = (created as { id: number }).id
     }
-    await supabase.from('exercises').update({ name: trimmed, catalog_id: catalogId }).eq('id', exercise.id)
+    await supabase.from(DB.EXERCISES).update({ name: trimmed, catalog_id: catalogId }).eq('id', exercise.id)
     setExercises(prev => ({
       ...prev,
       [exercise.session_id]: prev[exercise.session_id].map(e => e.id === exercise.id ? { ...e, name: trimmed, catalog_id: catalogId } : e),
@@ -1854,7 +1864,7 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function handleDelete(exercise: Exercise): Promise<void> {
-    await supabase.from('exercises').delete().eq('id', exercise.id)
+    await supabase.from(DB.EXERCISES).delete().eq('id', exercise.id)
     setExercises(prev => ({
       ...prev,
       [exercise.session_id]: prev[exercise.session_id].filter(e => e.id !== exercise.id),
@@ -1866,7 +1876,7 @@ export default function Traning(): React.JSX.Element {
     if (!trimmed || selectedCatalogId) { setCatalogResults([]); setShowCatalogDrop(false); return }
     const timer = setTimeout(async () => {
       const { data } = await supabase
-        .from('exercise_catalog')
+        .from(DB.EXERCISE_CATALOG)
         .select('id, name, muscle_group')
         .ilike('name', `%${trimmed}%`)
         .limit(8)
@@ -1900,7 +1910,7 @@ export default function Traning(): React.JSX.Element {
     if (!catalogId) {
       // Check if exact name exists in catalog
       const { data: existing } = await supabase
-        .from('exercise_catalog')
+        .from(DB.EXERCISE_CATALOG)
         .select('id')
         .ilike('name', trimmed)
         .maybeSingle()
@@ -1909,7 +1919,7 @@ export default function Traning(): React.JSX.Element {
         catalogId = (existing as { id: number }).id
       } else {
         const { data: inserted } = await supabase
-          .from('exercise_catalog')
+          .from(DB.EXERCISE_CATALOG)
           .insert({ name: trimmed })
           .select()
           .single()
@@ -1917,7 +1927,7 @@ export default function Traning(): React.JSX.Element {
       }
     }
 
-    const { data, error } = await supabase.from('exercises')
+    const { data, error } = await supabase.from(DB.EXERCISES)
       .insert({ user_id: userId, session_id: activeTab, name: trimmed, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId ?? null })
       .select().single()
     if (error) { console.error('handleAdd error:', error); return }
@@ -1940,13 +1950,13 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function handleSessionSave(id: string, name: string, day_of_week: number): Promise<void> {
-    await supabase.from('training_sessions').update({ name, day_of_week }).eq('id', id)
+    await supabase.from(DB.TRAINING_SESSIONS).update({ name, day_of_week }).eq('id', id)
     await loadProfile()
     setEditingSession(false)
   }
 
   async function handleSessionDelete(id: string): Promise<void> {
-    await supabase.from('training_sessions').delete().eq('id', id)
+    await supabase.from(DB.TRAINING_SESSIONS).delete().eq('id', id)
     await loadProfile()
     setEditingSession(false)
   }
@@ -1966,7 +1976,7 @@ export default function Traning(): React.JSX.Element {
     await Promise.all(
       reordered.map((ex: Exercise, i: number) =>
         ex.sort_order !== i
-          ? supabase.from('exercises').update({ sort_order: i }).eq('id', ex.id)
+          ? supabase.from(DB.EXERCISES).update({ sort_order: i }).eq('id', ex.id)
           : null
       ).filter(Boolean)
     )
@@ -1992,7 +2002,7 @@ export default function Traning(): React.JSX.Element {
     const dayOfWeek = currentSession?.day_of_week ?? 0
     const nextDayName = dayFull[dayOfWeek - 1] ?? ''
     void (async () => {
-      const { error } = await supabase.from('workouts')
+      const { error } = await supabase.from(DB.WORKOUTS)
         .update({ completed_at: new Date().toISOString() })
         .eq('id', id)
       if (error) console.error('workout auto-complete failed', error)
@@ -2005,15 +2015,14 @@ export default function Traning(): React.JSX.Element {
 
   // Inactivity: tracks the last time user DID SOMETHING (completed a set).
   // Persisted in localStorage so cold-start from notification tap still knows the real elapsed time.
-  const LAST_ACTIVITY_KEY = 'pullpush_lastActivity'
-  const lastActivityRef = useRef<number>(Number(localStorage.getItem(LAST_ACTIVITY_KEY)) || Date.now())
+  const lastActivityRef = useRef<number>(Number(localStorage.getItem(STORAGE.LAST_ACTIVITY)) || Date.now())
   const prevCompletedCountRef = useRef<number>(completedSetsInSession)
 
   // When a NEW set is completed, update the activity timestamp (not on every effect re-run!)
   useEffect(() => {
     if (completedSetsInSession > prevCompletedCountRef.current) {
       lastActivityRef.current = Date.now()
-      localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivityRef.current))
+      localStorage.setItem(STORAGE.LAST_ACTIVITY, String(lastActivityRef.current))
     }
     prevCompletedCountRef.current = completedSetsInSession
   }, [completedSetsInSession])
@@ -2023,7 +2032,7 @@ export default function Traning(): React.JSX.Element {
     if (inactivityRef.current) clearTimeout(inactivityRef.current)
     if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) {
       LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
-      if (allSessionDone) localStorage.removeItem(LAST_ACTIVITY_KEY)
+      if (allSessionDone) localStorage.removeItem(STORAGE.LAST_ACTIVITY)
       return
     }
 
@@ -2070,7 +2079,7 @@ export default function Traning(): React.JSX.Element {
       // Always cancel pending notification when app becomes visible
       LocalNotifications.cancel({ notifications: [{ id: 99 }] }).catch(() => {})
       if (!workoutId || completedSetsInSession === 0 || allSessionDone || timerPhase) return
-      const saved = Number(localStorage.getItem(LAST_ACTIVITY_KEY)) || lastActivityRef.current
+      const saved = Number(localStorage.getItem(STORAGE.LAST_ACTIVITY)) || lastActivityRef.current
       const elapsed = Date.now() - saved
       if (elapsed >= INACTIVITY_MINUTES * 60 * 1000) {
         setShowInactiveDialog(true)
@@ -2083,7 +2092,7 @@ export default function Traning(): React.JSX.Element {
   // Keep screen awake during all flow phases (countdown, reps, side pause, rest)
   // — only if user has enabled "keep screen on" in settings (default: on)
   useEffect(() => {
-    const settingOn = localStorage.getItem('pullpush_keepScreenOn') !== 'false'
+    const settingOn = localStorage.getItem(STORAGE.KEEP_SCREEN_ON) !== 'false'
     const keep = settingOn && (timerPhase !== null || countdownOverlay !== null)
     if (RestTimer) RestTimer.setKeepAwake({ keep }).catch(() => {})
   }, [timerPhase, countdownOverlay])
@@ -2102,6 +2111,7 @@ export default function Traning(): React.JSX.Element {
   const timerSetPlan = timerExId ? individualSets[timerExId]?.[timerSet - 1] : undefined
   const timerDisplayReps = timerSetPlan?.reps ?? timerExLog?.reps ?? 10
   const timerDisplayKg = timerSetPlan?.weight_kg ?? timerExLog?.kg ?? null
+  const timerIsUnilateral = timerExLog?.unilateral ?? false
 
   // Find next exercise/set for rest overlay preview
   const nextUp: { setLabel: string; name: string } | { setLabel: ''; name: string } = (() => {
@@ -2151,7 +2161,7 @@ export default function Traning(): React.JSX.Element {
             }
             {!editMode && (
               <label className={styles.deloadSwitch}>
-                <input type="checkbox" checked={deloadMode} onChange={() => setDeloadMode(v => { const n = !v; localStorage.setItem('deload', n ? '1' : '0'); return n })} />
+                <input type="checkbox" checked={deloadMode} onChange={() => setDeloadMode(v => { const n = !v; localStorage.setItem(STORAGE.DELOAD_MODE, n ? '1' : '0'); return n })} />
                 <span className={styles.flowSlider} />
                 <span className={styles.flowLabel}>Deload</span>
               </label>
@@ -2442,7 +2452,7 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${countdownSeconds > 0 ? (countdownOverlay / countdownSeconds) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayReps}>{timerDisplayReps}x</div>
+            <div className={styles.overlayReps}>{timerDisplayReps}x{timerIsUnilateral ? <span className={styles.overlayPerSide}> / sida</span> : ''}</div>
             {timerDisplayKg != null && (
               <div className={styles.overlayWeightBelow}>{formatWeight(timerDisplayKg, weightUnit)}</div>
             )}
@@ -2477,7 +2487,7 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayReps}>{timerDisplayReps}x</div>
+            <div className={styles.overlayReps}>{timerDisplayReps}x{timerIsUnilateral ? <span className={styles.overlayPerSide}> / sida</span> : ''}</div>
             {timerDisplayKg != null && (
               <div className={styles.overlayWeightBelow}>{formatWeight(timerDisplayKg, weightUnit)}</div>
             )}
@@ -2720,20 +2730,20 @@ export default function Traning(): React.JSX.Element {
         onSave={async (name, kg, sets, reps) => {
           const sortOrder = (exercises[activeTab!] ?? []).length
           let catalogId: number | null = null
-          const { data: existing } = await supabase.from('exercise_catalog').select('id').ilike('name', name).maybeSingle()
+          const { data: existing } = await supabase.from(DB.EXERCISE_CATALOG).select('id').ilike('name', name).maybeSingle()
           if (existing) catalogId = (existing as { id: number }).id
           else {
-            const { data: inserted } = await supabase.from('exercise_catalog').insert({ name }).select().single()
+            const { data: inserted } = await supabase.from(DB.EXERCISE_CATALOG).insert({ name }).select().single()
             if (inserted) catalogId = (inserted as { id: number }).id
           }
-          const { data } = await supabase.from('exercises')
+          const { data } = await supabase.from(DB.EXERCISES)
             .insert({ user_id: userId, session_id: activeTab, name, sort_order: sortOrder, tab: 'custom', catalog_id: catalogId })
             .select().single()
           if (data) {
             const ex = data as Exercise
             setExercises(prev => ({ ...prev, [activeTab!]: [...(prev[activeTab!] ?? []), ex] }))
             if (kg != null && reps != null) {
-              await supabase.from('exercise_log').insert({ user_id: userId, exercise_id: ex.id, weight_kg: kg, sets, reps })
+              await supabase.from(DB.EXERCISE_LOG).insert({ user_id: userId, exercise_id: ex.id, weight_kg: kg, sets, reps })
               setLogs(prev => ({ ...prev, [ex.id]: { kg, sets, reps, unilateral: false } }))
             }
           }

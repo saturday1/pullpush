@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { STORAGE } from '../../../constants/storage'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { CardGrid, CardGridItem } from '../../CardGrid/CardGrid'
@@ -50,13 +51,13 @@ export default function Tips(): React.JSX.Element {
   const { t } = useTranslation()
   const { currentWeight, goalWeight } = useProfile()!
 
-  const [goal, setGoal] = useState<GoalType | null>(() => (localStorage.getItem('tips_goal') as GoalType | null) ?? null)
-  const [displayGoal, setDisplayGoal] = useState<GoalType>(() => (localStorage.getItem('tips_goal') as GoalType | null) ?? 'cut')
+  const [goal, setGoal] = useState<GoalType | null>(() => (localStorage.getItem(STORAGE.TIPS_GOAL) as GoalType | null) ?? null)
+  const [displayGoal, setDisplayGoal] = useState<GoalType>(() => (localStorage.getItem(STORAGE.TIPS_GOAL) as GoalType | null) ?? 'cut')
   const [tipsFading, setTipsFading] = useState<boolean>(false)
 
   // Auto-detect goal from profile data if user hasn't chosen manually
   useEffect(() => {
-    if (localStorage.getItem('tips_goal')) return
+    if (localStorage.getItem(STORAGE.TIPS_GOAL)) return
     if (!currentWeight || !goalWeight) return
     const detected: GoalType = currentWeight > goalWeight + 1 ? 'cut' : goalWeight > currentWeight + 1 ? 'bulk' : 'maintain'
     setGoal(detected)
@@ -78,7 +79,7 @@ export default function Tips(): React.JSX.Element {
 
   function selectGoal(g: GoalType): void {
     setGoal(g)
-    localStorage.setItem('tips_goal', g)
+    localStorage.setItem(STORAGE.TIPS_GOAL, g)
   }
 
   const periodiseringBoxes: PeriodiseringBox[] = [

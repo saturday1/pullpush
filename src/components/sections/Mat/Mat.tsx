@@ -11,6 +11,8 @@ import { useProfile } from '../../../context/ProfileContext'
 import Skeleton from '../../Skeleton/Skeleton'
 import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
+import { DB } from '../../../constants/database'
+import { COLOR_PROTEIN, COLOR_CARBS, COLOR_FAT, COLOR_KCAL } from '../../../constants/colors'
 import styles from './Mat.module.scss'
 
 interface NativeBarcodeScanner {
@@ -409,15 +411,15 @@ function ManualProductForm({ barcode, onSave, onCancel, t }: ManualProductFormPr
                     </label>
                     <div className={styles.macroInputRow}>
                         <label className={styles.modalField}>
-                            <span className={styles.modalLabel} style={{ color: '#f97316' }}>{t('Protein / 100g')}</span>
+                            <span className={styles.modalLabel} style={{ color: COLOR_PROTEIN }}>{t('Protein / 100g')}</span>
                             <input className={styles.modalInput} type="number" min="0" step="0.1" value={form.protein_per_100g} onChange={e => set('protein_per_100g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
-                            <span className={styles.modalLabel} style={{ color: '#60a5fa' }}>{t('Carbs / 100g')}</span>
+                            <span className={styles.modalLabel} style={{ color: COLOR_CARBS }}>{t('Carbs / 100g')}</span>
                             <input className={styles.modalInput} type="number" min="0" step="0.1" value={form.carbs_per_100g} onChange={e => set('carbs_per_100g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
-                            <span className={styles.modalLabel} style={{ color: '#22c55e' }}>{t('Fat / 100g')}</span>
+                            <span className={styles.modalLabel} style={{ color: COLOR_FAT }}>{t('Fat / 100g')}</span>
                             <input className={styles.modalInput} type="number" min="0" step="0.1" value={form.fat_per_100g} onChange={e => set('fat_per_100g', e.target.value)} />
                         </label>
                         <label className={styles.modalField}>
@@ -575,7 +577,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
             if (results.length === 0) {
                 try {
                     const { data } = await supabase
-                        .from('food_products')
+                        .from(DB.FOOD_PRODUCTS)
                         .select('*')
                         .or(`product_name.ilike.%${q}%,brand.ilike.%${q}%`)
                         .limit(8)
@@ -627,7 +629,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
             setProductId(product._catalogId)
         } else if (!product._skipUpsert) {
             try {
-                const { data: inserted } = await supabase.from('food_products').insert({
+                const { data: inserted } = await supabase.from(DB.FOOD_PRODUCTS).insert({
                     product_name: product.product_name,
                     brand: product.brands || null,
                     protein_per_100g: base.proteins_100g,
@@ -674,11 +676,11 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                 // Save to our DB (upsert by barcode)
                 try {
                     const { data: existing } = await supabase
-                        .from('food_products').select('id').eq('barcode', barcode).maybeSingle()
+                        .from(DB.FOOD_PRODUCTS).select('id').eq('barcode', barcode).maybeSingle()
                     if (existing) {
                         setProductId((existing as { id: number }).id)
                     } else {
-                        const { data: inserted } = await supabase.from('food_products').insert({
+                        const { data: inserted } = await supabase.from(DB.FOOD_PRODUCTS).insert({
                             barcode,
                             product_name: p.product_name,
                             brand: p.brands || null,
@@ -700,7 +702,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
 
             // 2. If not in API, check our local food_products database
             const { data: localProduct } = await supabase
-                .from('food_products').select('*').eq('barcode', barcode).maybeSingle()
+                .from(DB.FOOD_PRODUCTS).select('*').eq('barcode', barcode).maybeSingle()
 
             if (localProduct) {
                 const lp = localProduct as FoodProduct
@@ -734,7 +736,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
 
     async function handleManualProduct(manualForm: ManualProductFormData): Promise<void> {
         try {
-            const { data: inserted } = await supabase.from('food_products').insert({
+            const { data: inserted } = await supabase.from(DB.FOOD_PRODUCTS).insert({
                 barcode: manualBarcode,
                 product_name: manualForm.product_name.trim(),
                 brand: manualForm.brand.trim() || null,
@@ -897,15 +899,15 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                             </label>
                             <div className={styles.macroInputRow}>
                                 <label className={styles.modalField}>
-                                    <span className={styles.modalLabel} style={{ color: '#f97316' }}>{t('Protein (g)')}</span>
+                                    <span className={styles.modalLabel} style={{ color: COLOR_PROTEIN }}>{t('Protein (g)')}</span>
                                     <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.protein_g} onChange={e => set('protein_g', e.target.value)} />
                                 </label>
                                 <label className={styles.modalField}>
-                                    <span className={styles.modalLabel} style={{ color: '#60a5fa' }}>{t('Carbs (g)')}</span>
+                                    <span className={styles.modalLabel} style={{ color: COLOR_CARBS }}>{t('Carbs (g)')}</span>
                                     <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.carbs_g} onChange={e => set('carbs_g', e.target.value)} />
                                 </label>
                                 <label className={styles.modalField}>
-                                    <span className={styles.modalLabel} style={{ color: '#22c55e' }}>{t('Fat (g)')}</span>
+                                    <span className={styles.modalLabel} style={{ color: COLOR_FAT }}>{t('Fat (g)')}</span>
                                     <input className={styles.modalInput} type="number" inputMode="decimal" min="0" value={form.fat_g} onChange={e => set('fat_g', e.target.value)} />
                                 </label>
                                 <label className={styles.modalField}>
@@ -960,9 +962,9 @@ function MealTable({ meals, onEdit, onDelete, onToggleRecurring, t }: MealTableP
                         {meal.note && <em className={styles.mealNote}> {meal.note}</em>}
                     </div>
                     <div className={styles.mealCardMacros}>
-                        <span className="pill pill-p" style={{ color: '#f97316' }}>{meal.protein_g}g P</span>
-                        <span className="pill pill-k" style={{ color: '#60a5fa' }}>{meal.carbs_g}g C</span>
-                        <span className="pill pill-f" style={{ color: '#22c55e' }}>{meal.fat_g}g F</span>
+                        <span className="pill pill-p" style={{ color: COLOR_PROTEIN }}>{meal.protein_g}g P</span>
+                        <span className="pill pill-k" style={{ color: COLOR_CARBS }}>{meal.carbs_g}g C</span>
+                        <span className="pill pill-f" style={{ color: COLOR_FAT }}>{meal.fat_g}g F</span>
                         <span className="pill pill-kcal">{meal.kcal} kcal</span>
                     </div>
                 </div>
@@ -1099,7 +1101,8 @@ export default function Mat(): React.JSX.Element {
 
     async function loadMeals(): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser()
-        const { data } = await supabase.from('meals').select('*').eq('user_id', user!.id).order('sort_order')
+        if (!user) return
+        const { data } = await supabase.from(DB.MEALS).select('*').eq('user_id', user.id).order('sort_order')
         setMeals((data as Meal[]) ?? [])
         setLoading(false)
     }
@@ -1126,7 +1129,7 @@ export default function Mat(): React.JSX.Element {
             is_recurring: false,
             recurring_until: null,
         }
-        const { data, error } = await supabase.from('meals').insert(row).select().single()
+        const { data, error } = await supabase.from(DB.MEALS).insert(row).select().single()
         if (error) { setSaveError(error.message); setSaving(false); return }
         setMeals(prev => [...prev, data as Meal])
         setSaving(false)
@@ -1135,7 +1138,7 @@ export default function Mat(): React.JSX.Element {
 
     async function handleToggleRecurring(meal: Meal): Promise<void> {
         if (!meal.is_recurring) {
-            const { data, error } = await supabase.from('meals').update({
+            const { data, error } = await supabase.from(DB.MEALS).update({
                 is_recurring: true,
                 recurring_until: null,
             }).eq('id', meal.id).select().single()
@@ -1143,7 +1146,7 @@ export default function Mat(): React.JSX.Element {
             setMeals(prev => prev.map((m: Meal) => m.id === (data as Meal).id ? (data as Meal) : m))
         } else {
             const until = selectedDate >= meal.meal_date ? selectedDate : meal.meal_date
-            const { data, error } = await supabase.from('meals').update({
+            const { data, error } = await supabase.from(DB.MEALS).update({
                 is_recurring: false,
                 recurring_until: until,
             }).eq('id', meal.id).select().single()
@@ -1155,7 +1158,7 @@ export default function Mat(): React.JSX.Element {
     async function handleEdit(form: MealFormData): Promise<void> {
         setSaving(true)
         setSaveError('')
-        const { data, error } = await supabase.from('meals').update({
+        const { data, error } = await supabase.from(DB.MEALS).update({
             label: form.label.trim(),
             food: form.food.trim(),
             note: form.note.trim() || null,
@@ -1173,7 +1176,7 @@ export default function Mat(): React.JSX.Element {
     }
 
     async function handleDelete(id: number): Promise<void> {
-        await supabase.from('meals').delete().eq('id', id)
+        await supabase.from(DB.MEALS).delete().eq('id', id)
         setMeals(prev => prev.filter((m: Meal) => m.id !== id))
     }
 
@@ -1266,10 +1269,10 @@ export default function Mat(): React.JSX.Element {
                         {profile?.macros && canUse('macroRings') ? (
                             <div className={styles.macroRings}>
                                 {([
-                                    { key: 'kcal', label: t('KCAL'), current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: '#e8197d' },
-                                    { key: 'protein', label: t('PROT'), current: totals.protein_g, target: profile.macros.protein, unit: 'g', color: '#f97316' },
-                                    { key: 'carbs', label: t('CARBS'), current: totals.carbs_g, target: profile.macros.carbs, unit: 'g', color: '#60a5fa' },
-                                    { key: 'fat', label: t('FAT'), current: totals.fat_g, target: profile.macros.fat, unit: 'g', color: '#22c55e' },
+                                    { key: 'kcal', label: t('KCAL'), current: totals.kcal, target: profile.macros.targetKcal, unit: '', color: COLOR_KCAL },
+                                    { key: 'protein', label: t('PROT'), current: totals.protein_g, target: profile.macros.protein, unit: 'g', color: COLOR_PROTEIN },
+                                    { key: 'carbs', label: t('CARBS'), current: totals.carbs_g, target: profile.macros.carbs, unit: 'g', color: COLOR_CARBS },
+                                    { key: 'fat', label: t('FAT'), current: totals.fat_g, target: profile.macros.fat, unit: 'g', color: COLOR_FAT },
                                 ] as const).map(row => {
                                     const pct = row.target > 0 ? Math.min(100, (row.current / row.target) * 100) : 0
                                     return (
@@ -1309,9 +1312,9 @@ export default function Mat(): React.JSX.Element {
                         ) : (
                             <div className={styles.totals}>
                                 <span>{t('Total:')} <strong>{totals.kcal} kcal</strong></span>
-                                <span style={{ color: '#f97316' }}>{t('P')}: {totals.protein_g} g</span>
-                                <span style={{ color: '#60a5fa' }}>{t('C')}: {totals.carbs_g} g</span>
-                                <span style={{ color: '#22c55e' }}>{t('F')}: {totals.fat_g} g</span>
+                                <span style={{ color: COLOR_PROTEIN }}>{t('P')}: {totals.protein_g} g</span>
+                                <span style={{ color: COLOR_CARBS }}>{t('C')}: {totals.carbs_g} g</span>
+                                <span style={{ color: COLOR_FAT }}>{t('F')}: {totals.fat_g} g</span>
                             </div>
                         )}
                         <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={(meal) => { if (!requireUpgrade('recurringMeals')) return; handleToggleRecurring(meal) }} t={t} />

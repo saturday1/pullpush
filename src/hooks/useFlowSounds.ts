@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react'
+import { STORAGE } from '../constants/storage'
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import goSound from '../sounds/ElevenLabs_2026-04-15T10_49_37_Saga_gen_sp100_s50_sb75_v3.mp3'
 import restStartSound from '../sounds/rest.mp3'
@@ -14,25 +15,21 @@ const NUMBER_WORDS: Record<number, string> = { 1: 'one', 2: 'two', 3: 'three', 4
 const NUMBER_SOUNDS: Record<number, string> = { 1: oneSound, 2: twoSound, 3: threeSound, 4: fourSound, 5: fiveSound }
 
 export type CountdownStyle = 'voice' | 'beep'
-const COUNTDOWN_STYLE_KEY = 'pullpush_countdownStyle'
 export function getCountdownStyle(): CountdownStyle {
-  return (localStorage.getItem(COUNTDOWN_STYLE_KEY) as CountdownStyle) ?? 'voice'
+  return (localStorage.getItem(STORAGE.COUNTDOWN_STYLE) as CountdownStyle) ?? 'voice'
 }
 export function setCountdownStyle(v: CountdownStyle): void {
-  localStorage.setItem(COUNTDOWN_STYLE_KEY, v)
+  localStorage.setItem(STORAGE.COUNTDOWN_STYLE, v)
 }
 
 // How many seconds the audible countdown covers (3 or 5)
-const COUNTDOWN_LENGTH_KEY = 'pullpush_countdownLength'
 export function getCountdownLength(): 3 | 5 {
-  const v = localStorage.getItem(COUNTDOWN_LENGTH_KEY)
+  const v = localStorage.getItem(STORAGE.COUNTDOWN_LENGTH)
   return v === '3' ? 3 : 5
 }
 export function setCountdownLength(v: 3 | 5): void {
-  localStorage.setItem(COUNTDOWN_LENGTH_KEY, String(v))
+  localStorage.setItem(STORAGE.COUNTDOWN_LENGTH, String(v))
 }
-
-const STORAGE_KEY = 'pullpush_flowSounds'
 
 interface RestTimerPlugin {
   playSound(options: { name: string }): Promise<void>
@@ -74,7 +71,7 @@ export function useFlowSounds(): {
   }
 
   function isEnabled(): boolean {
-    return localStorage.getItem(STORAGE_KEY) !== 'false'
+    return localStorage.getItem(STORAGE.FLOW_SOUNDS) !== 'false'
   }
 
   function tone(freq: number, duration: number, type: OscillatorType = 'sine', gain = 0.3, fadeOut = true): void {
@@ -183,7 +180,7 @@ export function useFlowSounds(): {
 
   return {
     enabled: isEnabled(),
-    setEnabled: (v: boolean) => localStorage.setItem(STORAGE_KEY, String(v)),
+    setEnabled: (v: boolean) => localStorage.setItem(STORAGE.FLOW_SOUNDS, String(v)),
     warmUp,
     playCountdownTick,
     playGo,

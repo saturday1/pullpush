@@ -4,6 +4,7 @@ import SectionHeader from '../../SectionHeader/SectionHeader'
 import Reveal from '../../Reveal/Reveal'
 import { useProfile } from '../../../context/ProfileContext'
 import { supabase } from '../../../supabase'
+import { DB } from '../../../constants/database'
 import styles from './Vecka.module.scss'
 
 interface TrainingSession {
@@ -68,7 +69,7 @@ export default function Vecka(): React.JSX.Element {
       return
     }
     supabase
-      .from('training_sessions')
+      .from(DB.TRAINING_SESSIONS)
       .select('*')
       .eq('program_id', effectiveProgramId)
       .order('day_of_week')
@@ -79,7 +80,7 @@ export default function Vecka(): React.JSX.Element {
     if (viewSessions.length === 0) { setExerciseCounts({}); setCountsLoading(false); return }
     setCountsLoading(true)
     supabase
-      .from('exercises')
+      .from(DB.EXERCISES)
       .select('session_id')
       .in('session_id', viewSessions.map((s: TrainingSession) => s.id))
       .then(({ data }) => {

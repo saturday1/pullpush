@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { useProfile, type UserRole } from './ProfileContext'
+import { STORAGE } from '../constants/storage'
 import UpgradeModal from '../components/UpgradeModal/UpgradeModal'
 
 export type Feature =
@@ -57,7 +58,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }): Rea
 
   // Developers can override their effective role locally for testing
   const devOverride = role === 'developer'
-    ? (localStorage.getItem('dev_role_override') as UserRole | null)
+    ? (localStorage.getItem(STORAGE.DEV_ROLE_OVERRIDE) as UserRole | null)
     : null
 
   const effectiveRole: UserRole = devOverride ?? (

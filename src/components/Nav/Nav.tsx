@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion, useMotionValue, animate } from 'framer-motion'
+import { motion, useMotionValue, animate, useMotionValueEvent } from 'framer-motion'
+import { Capacitor } from '@capacitor/core'
+import { StatusBar, Style } from '@capacitor/status-bar'
 import Logo from '../Logo/Logo'
 import styles from './Nav.module.scss'
 
@@ -37,6 +39,60 @@ export default function Nav(): React.ReactElement {
     const lastTime = useRef<number>(performance.now())
     const isAnimating = useRef<boolean>(false)
     const hasSnappedIn = useRef<boolean>(false)
+    // NOTE: Capacitor naming is inverted vs iOS UIKit:
+    // Style.Dark   → UIStatusBarStyleLightContent → vita ikoner (för mörk bakgrund)
+    // Style.Light  → UIStatusBarStyleDarkContent  → mörka ikoner (för ljus bakgrund)
+    const isDarkRef = useRef(window.matchMedia('(prefers-color-scheme: dark)').matches)
+    const lastStatusStyle = useRef<Style | null>(null)
+
+    function getSafeAreaTop(): number {
+        const el = document.createElement('div')
+        el.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)'
+        document.body.appendChild(el)
+        const val = parseFloat(getComputedStyle(el).paddingTop) || 0
+        document.body.removeChild(el)
+        return val
+    }
+
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return
+
+        const safeTop = getSafeAreaTop()
+        const THRESHOLD = -(safeTop + 10)
+        const HYSTERESIS = 5
+
+        const mq = window.matchMedia('(prefers-color-scheme: dark)')
+
+        const applyStyle = (style: Style) => {
+            if (style === lastStatusStyle.current) return
+            lastStatusStyle.current = style
+            StatusBar.setStyle({ style })
+        }
+
+        const update = (latest: number, dark: boolean) => {
+            if (dark) {
+                applyStyle(Style.Dark) // vita ikoner alltid i dark mode
+                return
+            }
+            if (latest < THRESHOLD - HYSTERESIS) applyStyle(Style.Dark)   // vita ikoner (nav borta)
+            else if (latest > THRESHOLD + HYSTERESIS) applyStyle(Style.Light) // mörka ikoner (nav synlig)
+        }
+
+        const onThemeChange = (e: MediaQueryListEvent) => {
+            isDarkRef.current = e.matches
+            update(y.get(), e.matches)
+        }
+
+        mq.addEventListener('change', onThemeChange)
+        update(y.get(), mq.matches)
+
+        const unsubY = y.on('change', (latest) => update(latest, isDarkRef.current))
+
+        return () => {
+            mq.removeEventListener('change', onThemeChange)
+            unsubY()
+        }
+    }, [y])
 
     useEffect((): (() => void) | undefined => {
         if (!navRef.current) return
@@ -111,7 +167,7 @@ export default function Nav(): React.ReactElement {
 
     return (
         <>
-        {/* Layer 1: Fixed shadow over safe-area */}
+        {/* Permanent shadow over safe-area — always fixed at top, nav slides under it */}
         <div className={styles.safeShadow} />
 
         {/* Layer 2: Background — fixed, moves with y, no mask */}

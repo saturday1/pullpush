@@ -1029,6 +1029,13 @@
   margin-top: 8px;
 }
 
+.overlayPerSide {
+  font-size: clamp(24px, 6vw, 36px);
+  font-weight: 600;
+  opacity: 0.7;
+  vertical-align: middle;
+}
+
 .overlayNextLabel {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(20px, 5vw, 28px);

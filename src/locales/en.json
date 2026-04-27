@@ -1,38 +1,165 @@
 {
-  "dayAbbrev": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  "dayFull": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-  "dayNames": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-
+  "dayAbbrev": [
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+    "Sun"
+  ],
+  "dayFull": [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday"
+  ],
+  "dayNames": [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday"
+  ],
   "trainMeals": [
-    { "time": "07:00", "label": "Breakfast", "food": "140g quark + 30g whey + 40g oats + 100ml milk 3%", "p": "46g", "k": "38g", "f": "8g", "kcal": 405 },
-    { "time": "10:30", "label": "Snack", "food": "1 boiled egg + 1 apple + 10 almonds", "p": "12g", "k": "21g", "f": "15g", "kcal": 267 },
-    { "time": "13:00", "label": "Lunch", "food": "300g chicken breast (oven) + 150g sweet potato + large salad + 1 tbsp olive oil", "p": "72g", "k": "32g", "f": "23g", "kcal": 624 },
-    { "time": "15:30", "label": "Snack", "food": "2 boiled eggs + 1 apple + 10 almonds", "p": "19g", "k": "21g", "f": "21g", "kcal": 348 },
-    { "time": "Post-workout", "label": "Protein", "food": "30g whey in water/milk. Creatine (5g) can be taken here.", "p": "23g", "k": "2g", "f": "2g", "kcal": 114 },
-    { "time": "19:00", "label": "Dinner", "food": "200g salmon/cod/beef + 100g quinoa/rice + broccoli/zucchini", "p": "46g", "k": "29g", "f": "21g", "kcal": 489 },
-    { "time": "21:00", "label": "Evening snack", "food": "200g quark + 100g berries (frozen OK) + 30g whey (in the quark)", "p": "44g", "k": "16g", "f": "2g", "kcal": 260 }
+    {
+      "time": "07:00",
+      "label": "Breakfast",
+      "food": "140g quark + 30g whey + 40g oats + 100ml milk 3%",
+      "p": "46g",
+      "k": "38g",
+      "f": "8g",
+      "kcal": 405
+    },
+    {
+      "time": "10:30",
+      "label": "Snack",
+      "food": "1 boiled egg + 1 apple + 10 almonds",
+      "p": "12g",
+      "k": "21g",
+      "f": "15g",
+      "kcal": 267
+    },
+    {
+      "time": "13:00",
+      "label": "Lunch",
+      "food": "300g chicken breast (oven) + 150g sweet potato + large salad + 1 tbsp olive oil",
+      "p": "72g",
+      "k": "32g",
+      "f": "23g",
+      "kcal": 624
+    },
+    {
+      "time": "15:30",
+      "label": "Snack",
+      "food": "2 boiled eggs + 1 apple + 10 almonds",
+      "p": "19g",
+      "k": "21g",
+      "f": "21g",
+      "kcal": 348
+    },
+    {
+      "time": "Post-workout",
+      "label": "Protein",
+      "food": "30g whey in water/milk. Creatine (5g) can be taken here.",
+      "p": "23g",
+      "k": "2g",
+      "f": "2g",
+      "kcal": 114
+    },
+    {
+      "time": "19:00",
+      "label": "Dinner",
+      "food": "200g salmon/cod/beef + 100g quinoa/rice + broccoli/zucchini",
+      "p": "46g",
+      "k": "29g",
+      "f": "21g",
+      "kcal": 489
+    },
+    {
+      "time": "21:00",
+      "label": "Evening snack",
+      "food": "200g quark + 100g berries (frozen OK) + 30g whey (in the quark)",
+      "p": "44g",
+      "k": "16g",
+      "f": "2g",
+      "kcal": 260
+    }
   ],
   "restMeals": [
-    { "time": "07:00", "label": "Breakfast", "food": "140g quark + 30g whey + 40g oats + 100ml milk 3%", "p": "46g", "k": "38g", "f": "8g", "kcal": 405 },
-    { "time": "10:30", "label": "Snack", "food": "1 boiled egg + 1 apple", "p": "8g", "k": "18g", "f": "6g", "kcal": 157 },
-    { "time": "13:00", "label": "Lunch", "food": "300g chicken breast (oven) + large salad + 1 tbsp olive oil", "p": "70g", "k": "3g", "f": "23g", "kcal": 499, "note": "(skip the sweet potato)" },
-    { "time": "15:30", "label": "Snack", "food": "2 boiled eggs + 1 apple", "p": "15g", "k": "19g", "f": "11g", "kcal": 238 },
-    { "time": "19:00", "label": "Dinner", "food": "200g salmon/cod/beef + 75g quinoa/rice + broccoli/zucchini", "p": "45g", "k": "23g", "f": "21g", "kcal": 462, "note": "(half portion rice)" },
-    { "time": "21:00", "label": "Evening snack", "food": "200g quark + 100g berries + 30g whey (in the quark)", "p": "44g", "k": "16g", "f": "2g", "kcal": 260 }
+    {
+      "time": "07:00",
+      "label": "Breakfast",
+      "food": "140g quark + 30g whey + 40g oats + 100ml milk 3%",
+      "p": "46g",
+      "k": "38g",
+      "f": "8g",
+      "kcal": 405
+    },
+    {
+      "time": "10:30",
+      "label": "Snack",
+      "food": "1 boiled egg + 1 apple",
+      "p": "8g",
+      "k": "18g",
+      "f": "6g",
+      "kcal": 157
+    },
+    {
+      "time": "13:00",
+      "label": "Lunch",
+      "food": "300g chicken breast (oven) + large salad + 1 tbsp olive oil",
+      "p": "70g",
+      "k": "3g",
+      "f": "23g",
+      "kcal": 499,
+      "note": "(skip the sweet potato)"
+    },
+    {
+      "time": "15:30",
+      "label": "Snack",
+      "food": "2 boiled eggs + 1 apple",
+      "p": "15g",
+      "k": "19g",
+      "f": "11g",
+      "kcal": 238
+    },
+    {
+      "time": "19:00",
+      "label": "Dinner",
+      "food": "200g salmon/cod/beef + 75g quinoa/rice + broccoli/zucchini",
+      "p": "45g",
+      "k": "23g",
+      "f": "21g",
+      "kcal": 462,
+      "note": "(half portion rice)"
+    },
+    {
+      "time": "21:00",
+      "label": "Evening snack",
+      "food": "200g quark + 100g berries + 30g whey (in the quark)",
+      "p": "44g",
+      "k": "16g",
+      "f": "2g",
+      "kcal": 260
+    }
   ],
   "goal_bulk": "Bulk",
   "goal_cut": "Cut",
   "goal_maintain": "Maintain",
   "Personalized for": "Personalized for",
   "General tips": "General tips",
-
   "exerciseCount_one": "{{count}} exercise",
   "exerciseCount_other": "{{count}} exercises",
   "trainingDaysCount_one": "{{count}} training day",
   "trainingDaysCount_other": "{{count}} training days",
   "totalExercisesCount_one": "{{count}} exercise total",
   "totalExercisesCount_other": "{{count}} exercises total",
-
   "Tips": "Tips",
   "Creatine": "Creatine",
   "Protein": "Protein",
@@ -122,7 +249,6 @@
   "proteinTip": "{{min}}–{{max}} g/day based on your weight. Spread across meals.",
   "waterTip": "At least {{liters}} liters/day. Creatine increases the need. Fatigue and hunger can be signs of dehydration.",
   "sleepTip": "Aim for {{hours}} hours. Muscles recover during sleep.",
-
   "Stats": "Stats",
   "Training statistics": "Training statistics",
   "Workout History": "Workout History",
@@ -183,6 +309,7 @@
   "Coming soon": "Coming soon",
   "Maybe later": "Maybe later",
   "Search food database — Standard required": "Search food database — Standard required",
+<<<<<<< HEAD
 
   "Coach": "Coach",
   "AI Coach": "AI Coach",
@@ -209,3 +336,25 @@
   "Analyzing photo...": "Analyzing photo...",
   "Could not analyze photo": "Could not analyze photo"
 }
+=======
+  "Theme": "Theme",
+  "Light": "Light",
+  "Dark": "Dark",
+  "We sent a 6-digit code to {{email}}.": "We sent a 6-digit code to {{email}}.",
+  "Code (6 digits)": "Code (6 digits)",
+  "Confirm": "Confirm",
+  "Resend code": "Resend code",
+  "Code sent!": "Code sent!",
+  "Invalid or expired code.": "Invalid or expired code.",
+  "agreeTerms": "I agree to the <termsLink>terms and privacy policy</termsLink>",
+  "Contact support": "Contact support",
+  "Subject": "Subject",
+  "Technical problem": "Technical problem",
+  "Feedback": "Feedback",
+  "Other": "Other",
+  "Your message": "Your message",
+  "Send": "Send",
+  "Message sent! We will get back to you.": "Message sent! We will get back to you.",
+  "Manage subscription": "Manage subscription"
+}
+>>>>>>> 93bc2e9bfedf47eae0ad92dbab5b53ba918fdd58
