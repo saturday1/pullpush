@@ -7,6 +7,7 @@
     border-radius: 12px;
     padding: 4px;
     isolation: isolate;
+    overflow: hidden;
 
     &::after {
         content: '';
@@ -26,6 +27,8 @@
 
 .tabBtn {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 600;
@@ -37,6 +40,8 @@
     cursor: pointer;
     transition: color var(--timeout, 300ms);
     text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .tabBtnActive {
@@ -136,7 +141,7 @@
     background: var(--bg2);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 500;
     appearance: none;
     -webkit-appearance: none;
@@ -241,7 +246,7 @@
     background: var(--bg);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 500;
     appearance: none;
     -webkit-appearance: none;

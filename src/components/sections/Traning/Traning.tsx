@@ -920,6 +920,7 @@ export default function Traning(): React.JSX.Element {
   const [autoplay,         setAutoplay]         = useState<boolean>(() => localStorage.getItem(STORAGE.AUTOPLAY) === 'true')
   const [fabMenuOpen,      setFabMenuOpen]      = useState<boolean>(false)
   const autoplayRef = useRef(autoplay)
+  const logsRef = useRef(logs)
   const completedSetsRef = useRef(completedSets)
   const pausedRemainRef = useRef<number>(0)
   const pausedPlanRef = useRef<{ plan: { phase: TimerPhase; duration: number }[]; step: number; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; wId: string | null } | null>(null)
@@ -1050,7 +1051,7 @@ export default function Traning(): React.JSX.Element {
   async function startExerciseTimer(ex: Exercise): Promise<void> {
     flowSounds.warmUp() // Unlock AudioContext during user gesture
     setTimerMinimized(false)
-    const log = logs[ex.id]
+    const log = logsRef.current[ex.id]
     const indPlans = individualSets[ex.id]
     const currentSet = (completedSetsRef.current[ex.id] ?? 0) + 1
 
@@ -1613,6 +1614,10 @@ export default function Traning(): React.JSX.Element {
     completedSetsRef.current = completedSets
   }, [completedSets])
 
+  useEffect(() => {
+    logsRef.current = logs
+  }, [logs])
+
   async function loadAll(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -1697,9 +1702,12 @@ export default function Traning(): React.JSX.Element {
         const { data: sets, error: sErr } = await supabase.from(DB.WORKOUT_SETS)
           .select('exercise_id, set_number')
           .eq('workout_id', openWorkout.id)
-        if (sErr) console.error('workout_sets query failed', sErr)
-
-        if (sets && sets.length > 0) {
+        if (sErr) {
+          console.error('workout_sets query failed — keeping workout, skipping restore', sErr)
+          setWorkoutId(openWorkout.id)
+          setWorkoutSessionId(openWorkout.session_id)
+          if (openWorkout.session_id) setActiveTab(openWorkout.session_id)
+        } else if (sets && sets.length > 0) {
           // Has actual sets — restore workout state
           const restored: Record<string, number> = {}
           for (const s of sets as Array<{ exercise_id: string | number; set_number: number }>) {
@@ -2103,6 +2111,7 @@ export default function Traning(): React.JSX.Element {
   const timerSetPlan = timerExId ? individualSets[timerExId]?.[timerSet - 1] : undefined
   const timerDisplayReps = timerSetPlan?.reps ?? timerExLog?.reps ?? 10
   const timerDisplayKg = timerSetPlan?.weight_kg ?? timerExLog?.kg ?? null
+  const timerIsUnilateral = timerExLog?.unilateral ?? false
 
   // Find next exercise/set for rest overlay preview
   const nextUp: { setLabel: string; name: string } | { setLabel: ''; name: string } = (() => {
@@ -2443,7 +2452,7 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${countdownSeconds > 0 ? (countdownOverlay / countdownSeconds) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayReps}>{timerDisplayReps}x</div>
+            <div className={styles.overlayReps}>{timerDisplayReps}x{timerIsUnilateral ? <span className={styles.overlayPerSide}> / sida</span> : ''}</div>
             {timerDisplayKg != null && (
               <div className={styles.overlayWeightBelow}>{formatWeight(timerDisplayKg, weightUnit)}</div>
             )}
@@ -2478,7 +2487,7 @@ export default function Traning(): React.JSX.Element {
             <div className={styles.overlayProgressTrack}>
               <div className={styles.overlayProgressFill} style={{ width: `${timerTotalSecs > 0 ? (timerSecs / timerTotalSecs) * 100 : 0}%` }} />
             </div>
-            <div className={styles.overlayReps}>{timerDisplayReps}x</div>
+            <div className={styles.overlayReps}>{timerDisplayReps}x{timerIsUnilateral ? <span className={styles.overlayPerSide}> / sida</span> : ''}</div>
             {timerDisplayKg != null && (
               <div className={styles.overlayWeightBelow}>{formatWeight(timerDisplayKg, weightUnit)}</div>
             )}

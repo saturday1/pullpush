@@ -63,7 +63,7 @@ button:active, a:active, [role="button"]:active {
 
 html {
   scroll-behavior: smooth;
-  overscroll-behavior-y: none;
+  overscroll-behavior: none;
   overflow-x: hidden;
   width: 100%;
   max-width: 100%;
