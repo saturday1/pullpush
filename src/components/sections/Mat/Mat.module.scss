@@ -742,6 +742,7 @@
 
 .modalScroll {
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   padding: 0 22px calc(24px + env(safe-area-inset-bottom));
   flex: 1;
@@ -1243,10 +1244,13 @@
     padding-bottom: 16px;
   }
 
-  // Stack search + scan + grams more compactly. Keep them on one row
-  // but let the search shrink and give grams less width.
   .searchRow {
+    flex-wrap: wrap;
     gap: 6px;
+  }
+
+  .searchWrap {
+    flex: 1 1 100%;
   }
 
   .searchInput {

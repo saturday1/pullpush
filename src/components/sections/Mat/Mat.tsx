@@ -1114,7 +1114,6 @@ export default function Mat(): React.JSX.Element {
         const currentMax: number = meals.reduce((acc: number, m: Meal) => Math.max(acc, m.sort_order), -1)
         const row = {
             user_id: user!.id,
-            day_type: 'default',
             sort_order: currentMax + 1,
             label: form.label.trim(),
             food: form.food.trim(),
