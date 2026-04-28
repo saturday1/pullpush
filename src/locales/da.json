@@ -590,6 +590,8 @@
   "Coming soon": "Kommer snart",
   "Maybe later": "Måske senere",
   "Search food database — Standard required": "Søg i maddatabase — kræver Standard",
+  "Weekly limit reached": "Ugegrænse nået",
+  "You have used all {{max}} questions this week. New questions unlock next Monday.": "Du har brugt alle {{max}} spørgsmål denne uge. Nye spørgsmål låses op næste mandag.",
   "Theme": "Tema",
   "Light": "Lys",
   "Dark": "Mørk",

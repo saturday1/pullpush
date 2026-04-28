@@ -590,6 +590,8 @@
   "Coming soon": "Tulossa pian",
   "Maybe later": "Ehkä myöhemmin",
   "Search food database — Standard required": "Ruokatietokanta — vaatii Standard-tilauksen",
+  "Weekly limit reached": "Viikkoraja saavutettu",
+  "You have used all {{max}} questions this week. New questions unlock next Monday.": "Olet käyttänyt kaikki {{max}} kysymystä tällä viikolla. Uudet kysymykset avautuvat ensi maanantaina.",
   "Theme": "Teema",
   "Light": "Vaalea",
   "Dark": "Tumma",

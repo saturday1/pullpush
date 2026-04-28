@@ -590,6 +590,8 @@
   "Coming soon": "Bientôt disponible",
   "Maybe later": "Peut-être plus tard",
   "Search food database — Standard required": "Base alimentaire — Standard requis",
+  "Weekly limit reached": "Limite hebdomadaire atteinte",
+  "You have used all {{max}} questions this week. New questions unlock next Monday.": "Vous avez utilisé vos {{max}} questions cette semaine. De nouvelles questions seront disponibles lundi prochain.",
   "Theme": "Thème",
   "Light": "Clair",
   "Dark": "Sombre",

@@ -26,15 +26,15 @@ const INSIGHT_TYPE_CLASS: Record<string, string> = {
   tip: styles.insightTypeTip,
 }
 
-const INSIGHT_TYPE_LABEL: Record<string, string> = {
-  progress: 'Progress',
-  nutrition: 'Nutrition',
-  recovery: 'Recovery',
-  tip: 'Tip',
-}
-
 export default function Coach(): React.JSX.Element {
   const { t } = useTranslation()
+
+  const INSIGHT_TYPE_LABEL: Record<string, string> = {
+    progress: t('Progress'),
+    nutrition: t('Nutrition'),
+    recovery: t('Recovery'),
+    tip: t('Tip'),
+  }
   const { pathname } = useLocation()
   const isActive = pathname === '/coach'
   const { canUse, requireUpgrade } = useSubscription()

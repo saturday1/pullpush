@@ -592,6 +592,8 @@
   "Ask": "Fråga",
   "Try again": "Försök igen",
   "{{used}} of {{max}} questions this week": "{{used}} av {{max}} frågor denna vecka",
+  "Weekly limit reached": "Veckogräns nådd",
+  "You have used all {{max}} questions this week. New questions unlock next Monday.": "Du har använt alla {{max}} frågor denna vecka. Nya frågor låses upp nästa måndag.",
   "How do I break my plateau?": "Hur bryter jag min platå?",
   "Am I eating enough protein?": "Äter jag tillräckligt protein?",
   "Should I deload this week?": "Borde jag deloada denna vecka?",

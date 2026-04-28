@@ -590,6 +590,8 @@
   "Coming soon": "Kemur fljótlega",
   "Maybe later": "Kannski seinna",
   "Search food database — Standard required": "Matvælaskrá — Standard krafist",
+  "Weekly limit reached": "Vikumörkum náð",
+  "You have used all {{max}} questions this week. New questions unlock next Monday.": "Þú hefur notað allar {{max}} spurningar þessarar viku. Nýjar spurningar opnast næsta mánudag.",
   "Theme": "Þema",
   "Light": "Ljóst",
   "Dark": "Dökkt",
