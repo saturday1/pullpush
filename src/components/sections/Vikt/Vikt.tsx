@@ -17,6 +17,7 @@ import styles from './Vikt.module.scss'
 
 interface MacroBar {
   name: string
+  icon: React.ReactNode
   color: string
   gram: string
   pct: string
@@ -129,9 +130,9 @@ export default function Vikt(): React.JSX.Element {
 
   const m = macros
   const macroBars: MacroBar[] = m ? [
-    { name: `🥩 ${t('Protein')}`,  color: COLOR_PROTEIN, gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
-    { name: `🍚 ${t('Carbs')}`,    color: COLOR_CARBS,   gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
-    { name: `🥑 ${t('Fat')}`,      color: COLOR_FAT,     gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
+    { name: t('Protein'),  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10c0-3.5 3.5-6 8-6s8 2.5 8 6v2c0 2-1 4-3.5 5.5S12 19 10 19s-4-.5-5.5-2S3 14 3 12z"/><path d="M4 10c1 0 2.5.5 4 2s3 2 4 2 2.5-.5 4-2"/><path d="M10 8.5c-.5.5-.5 1.5 0 2M14 7.5c-.5.5-.5 1.5 0 2"/></svg>, color: COLOR_PROTEIN, gram: `${m.protein} g`, pct: `${m.proteinPct}%`, barWidth: `${m.proteinPct}%` },
+    { name: t('Carbs'),    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg>, color: COLOR_CARBS,   gram: `${m.carbs} g`,   pct: `${m.carbPct}%`,    barWidth: `${m.carbPct}%`    },
+    { name: t('Fat'),      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c-4.97 0-9-2.24-9-5v-4l9-7 9 7v4c0 2.76-4.03 5-9 5z"/><path d="M12 22v-4"/><path d="m3 13 9 4 9-4"/></svg>, color: COLOR_FAT,     gram: `${m.fat} g`,     pct: `${m.fatPct}%`,     barWidth: `${m.fatPct}%`     },
   ] : []
 
   return (
@@ -294,9 +295,9 @@ export default function Vikt(): React.JSX.Element {
 
         <div className={styles.macroCard}>
           <div className={styles.macroCardTitle}>{t('Macro split — training day')}</div>
-          {macroBars.map(({ name, color, gram, pct: macroPct, barWidth }: MacroBar) => (
+          {macroBars.map(({ name, icon, color, gram, pct: macroPct, barWidth }: MacroBar) => (
             <div key={name} className={styles.macroRow}>
-              <span className={styles.macroName} style={{ color }}>{name}</span>
+              <span className={styles.macroName} style={{ color }}><span className={styles.macroIcon}>{icon}</span>{name}</span>
               <div className={styles.macroBarWrap}>
                 <div className={styles.macroBar} style={{ background: color, width: barsVisible ? barWidth : '0%' }} />
               </div>
