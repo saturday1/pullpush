@@ -13,12 +13,9 @@
       "Bash(command -v sox)",
       "Bash(command -v afinfo)",
       "Bash(brew list *)",
-<<<<<<< HEAD
-      "Bash(npx supabase:*)"
-=======
+      "Bash(npx supabase:*)",
       "Bash(xargs ls *)",
       "Bash(xargs cat *)"
->>>>>>> 93bc2e9bfedf47eae0ad92dbab5b53ba918fdd58
     ]
   }
 }

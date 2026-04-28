@@ -38,6 +38,7 @@ interface UseCoachDataReturn {
   history: CoachHistoryItem[]
   historyLoading: boolean
   loadHistory: () => Promise<void>
+  loadQuestionCount: () => Promise<void>
 }
 
 export function useCoachData(): UseCoachDataReturn {
@@ -106,6 +107,24 @@ export function useCoachData(): UseCoachDataReturn {
     }
   }, [])
 
+  const loadQuestionCount = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const now = new Date()
+      const day = now.getDay() === 0 ? 6 : now.getDay() - 1
+      const weekStart = new Date(now)
+      weekStart.setDate(now.getDate() - day)
+      weekStart.setHours(0, 0, 0, 0)
+      const { count } = await supabase
+        .from('coach_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', weekStart.toISOString())
+      setQuestionsUsed(count ?? 0)
+    } catch { /* ignore */ }
+  }, [])
+
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
     try {
@@ -135,5 +154,6 @@ export function useCoachData(): UseCoachDataReturn {
     history,
     historyLoading,
     loadHistory,
+    loadQuestionCount,
   }
 }

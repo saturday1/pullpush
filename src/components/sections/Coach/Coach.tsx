@@ -52,6 +52,7 @@ export default function Coach(): React.JSX.Element {
     history,
     historyLoading,
     loadHistory,
+    loadQuestionCount,
   } = useCoachData()
 
   const [question, setQuestion] = useState('')
@@ -64,7 +65,8 @@ export default function Coach(): React.JSX.Element {
     if (!isActive || hasLoaded || !canUse('aiCoach')) return
     setHasLoaded(true)
     loadSummary()
-  }, [isActive, hasLoaded, canUse, loadSummary])
+    loadQuestionCount()
+  }, [isActive, hasLoaded, canUse, loadSummary, loadQuestionCount])
 
   const suggestedRow1 = [
     t('How do I break my plateau?'),
@@ -101,7 +103,11 @@ export default function Coach(): React.JSX.Element {
       <section className={styles.container}>
         <SectionHeader number="09" title={t('AI Coach')} />
         <div className={styles.premiumGate}>
-          <div className={styles.premiumIcon}>🤖</div>
+          <div className={styles.premiumIcon}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 8V4H8"/><rect x="2" y="8" width="20" height="12" rx="2"/><path d="M6 12h.01M18 12h.01"/><path d="M9 16h6"/>
+            </svg>
+          </div>
           <p className={styles.premiumTitle}>{t('AI Coach')}</p>
           <p className={styles.premiumText}>
             {t('Get personalized training insights and coaching powered by AI. Available for Premium subscribers.')}
@@ -162,7 +168,11 @@ export default function Coach(): React.JSX.Element {
         <>
           <div className={styles.summaryCard}>
             <div className={styles.summaryTitle}>
-              <span className={styles.summaryIcon}>✨</span>
+              <span className={styles.summaryIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                </svg>
+              </span>
               {t('Weekly Summary')}
             </div>
             <ul className={styles.summaryList}>
@@ -192,7 +202,11 @@ export default function Coach(): React.JSX.Element {
       {/* No data state */}
       {!summary && !summaryLoading && !summaryError && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📊</div>
+          <div className={styles.emptyIcon}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16l4-8 4 4 4-6"/>
+            </svg>
+          </div>
           <p className={styles.emptyTitle}>{t('Not enough data yet')}</p>
           <p className={styles.emptyText}>
             {t('Train for at least 2 weeks and the AI Coach will generate personalized insights for you.')}
@@ -204,75 +218,91 @@ export default function Coach(): React.JSX.Element {
       <div className={styles.askSection}>
         <div className={styles.askTitle}>{t('Ask the Coach')}</div>
 
-        <div className={styles.marqueeWrap}>
-          <div className={styles.marqueeTrack}>
-            <div className={styles.marqueeSlide}>
-              {suggestedRow1.map((q, i) => (
-                <button key={i} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
-              ))}
+        {questionsUsed >= questionsMax ? (
+          <div className={styles.limitReached}>
+            <div className={styles.limitReachedIcon}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
             </div>
-            <div className={styles.marqueeSlide} aria-hidden>
-              {suggestedRow1.map((q, i) => (
-                <button key={`d-${i}`} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
-              ))}
-            </div>
+            <p className={styles.limitReachedTitle}>{t('Weekly limit reached')}</p>
+            <p className={styles.limitReachedText}>
+              {t('You have used all {{max}} questions this week. New questions unlock next Monday.', { max: questionsMax })}
+            </p>
           </div>
-          <div className={`${styles.marqueeTrack} ${styles.marqueeReverse}`}>
-            <div className={styles.marqueeSlide}>
-              {suggestedRow2.map((q, i) => (
-                <button key={i} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
-              ))}
+        ) : (
+          <>
+            <div className={styles.marqueeWrap}>
+              <div className={styles.marqueeTrack}>
+                <div className={styles.marqueeSlide}>
+                  {suggestedRow1.map((q, i) => (
+                    <button key={i} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+                  ))}
+                </div>
+                <div className={styles.marqueeSlide} aria-hidden>
+                  {suggestedRow1.map((q, i) => (
+                    <button key={`d-${i}`} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+                  ))}
+                </div>
+              </div>
+              <div className={`${styles.marqueeTrack} ${styles.marqueeReverse}`}>
+                <div className={styles.marqueeSlide}>
+                  {suggestedRow2.map((q, i) => (
+                    <button key={i} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+                  ))}
+                </div>
+                <div className={styles.marqueeSlide} aria-hidden>
+                  {suggestedRow2.map((q, i) => (
+                    <button key={`d-${i}`} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className={styles.marqueeSlide} aria-hidden>
-              {suggestedRow2.map((q, i) => (
-                <button key={`d-${i}`} type="button" className={styles.askChip} onClick={() => handleAsk(q)} disabled={askLoading}>{q}</button>
-              ))}
+
+            <div className={styles.askInputRow}>
+              <input
+                type="text"
+                className={styles.askInput}
+                placeholder={t('Ask a question...')}
+                value={question}
+                onChange={e => setQuestion(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAsk(question) }}
+                disabled={askLoading}
+                maxLength={500}
+              />
+              <button
+                type="button"
+                className={styles.askBtn}
+                onClick={() => handleAsk(question)}
+                disabled={askLoading || !question.trim()}
+              >
+                {askLoading ? (
+                  <span className={styles.askBtnDots}>
+                    <span /><span /><span />
+                  </span>
+                ) : t('Ask')}
+              </button>
             </div>
-          </div>
-        </div>
 
-        <div className={styles.askInputRow}>
-          <input
-            type="text"
-            className={styles.askInput}
-            placeholder={t('Ask a question...')}
-            value={question}
-            onChange={e => setQuestion(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleAsk(question) }}
-            disabled={askLoading}
-            maxLength={500}
-          />
-          <button
-            type="button"
-            className={styles.askBtn}
-            onClick={() => handleAsk(question)}
-            disabled={askLoading || !question.trim()}
-          >
-            {askLoading ? (
-              <span className={styles.askBtnDots}>
-                <span /><span /><span />
-              </span>
-            ) : t('Ask')}
-          </button>
-        </div>
-
-        <div className={styles.rateLimit}>
-          {t('{{used}} of {{max}} questions this week', { used: questionsUsed, max: questionsMax })}
-        </div>
-
-        {askLoading && (
-          <div className={styles.thinkingCard}>
-            <div className={styles.thinkingDots}>
-              <span /><span /><span />
+            <div className={styles.rateLimit}>
+              {t('{{used}} of {{max}} questions this week', { used: questionsUsed, max: questionsMax })}
             </div>
-            <span className={styles.thinkingText}>{t('AI Coach')} ...</span>
-          </div>
-        )}
 
-        {askError && (
-          <div className={styles.errorCard}>
-            <p className={styles.errorText}>{askError}</p>
-          </div>
+            {askLoading && (
+              <div className={styles.thinkingCard}>
+                <div className={styles.thinkingDots}>
+                  <span /><span /><span />
+                </div>
+                <span className={styles.thinkingText}>{t('AI Coach')} ...</span>
+              </div>
+            )}
+
+            {askError && (
+              <div className={styles.errorCard}>
+                <p className={styles.errorText}>{askError}</p>
+              </div>
+            )}
+          </>
         )}
 
         {lastAnswer && !askLoading && (
