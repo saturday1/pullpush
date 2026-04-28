@@ -104,8 +104,8 @@ export default function Coach(): React.JSX.Element {
         <SectionHeader number="09" title={t('AI Coach')} />
         <div className={styles.premiumGate}>
           <div className={styles.premiumIcon}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 8V4H8"/><rect x="2" y="8" width="20" height="12" rx="2"/><path d="M6 12h.01M18 12h.01"/><path d="M9 16h6"/>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6.5 6.5h-2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1z"/><path d="M19.5 6.5h-2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1z"/><path d="M7.5 12h9"/><path d="M2 9.5v5M22 9.5v5"/><path d="M11 2l1 2.5L13 2"/><path d="M9 3.5l.75 1.5M15 3.5l-.75 1.5"/>
             </svg>
           </div>
           <p className={styles.premiumTitle}>{t('AI Coach')}</p>
