@@ -27,6 +27,12 @@ Deno.serve(async (req) => {
   }
 
   try {
+    let lang = 'sv'
+    try {
+      const body = await req.json()
+      if (body?.lang && typeof body.lang === 'string') lang = body.lang
+    } catch { /* no body or invalid JSON, use default */ }
+
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return json({ error: 'Missing authorization' }, 401)
 
@@ -59,6 +65,7 @@ Deno.serve(async (req) => {
       .select('summary_json')
       .eq('user_id', user.id)
       .eq('week_start', weekStart)
+      .eq('lang', lang)
       .single()
 
     if (cached) return json(cached.summary_json)
@@ -71,9 +78,15 @@ Deno.serve(async (req) => {
       return json({ error: 'Failed to get data' }, 500)
     }
 
-    const systemPrompt = `You are an AI fitness coach for a Swedish training app called PullPush.
+    const LANG_NAMES: Record<string, string> = {
+      sv: 'Swedish', en: 'English', da: 'Danish', nb: 'Norwegian Bokmål',
+      fi: 'Finnish', is: 'Icelandic', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian',
+    }
+    const langName = LANG_NAMES[lang] ?? 'English'
+
+    const systemPrompt = `You are an AI fitness coach for a training app called PullPush.
 Analyze the user's training data and provide personalized coaching.
-Respond in the same language the user's app is set to (detect from profile data or default to Swedish).
+IMPORTANT: Respond ONLY in ${langName} (language code: ${lang}). All text must be in ${langName}.
 Be encouraging but honest. Use specific numbers from their data.
 Keep insights actionable and concise.`
 
@@ -137,7 +150,8 @@ Respond ONLY with valid JSON matching this schema:
         week_start: weekStart,
         summary_json: summaryJson,
         tokens_used: tokensUsed,
-      }, { onConflict: 'user_id,week_start' })
+        lang,
+      }, { onConflict: 'user_id,week_start,lang' })
 
     return json(summaryJson)
   } catch (e) {

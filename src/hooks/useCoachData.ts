@@ -41,7 +41,7 @@ interface UseCoachDataReturn {
   loadQuestionCount: () => Promise<void>
 }
 
-export function useCoachData(): UseCoachDataReturn {
+export function useCoachData(lang: string = 'en'): UseCoachDataReturn {
   const [summary, setSummary] = useState<CoachSummary | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
@@ -60,10 +60,13 @@ export function useCoachData(): UseCoachDataReturn {
       if (!session) throw new Error('Not authenticated')
 
       const res = await fetch('https://jfayqffmmkwjrbdanqsm.supabase.co/functions/v1/ai-coach-weekly', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmYXlxZmZtbWt3anJiZGFucXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMDU0OTQsImV4cCI6MjA4ODg4MTQ5NH0.IM4xu2MRouTAe5DkzWyBtPtekW7J2o6-aKej2vXBeBU',
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ lang }),
       })
 
       const body = await res.json()
@@ -75,14 +78,14 @@ export function useCoachData(): UseCoachDataReturn {
     } finally {
       setSummaryLoading(false)
     }
-  }, [])
+  }, [lang])
 
   const askQuestion = useCallback(async (question: string): Promise<CoachAnswer> => {
     setAskLoading(true)
     setAskError(null)
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach-ask', {
-        body: { question },
+        body: { question, lang },
       })
 
       if (error) {
@@ -105,7 +108,7 @@ export function useCoachData(): UseCoachDataReturn {
     } finally {
       setAskLoading(false)
     }
-  }, [])
+  }, [lang])
 
   const loadQuestionCount = useCallback(async () => {
     try {

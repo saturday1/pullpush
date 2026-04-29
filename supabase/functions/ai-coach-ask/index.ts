@@ -23,10 +23,11 @@ Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') return json({ error: 'POST required' }, 405)
 
-    const { question } = await req.json()
+    const { question, lang } = await req.json()
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
       return json({ error: 'Question required' }, 400)
     }
+    const userLang = (typeof lang === 'string' && lang) ? lang : 'sv'
     if (question.length > 500) return json({ error: 'Question too long (max 500 chars)' }, 400)
 
     const authHeader = req.headers.get('Authorization')
@@ -84,10 +85,16 @@ Deno.serve(async (req) => {
       return json({ error: 'Failed to get data' }, 500)
     }
 
-    const systemPrompt = `You are an AI fitness coach for PullPush, a Swedish training app.
+    const LANG_NAMES: Record<string, string> = {
+      sv: 'Swedish', en: 'English', da: 'Danish', nb: 'Norwegian Bokmål',
+      fi: 'Finnish', is: 'Icelandic', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian',
+    }
+    const langName = LANG_NAMES[userLang] ?? 'English'
+
+    const systemPrompt = `You are an AI fitness coach for PullPush, a training app.
 Answer the user's question based on their actual training/nutrition data.
 Be specific, reference their numbers. Keep answers concise (2-4 paragraphs max).
-Respond in the same language as the question.
+IMPORTANT: Respond ONLY in ${langName} (language code: ${userLang}). All text must be in ${langName}.
 Do not give medical advice. For health concerns, recommend consulting a doctor.`
 
     const userPrompt = `User data:

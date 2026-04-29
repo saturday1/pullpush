@@ -27,7 +27,7 @@ const INSIGHT_TYPE_CLASS: Record<string, string> = {
 }
 
 export default function Coach(): React.JSX.Element {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const INSIGHT_TYPE_LABEL: Record<string, string> = {
     progress: t('Progress'),
@@ -53,7 +53,7 @@ export default function Coach(): React.JSX.Element {
     historyLoading,
     loadHistory,
     loadQuestionCount,
-  } = useCoachData()
+  } = useCoachData(i18n.language)
 
   const [question, setQuestion] = useState('')
   const [lastAnswer, setLastAnswer] = useState<CoachAnswer | null>(null)
@@ -61,12 +61,19 @@ export default function Coach(): React.JSX.Element {
   const [showHistory, setShowHistory] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
+  const currentLang = i18n.language
+  const [loadedLang, setLoadedLang] = useState<string | null>(null)
+
   useEffect(() => {
-    if (!isActive || hasLoaded || !canUse('aiCoach')) return
-    setHasLoaded(true)
+    if (!isActive || !canUse('aiCoach')) return
+    if (loadedLang === currentLang) return
+    setLoadedLang(currentLang)
     loadSummary()
-    loadQuestionCount()
-  }, [isActive, hasLoaded, canUse, loadSummary, loadQuestionCount])
+    if (!hasLoaded) {
+      setHasLoaded(true)
+      loadQuestionCount()
+    }
+  }, [isActive, canUse, loadSummary, loadQuestionCount, currentLang, loadedLang, hasLoaded])
 
   const suggestedRow1 = [
     t('How do I break my plateau?'),

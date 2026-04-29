@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,44 +51,47 @@ Deno.serve(async (req) => {
 
     if (!isPremium) return json({ error: 'Premium required' }, 403)
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: image_base64,
-                },
+    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 256,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: image_base64,
               },
-              {
-                text: `Analyze this food photo. Estimate the nutritional content of the visible food.
+            },
+            {
+              type: 'text',
+              text: `Analyze this food photo. Estimate the nutritional content of the visible food.
 Respond ONLY with a JSON object in this exact format, no other text:
 {"food": "brief description of the food", "protein_g": number, "carbs_g": number, "fat_g": number, "kcal": number}
 Use reasonable estimates based on typical portion sizes visible in the photo. All numbers should be integers.`,
-              },
-            ],
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 256,
-          },
-        }),
-      }
-    )
+            },
+          ],
+        }],
+      }),
+    })
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.text()
-      console.error('Gemini API error:', geminiRes.status, errBody)
+    if (!anthropicRes.ok) {
+      const errBody = await anthropicRes.text()
+      console.error('Anthropic API error:', anthropicRes.status, errBody)
       return json({ error: 'AI service error' }, 502)
     }
 
-    const geminiData = await geminiRes.json()
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
+    const anthropicData = await anthropicRes.json()
+    const rawText = anthropicData.content?.find((c: { type: string }) => c.type === 'text')?.text
     if (!rawText) return json({ error: 'Empty AI response' }, 502)
 
     // Strip markdown code fences if present
