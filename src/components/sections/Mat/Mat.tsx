@@ -13,6 +13,8 @@ import Reveal from '../../Reveal/Reveal'
 import SectionHeader from '../../SectionHeader/SectionHeader'
 import { DB } from '../../../constants/database'
 import { COLOR_PROTEIN, COLOR_CARBS, COLOR_FAT, COLOR_KCAL } from '../../../constants/colors'
+import RecipeModal from './RecipeModal'
+import type { Recipe, RecipeIngredient } from './RecipeModal'
 import styles from './Mat.module.scss'
 
 interface NativeBarcodeScanner {
@@ -34,6 +36,7 @@ interface MealFormData {
     kcal: string
     product_id: number | null
     grams: string
+    recipe_id: string | null
 }
 
 interface Meal {
@@ -54,6 +57,7 @@ interface Meal {
     meal_date: string
     is_recurring: boolean
     recurring_until: string | null
+    recipe_id: string | null
 }
 
 interface Nutriments {
@@ -116,7 +120,7 @@ interface MealTotals {
 
 // --- Constants ---
 
-const EMPTY_FORM: MealFormData = { label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '' }
+const EMPTY_FORM: MealFormData = { label: '', food: '', note: '', protein_g: '', carbs_g: '', fat_g: '', kcal: '', product_id: null, grams: '', recipe_id: null }
 
 // --- Date helpers ---
 
@@ -489,9 +493,14 @@ function resizeImageToBase64(file: File, maxSize = 800, quality = 0.7): Promise<
     })
 }
 
-function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModalProps): React.JSX.Element {
+interface MealModalExtProps extends MealModalProps {
+    recipes?: Recipe[]
+}
+
+function MealModal({ initial, onSave, onClose, saving, saveError, t, recipes }: MealModalExtProps): React.JSX.Element {
     const { requireUpgrade, canUse } = useSubscription()
     const [open, setOpen] = useState(true)
+    const [showRecipePicker, setShowRecipePicker] = useState(false)
 
     function handleClose(): void {
         setOpen(false)
@@ -764,6 +773,26 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
         setManualBarcode(null)
     }
 
+    function applyRecipe(recipe: Recipe): void {
+        const ings = recipe.ingredients ?? []
+        const totals = ings.reduce((acc, ing) => ({
+            protein_g: acc.protein_g + ing.protein_g,
+            carbs_g: acc.carbs_g + ing.carbs_g,
+            fat_g: acc.fat_g + ing.fat_g,
+            kcal: acc.kcal + ing.kcal,
+        }), { protein_g: 0, carbs_g: 0, fat_g: 0, kcal: 0 })
+        setForm(f => ({
+            ...f,
+            food: recipe.name,
+            protein_g: String(Math.round(totals.protein_g)),
+            carbs_g: String(Math.round(totals.carbs_g)),
+            fat_g: String(Math.round(totals.fat_g)),
+            kcal: String(Math.round(totals.kcal)),
+            recipe_id: recipe.id,
+        }))
+        setShowRecipePicker(false)
+    }
+
     async function handleFoodPhoto(): Promise<void> {
         if (!requireUpgrade('foodPhoto')) return
         setPhotoError('')
@@ -856,6 +885,14 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                                         </svg>
                                     )}
                                 </button>
+                                {canUse('recipes') && recipes && recipes.length > 0 && (
+                                    <button className={styles.recipeBtn} type="button" onClick={() => setShowRecipePicker(v => !v)} title={t('Use recipe')}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                        </svg>
+                                    </button>
+                                )}
                                 <div className={styles.gramsWrap}>
                                     <input
                                         className={styles.gramsInput}
@@ -878,6 +915,22 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                             {photoError && <div className={styles.scanError}>{photoError}</div>}
                         </div>
                         {scannerOpen && <BarcodeScanner onResult={handleBarcode} onClose={() => setScannerOpen(false)} t={t} />}
+                        {showRecipePicker && recipes && recipes.length > 0 && (
+                            <div className={styles.recipePickerList}>
+                                {recipes.map(recipe => {
+                                    const ings = recipe.ingredients ?? []
+                                    const tot = ings.reduce((a, i) => ({ p: a.p + i.protein_g, c: a.c + i.carbs_g, f: a.f + i.fat_g, k: a.k + i.kcal }), { p: 0, c: 0, f: 0, k: 0 })
+                                    return (
+                                        <button key={recipe.id} className={styles.recipePickerItem} type="button" onClick={() => applyRecipe(recipe)}>
+                                            <span className={styles.recipePickerName}>{recipe.name}</span>
+                                            <span className={styles.recipePickerMacros}>
+                                                {Math.round(tot.p)}p · {Math.round(tot.c)}c · {Math.round(tot.f)}f · {Math.round(tot.k)} kcal
+                                            </span>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        )}
 
                         <div className={styles.modalFields}>
                             <label className={styles.modalField}>
@@ -919,7 +972,7 @@ function MealModal({ initial, onSave, onClose, saving, saveError, t }: MealModal
                         {saveError && <div className={styles.saveError}>{saveError}</div>}
                         <div className={styles.modalActions}>
                             <button className={styles.cancelBtn} onClick={handleClose} type="button">{t('Cancel')}</button>
-                            <button className={styles.saveBtn} onClick={() => onSave({ ...form, product_id: productId, grams })} disabled={saving || !valid} type="button">
+                            <button className={styles.saveBtn} onClick={() => onSave({ ...form, product_id: productId, grams, recipe_id: form.recipe_id })} disabled={saving || !valid} type="button">
                                 {saving ? '…' : t('Save')}
                             </button>
                         </div>
@@ -935,40 +988,101 @@ interface MealTableProps {
     onEdit: (meal: Meal) => void
     onDelete: (id: number) => void
     onToggleRecurring: (meal: Meal) => void
+    selectMode: boolean
+    selectedIds: Set<number>
+    onToggleSelect: (id: number) => void
+    recipes: Recipe[]
     t: TFunction
 }
 
-function MealTable({ meals, onEdit, onDelete, onToggleRecurring, t }: MealTableProps): React.JSX.Element {
+function MealTable({ meals, onEdit, onDelete, onToggleRecurring, selectMode, selectedIds, onToggleSelect, recipes, t }: MealTableProps): React.JSX.Element {
+    const [expandedMealId, setExpandedMealId] = useState<number | null>(null)
+
+    function getRecipeIngredients(recipeId: string): RecipeIngredient[] {
+        const recipe = recipes.find(r => r.id === recipeId)
+        return recipe?.ingredients ?? []
+    }
+
     return (
         <div className={styles.mealList}>
-            {meals.map((meal: Meal) => (
-                <div key={meal.id} className={styles.mealCard}>
-                    <div className={styles.mealCardHeader}>
-                        <div className={styles.mealLabel}>{meal.label}</div>
-                        <div className={styles.mealCardActions}>
-                            <button
-                                className={`${styles.starBtn} ${meal.is_recurring ? styles.starBtnActive : ''}`}
-                                onClick={() => onToggleRecurring(meal)}
-                                title={meal.is_recurring ? t('Unsave daily') : t('Save daily')}
-                            >
-                                {meal.is_recurring ? '★' : '☆'}
-                            </button>
-                            <button className={styles.editBtn} onClick={() => onEdit(meal)} title={t('Edit')}>✏️</button>
-                            <button className={styles.deleteBtn} onClick={() => onDelete(meal.id)} title={t('Delete')}>🗑</button>
+            {meals.map((meal: Meal) => {
+                const hasRecipe = !!meal.recipe_id
+                const isExpanded = expandedMealId === meal.id
+                const ingredients = hasRecipe ? getRecipeIngredients(meal.recipe_id!) : []
+
+                return (
+                    <div
+                        key={meal.id}
+                        className={`${styles.mealCard} ${selectMode ? styles.mealCardSelecting : ''}`}
+                        onClick={selectMode
+                            ? () => onToggleSelect(meal.id)
+                            : hasRecipe && ingredients.length > 0
+                                ? () => setExpandedMealId(isExpanded ? null : meal.id)
+                                : undefined
+                        }
+                        style={hasRecipe && ingredients.length > 0 && !selectMode ? { cursor: 'pointer' } : undefined}
+                    >
+                        {selectMode && (
+                            <div className={`${styles.mealCardCheckbox} ${selectedIds.has(meal.id) ? styles.checked : ''}`}>
+                                {selectedIds.has(meal.id) && '✓'}
+                            </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className={styles.mealCardHeader}>
+                                <div className={styles.mealLabel}>
+                                    {meal.label}
+                                    {hasRecipe && ingredients.length > 0 && (
+                                        <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.5 }}>{isExpanded ? '▲' : '▼'}</span>
+                                    )}
+                                </div>
+                                {!selectMode && (
+                                    <div className={styles.mealCardActions}>
+                                        <button
+                                            className={`${styles.starBtn} ${meal.is_recurring ? styles.starBtnActive : ''}`}
+                                            onClick={e => { e.stopPropagation(); onToggleRecurring(meal) }}
+                                            title={meal.is_recurring ? t('Unsave daily') : t('Save daily')}
+                                        >
+                                            {meal.is_recurring ? '★' : '☆'}
+                                        </button>
+                                        <button className={styles.editBtn} onClick={e => { e.stopPropagation(); onEdit(meal) }} title={t('Edit')}>✏️</button>
+                                        <button className={styles.deleteBtn} onClick={e => { e.stopPropagation(); onDelete(meal.id) }} title={t('Delete')}>🗑</button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className={styles.mealCardFood}>
+                                {meal.food}
+                                {meal.note && <em className={styles.mealNote}> {meal.note}</em>}
+                            </div>
+                            <div className={styles.mealCardMacros}>
+                                <span className="pill pill-p" style={{ color: COLOR_PROTEIN }}>{meal.protein_g}g P</span>
+                                <span className="pill pill-k" style={{ color: COLOR_CARBS }}>{meal.carbs_g}g C</span>
+                                <span className="pill pill-f" style={{ color: COLOR_FAT }}>{meal.fat_g}g F</span>
+                                <span className="pill pill-kcal">{meal.kcal} kcal</span>
+                            </div>
+                            {isExpanded && ingredients.length > 0 && (
+                                <div className={styles.recipeIngredients} style={{ marginTop: 10 }}>
+                                    {ingredients.map((ing, i) => (
+                                        <div key={i} className={styles.ingredientRow}>
+                                            <div className={styles.ingredientInfo}>
+                                                <span className={styles.ingredientName}>{ing.quantity_g}g {ing.product_name}</span>
+                                                <span className={styles.ingredientMacros}>
+                                                    <span style={{ color: COLOR_PROTEIN }}>{Math.round(ing.protein_g * 10) / 10}p</span>
+                                                    {' '}
+                                                    <span style={{ color: COLOR_CARBS }}>{Math.round(ing.carbs_g * 10) / 10}c</span>
+                                                    {' '}
+                                                    <span style={{ color: COLOR_FAT }}>{Math.round(ing.fat_g * 10) / 10}f</span>
+                                                    {' '}
+                                                    <span>{Math.round(ing.kcal * 10) / 10} kcal</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <div className={styles.mealCardFood}>
-                        {meal.food}
-                        {meal.note && <em className={styles.mealNote}> {meal.note}</em>}
-                    </div>
-                    <div className={styles.mealCardMacros}>
-                        <span className="pill pill-p" style={{ color: COLOR_PROTEIN }}>{meal.protein_g}g P</span>
-                        <span className="pill pill-k" style={{ color: COLOR_CARBS }}>{meal.carbs_g}g C</span>
-                        <span className="pill pill-f" style={{ color: COLOR_FAT }}>{meal.fat_g}g F</span>
-                        <span className="pill pill-kcal">{meal.kcal} kcal</span>
-                    </div>
-                </div>
-            ))}
+                )
+            })}
         </div>
     )
 }
@@ -1080,7 +1194,17 @@ export default function Mat(): React.JSX.Element {
     const [saving, setSaving] = useState<boolean>(false)
     const [saveError, setSaveError] = useState<string>('')
 
-    useEffect(() => { loadMeals() }, [])
+    // Recipe state
+    const [recipes, setRecipes] = useState<Recipe[]>([])
+    const [recipeModalOpen, setRecipeModalOpen] = useState(false)
+    const [editRecipe, setEditRecipe] = useState<Recipe | null>(null)
+    const [recipeInitialIngredients, setRecipeInitialIngredients] = useState<RecipeIngredient[] | undefined>(undefined)
+
+    // Select mode for creating recipes from meals
+    const [selectMode, setSelectMode] = useState(false)
+    const [selectedMealIds, setSelectedMealIds] = useState<Set<number>>(new Set())
+
+    useEffect(() => { loadMeals(); loadRecipes() }, [])
 
     useEffect(() => {
         function checkDayRollover(): void {
@@ -1107,6 +1231,55 @@ export default function Mat(): React.JSX.Element {
         setLoading(false)
     }
 
+    async function loadRecipes(): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: recipeRows } = await supabase.from(DB.RECIPES).select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+        if (!recipeRows) { setRecipes([]); return }
+        const recipeIds = (recipeRows as Recipe[]).map(r => r.id)
+        if (recipeIds.length === 0) { setRecipes([]); return }
+        const { data: ingRows } = await supabase.from(DB.RECIPE_INGREDIENTS).select('*').in('recipe_id', recipeIds).order('sort_order')
+        const ingsByRecipe: Record<string, RecipeIngredient[]> = {}
+        for (const ing of (ingRows ?? []) as RecipeIngredient[]) {
+            const rid = (ing as unknown as { recipe_id: string }).recipe_id
+            if (!ingsByRecipe[rid]) ingsByRecipe[rid] = []
+            ingsByRecipe[rid].push(ing)
+        }
+        setRecipes((recipeRows as Recipe[]).map(r => ({ ...r, ingredients: ingsByRecipe[r.id] ?? [] })))
+    }
+
+    async function handleDeleteRecipe(id: string): Promise<void> {
+        await supabase.from(DB.RECIPES).delete().eq('id', id)
+        setRecipes(prev => prev.filter(r => r.id !== id))
+    }
+
+    function handleToggleSelectMeal(id: number): void {
+        setSelectedMealIds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    function handleCreateRecipeFromSelected(): void {
+        const selectedMeals = shown.filter(m => selectedMealIds.has(m.id))
+        const initialIngs: RecipeIngredient[] = selectedMeals.map((m, i) => ({
+            product_id: m.product_id,
+            product_name: m.food,
+            quantity_g: m.grams ?? 0,
+            protein_g: m.protein_g,
+            carbs_g: m.carbs_g,
+            fat_g: m.fat_g,
+            kcal: m.kcal,
+            sort_order: i,
+        }))
+        setRecipeInitialIngredients(initialIngs)
+        setRecipeModalOpen(true)
+        setSelectMode(false)
+        setSelectedMealIds(new Set())
+    }
+
     async function handleAdd(form: MealFormData): Promise<void> {
         setSaving(true)
         setSaveError('')
@@ -1128,6 +1301,7 @@ export default function Mat(): React.JSX.Element {
             meal_date: selectedDate,
             is_recurring: false,
             recurring_until: null,
+            recipe_id: form.recipe_id ?? null,
         }
         const { data, error } = await supabase.from(DB.MEALS).insert(row).select().single()
         if (error) { setSaveError(error.message); setSaving(false); return }
@@ -1317,7 +1491,14 @@ export default function Mat(): React.JSX.Element {
                                 <span style={{ color: COLOR_FAT }}>{t('F')}: {totals.fat_g} g</span>
                             </div>
                         )}
-                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={(meal) => { if (!requireUpgrade('recurringMeals')) return; handleToggleRecurring(meal) }} t={t} />
+                        {shown.length > 0 && !selectMode && canUse('recipes') && (
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                                <button className={styles.selectMealsBtn} type="button" onClick={() => { setSelectMode(true); setSelectedMealIds(new Set()) }}>
+                                    {t('Select meals')}
+                                </button>
+                            </div>
+                        )}
+                        <MealTable meals={shown} onEdit={setEditMeal} onDelete={handleDelete} onToggleRecurring={(meal) => { if (!requireUpgrade('recurringMeals')) return; handleToggleRecurring(meal) }} selectMode={selectMode} selectedIds={selectedMealIds} onToggleSelect={handleToggleSelectMeal} recipes={recipes} t={t} />
                     </>
                 )}
             </Reveal>
@@ -1337,6 +1518,63 @@ export default function Mat(): React.JSX.Element {
                 </div>
             </Reveal>
 
+            {canUse('recipes') && <Reveal>
+                <div className={styles.recipeSection}>
+                    <div className={styles.recipeSectionHeader}>
+                        <div className={styles.subHeading}>{t('My recipes')}</div>
+                        <button className={styles.selectMealsBtn} type="button" onClick={() => { if (!requireUpgrade('recipes')) return; setRecipeInitialIngredients(undefined); setEditRecipe(null); setRecipeModalOpen(true) }}>
+                            + {t('New recipe')}
+                        </button>
+                    </div>
+                    {recipes.length === 0 ? (
+                        <div className={styles.noRecipes}>{t('No recipes yet')}</div>
+                    ) : (
+                        recipes.map(recipe => {
+                            const ings = recipe.ingredients ?? []
+                            const tot = ings.reduce((a, i) => ({ p: a.p + i.protein_g, c: a.c + i.carbs_g, f: a.f + i.fat_g, k: a.k + i.kcal }), { p: 0, c: 0, f: 0, k: 0 })
+                            return (
+                                <div key={recipe.id} className={styles.recipeCard} onClick={() => { setEditRecipe(recipe); setRecipeInitialIngredients(undefined); setRecipeModalOpen(true) }}>
+                                    <div className={styles.recipeCardHeader}>
+                                        <span className={styles.recipeCardName}>{recipe.name}</span>
+                                        <span className={styles.recipeCardMeta}>{ings.length} {t('ingredients')}</span>
+                                    </div>
+                                    <div className={styles.recipeCardMacros}>
+                                        <span style={{ color: COLOR_PROTEIN }}>{Math.round(tot.p)}g P</span>
+                                        <span style={{ color: COLOR_CARBS }}>{Math.round(tot.c)}g C</span>
+                                        <span style={{ color: COLOR_FAT }}>{Math.round(tot.f)}g F</span>
+                                        <span>{Math.round(tot.k)} kcal</span>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
+                </div>
+            </Reveal>}
+
+            {selectMode && (
+                <div className={styles.selectBar}>
+                    <span className={styles.selectBarCount}>{t('{{count}} selected', { count: selectedMealIds.size })}</span>
+                    <div className={styles.selectBarActions}>
+                        <button className={styles.cancelBtn} type="button" onClick={() => { setSelectMode(false); setSelectedMealIds(new Set()) }} style={{ flex: 'none', padding: '8px 14px' }}>
+                            {t('Cancel selection')}
+                        </button>
+                        <button className={styles.saveBtn} type="button" disabled={selectedMealIds.size === 0} onClick={handleCreateRecipeFromSelected} style={{ flex: 'none', padding: '8px 14px' }}>
+                            {t('Create recipe from selected')}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {recipeModalOpen && (
+                <RecipeModal
+                    recipe={editRecipe}
+                    initialIngredients={recipeInitialIngredients}
+                    onSaved={() => { loadRecipes(); setRecipeModalOpen(false); setEditRecipe(null); setRecipeInitialIngredients(undefined) }}
+                    onClose={() => { setRecipeModalOpen(false); setEditRecipe(null); setRecipeInitialIngredients(undefined) }}
+                    onDelete={handleDeleteRecipe}
+                />
+            )}
+
             {!loading && !addOpen && !editMeal && (
                 <button
                     type="button"
@@ -1354,16 +1592,18 @@ export default function Mat(): React.JSX.Element {
                     saving={saving}
                     saveError={saveError}
                     t={t}
+                    recipes={recipes}
                 />
             )}
             {editMeal && (
                 <MealModal
-                    initial={{ label: editMeal.label, food: editMeal.food, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '', product_id: editMeal.product_id ?? null, grams: editMeal.grams != null ? String(editMeal.grams) : '' }}
+                    initial={{ label: editMeal.label, food: editMeal.food, protein_g: String(editMeal.protein_g), carbs_g: String(editMeal.carbs_g), fat_g: String(editMeal.fat_g), kcal: String(editMeal.kcal), note: editMeal.note ?? '', product_id: editMeal.product_id ?? null, grams: editMeal.grams != null ? String(editMeal.grams) : '', recipe_id: editMeal.recipe_id ?? null }}
                     onSave={handleEdit}
                     onClose={() => { setEditMeal(null); setSaveError('') }}
                     saving={saving}
                     saveError={saveError}
                     t={t}
+                    recipes={recipes}
                 />
             )}
         </section>

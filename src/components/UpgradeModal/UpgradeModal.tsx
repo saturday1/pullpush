@@ -44,6 +44,7 @@ const PLANS: PlanInfo[] = [
       'Obegränsad statistikhistorik',
       'AI Coach — personlig träningscoach',
       'AI-matfoto — fotografera och få näringsvärden',
+      'Spara & återanvänd recept',
     ],
   },
 ]
@@ -60,6 +61,7 @@ const FEATURE_LABEL: Record<Feature, string> = {
   statsUnlimited: 'Obegränsad statistik',
   aiCoach: 'AI Coach',
   foodPhoto: 'AI Matfoto',
+  recipes: 'Recept',
 }
 
 const TIER_RANK: Record<Tier, number> = { standard: 0, premium: 1 }

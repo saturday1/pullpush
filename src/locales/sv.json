@@ -636,5 +636,23 @@
   "Your message": "Ditt meddelande",
   "Send": "Skicka",
   "Message sent! We will get back to you.": "Meddelande skickat! Vi återkommer.",
-  "Manage subscription": "Hantera prenumeration"
+  "Manage subscription": "Hantera prenumeration",
+
+  "Recipes": "Recept",
+  "New recipe": "Nytt recept",
+  "Recipe name": "Receptnamn",
+  "Add ingredient": "Lägg till ingrediens",
+  "Save recipe": "Spara recept",
+  "My recipes": "Mina recept",
+  "Use recipe": "Använd recept",
+  "No recipes yet": "Inga recept ännu",
+  "Delete recipe?": "Ta bort recept?",
+  "e.g. Chicken Bowl, Overnight oats...": "t.ex. Kycklingbowl, Overnight oats...",
+  "Select meals": "Välj måltider",
+  "Create recipe from selected": "Skapa recept av valda",
+  "{{count}} selected": "{{count}} valda",
+  "Cancel selection": "Avbryt val",
+  "Edit recipe": "Redigera recept",
+  "Total": "Totalt",
+  "ingredients": "ingredienser"
 }

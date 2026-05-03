@@ -363,5 +363,23 @@
   "Your message": "Your message",
   "Send": "Send",
   "Message sent! We will get back to you.": "Message sent! We will get back to you.",
-  "Manage subscription": "Manage subscription"
+  "Manage subscription": "Manage subscription",
+
+  "Recipes": "Recipes",
+  "New recipe": "New recipe",
+  "Recipe name": "Recipe name",
+  "Add ingredient": "Add ingredient",
+  "Save recipe": "Save recipe",
+  "My recipes": "My recipes",
+  "Use recipe": "Use recipe",
+  "No recipes yet": "No recipes yet",
+  "Delete recipe?": "Delete recipe?",
+  "e.g. Chicken Bowl, Overnight oats...": "e.g. Chicken Bowl, Overnight oats...",
+  "Select meals": "Select meals",
+  "Create recipe from selected": "Create recipe from selected",
+  "{{count}} selected": "{{count}} selected",
+  "Cancel selection": "Cancel selection",
+  "Edit recipe": "Edit recipe",
+  "Total": "Total",
+  "ingredients": "ingredients"
 }

@@ -12,4 +12,6 @@ export const DB = {
   FOOD_PRODUCTS:      'food_products',
   MEALS:              'meals',
   CONTACT_MESSAGES:   'contact_messages',
+  RECIPES:            'recipes',
+  RECIPE_INGREDIENTS: 'recipe_ingredients',
 } as const
