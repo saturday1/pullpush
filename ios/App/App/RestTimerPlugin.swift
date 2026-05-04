@@ -42,8 +42,31 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
             }
         }
 
-        // Audio players are created lazily on first playSound() to avoid
-        // claiming the audio session at app launch (would interrupt Spotify)
+        // Pre-create all players without activating audio session (deferred one run loop
+        // so app finishes launching first). This avoids Spotify interruption at launch
+        // while ensuring players are ready by the time the user presses play.
+        DispatchQueue.main.async {
+            self.preloadAllPlayers()
+        }
+    }
+
+    /// Create all players (file I/O + prepareToPlay) without activating audio session.
+    /// Called at load time so players are ready before first use.
+    private func preloadAllPlayers() {
+        func make(_ resource: String, _ ext: String = "mp3") -> AVAudioPlayer? {
+            guard let url = Bundle.main.url(forResource: resource, withExtension: ext) else { return nil }
+            let p = try? AVAudioPlayer(contentsOf: url)
+            p?.delegate = self
+            p?.prepareToPlay()
+            return p
+        }
+        if beepPlayer == nil    { beepPlayer    = make("beep") }
+        if goPlayer == nil      { goPlayer      = make("go") }
+        if restPlayer == nil    { restPlayer    = make("rest") }
+        if restEndPlayer == nil { restEndPlayer = make("rest_end") }
+        for name in ["one", "two", "three", "four", "five"] {
+            if numberPlayers[name] == nil { numberPlayers[name] = make(name) }
+        }
     }
 
     private func ensureBeepPlayer() {
@@ -116,12 +139,8 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
             guard let self = self else { return }
             do {
                 if self.keepAlivePlayer?.isPlaying == true {
-                    // Timer still active — keep session alive but remove ducking
-                    try AVAudioSession.sharedInstance().setCategory(
-                        .playback,
-                        mode: .default,
-                        options: [.mixWithOthers]
-                    )
+                    // Timer still active — keep ducking so next sound fires immediately
+                    // (removing .duckOthers here caused 500ms+ delay on next assertDuckingSession)
                 } else {
                     try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
                     try AVAudioSession.sharedInstance().setCategory(
@@ -138,15 +157,25 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: work)
     }
 
-    /// Re-assert ducking audio session (WKWebView may reset it)
+    /// Re-assert ducking audio session (WKWebView may reset it).
+    /// When keepAlive is playing the session is already active — skip setActive(true)
+    /// because the first call to setActive incurs ~500ms IPC overhead even on an
+    /// already-active session, which delays the first sound in a set.
     private func assertDuckingSession() {
+        let session = AVAudioSession.sharedInstance()
+        let t0 = Date().timeIntervalSince1970
         do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback,
-                mode: .default,
-                options: [.duckOthers, .mixWithOthers]
-            )
-            try AVAudioSession.sharedInstance().setActive(true, options: [])
+            let needsCategory = !session.categoryOptions.contains(.duckOthers)
+            if needsCategory {
+                try session.setCategory(.playback, mode: .default, options: [.duckOthers, .mixWithOthers])
+                try session.setActive(true, options: [])
+            } else if keepAlivePlayer?.isPlaying != true {
+                // Category fine but session may be inactive (no keepAlive running)
+                try session.setActive(true, options: [])
+            }
+            // If .duckOthers is set AND keepAlive is playing: session is already active, skip.
+            let ms = Int((Date().timeIntervalSince1970 - t0) * 1000)
+            if ms > 20 { print("⏱️ assertDuckingSession: \(ms)ms") }
         } catch {
             print("🔴 Audio session assertion failed: \(error)")
         }
@@ -178,9 +207,14 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
             restEndPlayer?.play()
         case "one", "two", "three", "four", "five":
             ensureNumberPlayer(name)
+            let tA = Date().timeIntervalSince1970 * 1000
             assertDuckingSession()
+            let tB = Date().timeIntervalSince1970 * 1000
             numberPlayers[name]?.currentTime = 0
+            let tC = Date().timeIntervalSince1970 * 1000
             numberPlayers[name]?.play()
+            let tD = Date().timeIntervalSince1970 * 1000
+            print("⏱️ playByName(\(name)): assertDuck=\(Int(tB-tA))ms currentTime=\(Int(tC-tB))ms play=\(Int(tD-tC))ms")
         default:
             break
         }
@@ -212,15 +246,29 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
             call.resolve()
             return
         }
-        let startTimeMs = (call.getDouble("startTime") ?? Date().timeIntervalSince1970 * 1000)
         let nowMs = Date().timeIntervalSince1970 * 1000
+        let startTimeMs = call.getDouble("startTime") ?? nowMs
+        print("⏱️ scheduleSoundSequence lag: \(Int(nowMs - startTimeMs))ms")
+
+        let session = AVAudioSession.sharedInstance()
+        let needsWarmup = !session.categoryOptions.contains(.duckOthers)
+        let warmupMs = needsWarmup ? 300.0 : 0.0
+        if needsWarmup {
+            DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+                self?.assertDuckingSession()
+            }
+        }
 
         for item in items {
             guard let name = item["name"] as? String else { continue }
             let delayMs = (item["delayMs"] as? Int) ?? 0
             let targetMs = startTimeMs + Double(delayMs)
-            let fireInMs = max(0, targetMs - nowMs)
+            let fireInMs = max(warmupMs, max(0, targetMs - nowMs))
+            let scheduledAt = nowMs
             let work = DispatchWorkItem { [weak self] in
+                let firedAt = Date().timeIntervalSince1970 * 1000
+                let drift = Int(firedAt - scheduledAt - fireInMs)
+                if drift > 50 { print("⏱️ work item '\(name)' fired \(drift)ms late (fireInMs=\(Int(fireInMs)))") }
                 self?.playByName(name)
             }
             scheduledWorkItems.append(work)
@@ -236,29 +284,36 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
     }
 
     /// Start a silent looping player to keep the app alive in background.
-    /// Sets session to .playback + .mixWithOthers (no ducking) so Spotify
-    /// keeps playing at full volume. Actual sound plays switch temporarily
-    /// to .duckOthers, then the delegate removes ducking.
-    private func startKeepAlive() {
-        if keepAlivePlayer?.isPlaying == true { return }
+    /// Session setup runs on a background thread so the main thread is not blocked
+    /// (setCategory IPC with mediaserverd takes 200-800ms and would delay scheduled sounds).
+    /// Calls completion on the main thread once the session is ready.
+    private func startKeepAlive(completion: (() -> Void)? = nil) {
+        if keepAlivePlayer?.isPlaying == true {
+            completion?()
+            return
+        }
         if keepAlivePlayer == nil, let url = Bundle.main.url(forResource: "silent", withExtension: "wav") {
             keepAlivePlayer = try? AVAudioPlayer(contentsOf: url)
             keepAlivePlayer?.numberOfLoops = -1
-            // Near-silent but non-zero so iOS counts it as active audio (keeps app alive in background)
             keepAlivePlayer?.volume = 0.001
-            // No delegate — don't trigger unduck logic
         }
-        do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback,
-                mode: .default,
-                options: [.mixWithOthers]  // no ducking — Spotify full volume
-            )
-            try AVAudioSession.sharedInstance().setActive(true, options: [])
-        } catch {
-            print("🔴 Keep-alive session setup failed: \(error)")
+        let player = keepAlivePlayer
+        DispatchQueue.global(qos: .userInteractive).async {
+            do {
+                try AVAudioSession.sharedInstance().setCategory(
+                    .playback,
+                    mode: .default,
+                    options: [.duckOthers, .mixWithOthers]
+                )
+                try AVAudioSession.sharedInstance().setActive(true, options: [])
+            } catch {
+                print("🔴 Keep-alive session setup failed: \(error)")
+            }
+            DispatchQueue.main.async {
+                player?.play()
+                completion?()
+            }
         }
-        keepAlivePlayer?.play()
     }
 
     private func stopKeepAlive() {
@@ -279,14 +334,18 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
 
     /// JS calls this when workoutId is set/cleared. Keeps silent audio running
     /// for the entire workout duration so iOS doesn't kill the app between sets.
+    /// When active=true, resolves only after the audio session is ready so that
+    /// JS can await this before scheduling sounds (guarantees session is warm).
     @objc func setWorkoutActive(_ call: CAPPluginCall) {
         let active = call.getBool("active") ?? false
         if active {
-            startKeepAlive()
+            startKeepAlive {
+                call.resolve()
+            }
         } else {
             stopKeepAlive()
+            call.resolve()
         }
-        call.resolve()
     }
 
     @objc func setKeepAwake(_ call: CAPPluginCall) {
@@ -306,6 +365,10 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
             ?? Date().addingTimeInterval(TimeInterval(seconds))
 
         autoEndWorkItem?.cancel()
+        // Resolve immediately so JS-side await unblocks before Live Activity creation
+        // (Activity.request takes 0.5–2 s; blocking the bridge delays scheduleSoundSequence
+        // and makes all early countdown sounds collapse to fireInMs=0).
+        call.resolve()
 
         if #available(iOS 16.2, *) {
             Task {
@@ -324,7 +387,6 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
                     )
                     print("🟢 Live Activity started: \(activity.id)")
 
-                    // Auto-end after timer expires (best effort if app still active)
                     let workItem = DispatchWorkItem {
                         Task {
                             for a in Activity<RestTimerAttributes>.activities {
@@ -334,32 +396,23 @@ public class RestTimerPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate
                     }
                     self.autoEndWorkItem = workItem
                     DispatchQueue.main.asyncAfter(deadline: .now() + Double(seconds) + 1.0, execute: workItem)
-
-                    call.resolve(["id": activity.id])
                 } catch {
                     print("🔴 Live Activity failed: \(error)")
-                    call.reject("Failed: \(error.localizedDescription)")
                 }
             }
-        } else {
-            call.reject("Live Activities require iOS 16.1+")
         }
     }
 
     @objc func stop(_ call: CAPPluginCall) {
-        // Cancel any scheduled sounds — keep-alive is controlled separately via setWorkoutActive
         for w in scheduledWorkItems { w.cancel() }
         scheduledWorkItems.removeAll()
-
+        call.resolve()
         if #available(iOS 16.2, *) {
             Task {
                 for activity in Activity<RestTimerAttributes>.activities {
                     await activity.end(nil, dismissalPolicy: .immediate)
                 }
-                call.resolve()
             }
-        } else {
-            call.resolve()
         }
     }
 

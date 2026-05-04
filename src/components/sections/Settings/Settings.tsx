@@ -135,7 +135,7 @@ export default function Settings(): React.ReactElement {
     const [sidePauseSec, setSidePauseSec] = useState(String(profile?.sidePauseSeconds ?? DEFAULT_SIDE_PAUSE_SECONDS))
 
     function saveTime(field: 'rest_seconds' | 'sec_per_rep' | 'countdown_seconds' | 'side_pause_seconds', value: string): void {
-        const n = parseInt(value)
+        const n = field === 'sec_per_rep' ? parseFloat(value) : parseInt(value)
         if (!isNaN(n) && n >= 0 && updateProfile) {
             updateProfile({ [field]: n } as never).catch(() => {})
         }
@@ -374,6 +374,7 @@ export default function Settings(): React.ReactElement {
                                 className={styles.timeInput}
                                 type="number"
                                 min="0"
+                                step="0.5"
                                 value={secPerRep}
                                 onChange={(e) => setSecPerRep(e.target.value)}
                                 onBlur={() => saveTime('sec_per_rep', secPerRep)}

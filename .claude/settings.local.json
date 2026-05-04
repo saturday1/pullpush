@@ -14,7 +14,9 @@
       "Bash(command -v afinfo)",
       "Bash(brew list *)",
       "Bash(xargs ls *)",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(sed -n '1750,1770p' /Users/jbg/_workspace/private/pullpush/src/components/sections/Traning/Traning.tsx)",
+      "Bash(sed -n '1120,1123p' /Users/jbg/_workspace/private/pullpush/src/components/sections/Traning/Traning.tsx)"
     ]
   }
 }

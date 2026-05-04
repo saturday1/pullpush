@@ -48,6 +48,7 @@ interface Exercise {
   tab: string
   catalog_id: number | null
   exercise_catalog?: { name: string } | null
+  is_unilateral: boolean
 }
 
 interface ExerciseLog {
@@ -140,11 +141,12 @@ interface ExerciseModalProps {
   onLog: (exerciseId: string, kg: number, sets: number | null, reps: number, unilateral: boolean) => Promise<void>
   onSaveSetPlans: (exerciseId: string, plans: SetPlan[]) => Promise<void>
   onSaveNote: (exerciseId: string, note: string) => Promise<void>
+  onSaveUnilateral: (exerciseId: string, unilateral: boolean) => Promise<void>
   onDelete: (exercise: Exercise) => Promise<void>
   onClose: () => void
 }
 
-function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSetPlans, onSaveNote, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
+function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSetPlans, onSaveNote, onSaveUnilateral, onDelete, onClose }: ExerciseModalProps): React.JSX.Element {
   useBodyScrollLock()
   const { t } = useTranslation()
   const [name,       setName]       = useState<string>(exercise.name)
@@ -156,7 +158,7 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
   const [saving,     setSaving]     = useState<boolean>(false)
   const [confirming, setConfirming] = useState<boolean>(false)
   const [deleting,   setDeleting]   = useState<boolean>(false)
-  const [unilateral, setUnilateral] = useState<boolean>(current?.unilateral ?? false)
+  const [unilateral, setUnilateral] = useState<boolean>(exercise.is_unilateral)
   const [individualMode, setIndividualMode] = useState<boolean>(setPlans.length > 0)
   const [indSets,    setIndSets]    = useState<Array<{ reps: string; kg: string; lbs: string }>>(
     setPlans.length > 0
@@ -204,6 +206,7 @@ function ExerciseModal({ exercise, current, setPlans, onRename, onLog, onSaveSet
     setSaving(true)
     if (trimmed !== exercise.name) await onRename(exercise, trimmed)
     if (note !== (exercise.note ?? '')) await onSaveNote(exercise.id, note)
+    if (unilateral !== exercise.is_unilateral) await onSaveUnilateral(exercise.id, unilateral)
 
     if (individualMode && indSets.length > 0) {
       const plans: SetPlan[] = indSets.map((s, i) => ({
@@ -663,7 +666,7 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
   const totalDots = Math.max(configuredSets, completedSets)
   const allDone = completedSets >= configuredSets
   const isDisabled = !editMode && timerRunning && !isTimerActive
-  const fillPct = editMode ? 0 : Math.min(100, (completedSets / configuredSets) * 100)
+  const fillPct = Math.min(100, (completedSets / configuredSets) * 100)
   const colorPct = completedSets <= 1 ? 0 : ((completedSets - 1) / (configuredSets - 1)) * 100
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -682,24 +685,33 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
 
   const cardBody = (
     <div className={styles.exerciseCardBody}>
+      <div className={styles.exerciseFooter}>
+        <span className={styles.setProgress}>
+          {Array.from({ length: configuredSets }, (_, i) => (
+            <span key={i} className={i < completedSets ? styles.setDotDone : styles.setDotPending} />
+          ))}
+          {!editMode && completedSets > 0 && !isTimerActive && (
+            <button
+              className={styles.undoBtn}
+              onClick={(e) => { e.stopPropagation(); onUndo(ex.id) }}
+              title="Undo"
+            ><UndoIcon size={18} /></button>
+          )}
+        </span>
+        {lastDone && !editMode && (
+          <div className={styles.lastDoneRow}>
+            {isDeload && lastDone.kg != null
+              ? `Deload: ${formatWeight(lastDone.kg * 0.5, weightUnit)}`
+              : `${relativeLabel(lastDone.date, t)}: Max ${lastDone.reps}×${lastDone.kg != null ? `${lastDone.kg} kg` : '–'}`
+            }
+          </div>
+        )}
+      </div>
       <div className={styles.exerciseCardHeader}>
         <span className={styles.exNameText}>
           {allDone && !editMode && <span className={styles.exDoneCheck}>✓</span>}
           {ex.name}
         </span>
-        {!editMode && (
-          <span className={styles.setProgress}>
-            {Array.from({ length: configuredSets }, (_, i) => (
-              <span key={i} className={i < completedSets ? styles.setDotDone : styles.setDotPending} />
-            ))}
-            <button
-              className={styles.undoBtn}
-              style={{ visibility: completedSets > 0 && !isTimerActive ? 'visible' : 'hidden' }}
-              onClick={(e) => { e.stopPropagation(); onUndo(ex.id) }}
-              title="Undo"
-            ><UndoIcon size={18} /></button>
-          </span>
-        )}
       </div>
       {ex.note && !editMode && (
         <div className={styles.exerciseNote}>{ex.note}</div>
@@ -719,16 +731,8 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
         ) : (
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>{log?.sets ?? 3} {(log?.sets ?? 3) === 1 ? 'set' : 'sets'}</span>
-            <span className={styles.metaItem}>{log?.reps ?? '–'} reps{log?.unilateral ? ` ${t('per side')}` : ''}</span>
+            <span className={styles.metaItem}>{log?.reps ?? '–'} reps{ex.is_unilateral ? ` ${t('per side')}` : ''}</span>
             <span className={styles.metaItem}>{log?.kg != null ? formatWeight(isDeload ? log.kg * 0.5 : log.kg, weightUnit) : '–'}</span>
-          </div>
-        )}
-        {lastDone && !editMode && (
-          <div className={styles.lastDoneRow}>
-            {isDeload && lastDone.kg != null
-              ? `Deload: ${formatWeight(lastDone.kg * 0.5, weightUnit)}`
-              : `${relativeLabel(lastDone.date, t)}: Max ${lastDone.reps}×${lastDone.kg != null ? `${lastDone.kg} kg` : '–'}`
-            }
           </div>
         )}
       </div>
@@ -739,15 +743,15 @@ function SortableRow({ ex, log, lastDone, setPlans, weightUnit, onName, onLog, o
 
   return (
     <div ref={setNodeRef} style={style} className={`${styles.exerciseCard} ${isTimerActive ? styles.exerciseActive : ''} ${isDisabled ? styles.exerciseDisabled : ''}`} onClick={handleClick}>
-      {editMode && <div className={styles.dragStrip} style={{ touchAction: 'none' }} {...attributes} {...listeners}><span className={styles.dragGrip} /></div>}
-      {editMode
-        ? cardBody
-        : <>
-            <div className={styles.exerciseFill} />
-            <div className={styles.exerciseLayerBase}>{playEl}{cardBody}</div>
-            {fillPct > 0 && <div className={styles.exerciseLayerMask}>{playEl}{cardBody}</div>}
-          </>
-      }
+      <div className={styles.exerciseFill} />
+      <div className={styles.exerciseLayerBase}>
+        {editMode && <div className={styles.dragStrip} style={{ touchAction: 'none' }} {...attributes} {...listeners}><span className={styles.dragGrip} style={fillPct > 0 ? { background: 'white', boxShadow: '7px 0 0 white, 0 7px 0 white, 7px 7px 0 white, 0 14px 0 white, 7px 14px 0 white' } : undefined} /></div>}
+        {playEl}{cardBody}
+      </div>
+      {fillPct > 0 && <div className={styles.exerciseLayerMask}>
+        {editMode && <div style={{ width: 40, flexShrink: 0 }} />}
+        {playEl}{cardBody}
+      </div>}
     </div>
   )
 }
@@ -1097,7 +1101,7 @@ export default function Traning(): React.JSX.Element {
     }
 
     // One set plan: countdown → work [→ side_pause → work] → rest
-    const isUnilateral = log?.unilateral ?? false
+    const isUnilateral = ex.is_unilateral
     const plan: { phase: TimerPhase; duration: number }[] = []
     if (COUNTDOWN > 0) plan.push({ phase: 'countdown', duration: COUNTDOWN })
     if (workTime > 0) plan.push({ phase: 'work', duration: workTime })
@@ -1107,6 +1111,10 @@ export default function Traning(): React.JSX.Element {
 
     timerPlanRef.current = plan
     timerStepRef.current = 0
+    // Pre-warm native audio session before starting the timer. setWorkoutActive resolves
+    // only after setCategory+setActive complete (on a background thread), so planStartRef
+    // is set AFTER the session is ready — sounds then fire without any warmup delay.
+    if (RestTimer) await RestTimer.setWorkoutActive({ active: true }).catch(() => {})
     planStartRef.current = Date.now()
     setTimerExId(ex.id)
     setTimerSetsTotal(sets)
@@ -1160,12 +1168,10 @@ export default function Traning(): React.JSX.Element {
     const { phase } = plan[fromStep]
 
     if (phase === 'countdown') {
-      for (let i = Math.min(Math.floor(currentPhaseRemainSecs), cdLen); i >= 1; i--) {
+      for (let i = Math.min(Math.floor(currentPhaseRemainSecs + 0.1), cdLen); i >= 1; i--) {
         const delay = (currentPhaseRemainSecs - i) * 1000
-        if (delay >= 0) {
-          const name = style === 'beep' ? 'tick' : NW[i]
-          if (name) items.push({ name, delayMs: Math.round(delay) })
-        }
+        const name = style === 'beep' ? 'tick' : NW[i]
+        if (name) items.push({ name, delayMs: Math.max(0, Math.round(delay)) })
       }
       items.push({ name: 'go', delayMs: Math.round(currentPhaseRemainSecs * 1000) })
     }
@@ -1379,6 +1385,16 @@ export default function Traning(): React.JSX.Element {
       plan, step, exId: timerExId!, currentSet: timerSet, setsTotal: timerSetsTotal,
       kg: exLog?.kg ?? null, reps: exLog?.reps ?? 10, wId: workoutId
     }
+    // Freeze ACTIVE_FLOW's phaseEndAbs to the current remaining time so that if the
+    // app is killed while paused, restoration uses the correct remaining seconds.
+    try {
+      const raw = localStorage.getItem(STORAGE.ACTIVE_FLOW)
+      if (raw) {
+        const flow = JSON.parse(raw) as Record<string, unknown>
+        flow.phaseEndAbs = Date.now() + pausedRemainRef.current * 1000
+        localStorage.setItem(STORAGE.ACTIVE_FLOW, JSON.stringify(flow))
+      }
+    } catch {}
     setPaused(true)
     try { RestTimer?.pause() } catch {}
   }
@@ -1452,11 +1468,22 @@ export default function Traning(): React.JSX.Element {
   function stopExerciseTimer(): void {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
+    timerEndRef.current = 0  // prevents resync from firing after stop
     setCountdownOverlay(null)
     setTimerPhase(null)
     setTimerExId(null)
     setPaused(false)
     pausedPlanRef.current = null
+    // Write discarded=true before removing — if removeItem doesn't persist to disk
+    // before the process is killed, the restoration logic will see the flag and skip.
+    try {
+      const raw = localStorage.getItem(STORAGE.ACTIVE_FLOW)
+      if (raw) {
+        const flow = JSON.parse(raw) as Record<string, unknown>
+        flow.discarded = true
+        localStorage.setItem(STORAGE.ACTIVE_FLOW, JSON.stringify(flow))
+      }
+    } catch {}
     localStorage.removeItem(STORAGE.ACTIVE_FLOW)
     try { RestTimer?.stop() } catch {}
     try { LocalNotifications.cancel({ notifications: [{ id: 2 }] }) } catch {}
@@ -1468,6 +1495,9 @@ export default function Traning(): React.JSX.Element {
     const currentSet = ctx?.currentSet ?? timerSet
     const currentPhase = ctx?.plan[ctx.step]?.phase ?? timerPhase
     const exId = timerExId
+    // Stop timer immediately (clears ACTIVE_FLOW) before any async work, so if the app
+    // is suspended mid-await the restored state won't incorrectly re-enter the phase.
+    stopExerciseTimer()
 
     if (save && workoutId && exId) {
       // If set not yet saved (countdown or work), save it now
@@ -1495,8 +1525,6 @@ export default function Traning(): React.JSX.Element {
       }
       // If countdown or work, nothing was saved — nothing to undo
     }
-
-    stopExerciseTimer()
   }
 
   // End the entire workout (via "Avsluta pass" button)
@@ -1727,7 +1755,11 @@ export default function Traning(): React.JSX.Element {
                 wId: string; exId: string; currentSet: number; setsTotal: number
                 kg: number | null; reps: number; phase: string; phaseEndAbs: number
                 step: number; plan: { phase: TimerPhase; duration: number }[]
+                discarded?: boolean
               }
+              if (flow.discarded) {
+                localStorage.removeItem(STORAGE.ACTIVE_FLOW)
+              } else {
               const stale = Math.abs(Date.now() - flow.phaseEndAbs) > 30 * 60 * 1000
               if (!stale && flow.wId === openWorkout.id) {
                 // Retroactive upsert only for rest phase (set already done but crash skipped Fix 1)
@@ -1755,12 +1787,23 @@ export default function Traning(): React.JSX.Element {
                   setTimerSetsTotal(flow.setsTotal)
                   setTimerSet(flow.currentSet)
                   runTimerStep(flow.plan, flow.step, flow.exId, flow.currentSet, flow.setsTotal, flow.kg, flow.reps, flow.wId)
+                  // Restart Live Activity + reschedule native sounds (killed on cold restart)
+                  if (RestTimer) {
+                    const futureStepsSecs = flow.plan.slice(flow.step + 1).reduce((s: number, p: { duration: number }) => s + p.duration, 0)
+                    const totalRemainingS = remainingMs / 1000 + futureStepsSecs
+                    const exRow = (exData as Array<{ id: string; name: string; exercise_catalog?: { name: string } | null }>)?.find(e => e.id === flow.exId)
+                    const exName = exRow?.exercise_catalog?.name ?? exRow?.name ?? ''
+                    const label = `Set ${flow.currentSet}/${flow.setsTotal} • ${flow.reps} reps\n${exName}`
+                    RestTimer.start({ seconds: Math.max(1, Math.round(totalRemainingS)), label, endTime: Date.now() + totalRemainingS * 1000 }).catch(() => {})
+                  }
+                  scheduleRemainingNativeSounds(flow.plan, flow.step, remainingMs / 1000)
                 } else {
                   localStorage.removeItem(STORAGE.ACTIVE_FLOW)
                 }
               } else {
                 localStorage.removeItem(STORAGE.ACTIVE_FLOW)
               }
+              } // end else (not discarded)
             } catch {
               localStorage.removeItem(STORAGE.ACTIVE_FLOW)
             }
@@ -1771,7 +1814,10 @@ export default function Traning(): React.JSX.Element {
           let keptForFlow = false
           if (rawFlow) {
             try {
-              const flow = JSON.parse(rawFlow) as { wId: string; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; phase: string; phaseEndAbs: number; step: number; plan: { phase: TimerPhase; duration: number }[] }
+              const flow = JSON.parse(rawFlow) as { wId: string; exId: string; currentSet: number; setsTotal: number; kg: number | null; reps: number; phase: string; phaseEndAbs: number; step: number; plan: { phase: TimerPhase; duration: number }[]; discarded?: boolean }
+              if (flow.discarded) {
+                localStorage.removeItem(STORAGE.ACTIVE_FLOW)
+              } else {
               const stale = Math.abs(Date.now() - flow.phaseEndAbs) > 30 * 60 * 1000
               if (!stale && flow.wId === openWorkout.id) {
                 // Workout was mid-flow (countdown/work) — keep the row and restore context
@@ -1791,12 +1837,23 @@ export default function Traning(): React.JSX.Element {
                   setTimerSetsTotal(flow.setsTotal)
                   setTimerSet(flow.currentSet)
                   runTimerStep(flow.plan, flow.step, flow.exId, flow.currentSet, flow.setsTotal, flow.kg, flow.reps, flow.wId)
+                  // Restart Live Activity + reschedule native sounds (killed on cold restart)
+                  if (RestTimer) {
+                    const futureStepsSecs = flow.plan.slice(flow.step + 1).reduce((s: number, p: { duration: number }) => s + p.duration, 0)
+                    const totalRemainingS = remainingMs / 1000 + futureStepsSecs
+                    const exRow = (exData as Array<{ id: string; name: string; exercise_catalog?: { name: string } | null }>)?.find(e => e.id === flow.exId)
+                    const exName = exRow?.exercise_catalog?.name ?? exRow?.name ?? ''
+                    const label = `Set ${flow.currentSet}/${flow.setsTotal} • ${flow.reps} reps\n${exName}`
+                    RestTimer.start({ seconds: Math.max(1, Math.round(totalRemainingS)), label, endTime: Date.now() + totalRemainingS * 1000 }).catch(() => {})
+                  }
+                  scheduleRemainingNativeSounds(flow.plan, flow.step, remainingMs / 1000)
                 } else {
                   // Expired — workout stays open for next set, clear stale state
                   localStorage.removeItem(STORAGE.ACTIVE_FLOW)
                 }
                 keptForFlow = true
               }
+              } // end else (not discarded)
             } catch { /* ignore */ }
           }
           if (!keptForFlow) {
@@ -1812,7 +1869,11 @@ export default function Traning(): React.JSX.Element {
   }
 
   async function handleLogSave(exerciseId: string, kg: number, sets: number | null, reps: number, unilateral: boolean = false): Promise<void> {
-    await supabase.from(DB.EXERCISE_LOG).insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps, unilateral })
+    const { error } = await supabase.from(DB.EXERCISE_LOG).insert({ user_id: userId, exercise_id: exerciseId, weight_kg: kg, sets, reps, unilateral })
+    if (error) {
+      console.error('exercise log insert failed', error)
+      return
+    }
     setLogs(prev => ({ ...prev, [exerciseId]: { kg, sets, reps, unilateral } }))
     setLogging(null)
   }
@@ -1823,6 +1884,17 @@ export default function Traning(): React.JSX.Element {
       const next = { ...prev }
       for (const key of Object.keys(next)) {
         next[key] = next[key].map(ex => ex.id === exerciseId ? { ...ex, note: noteText || null } : ex)
+      }
+      return next
+    })
+  }
+
+  async function handleSaveUnilateral(exerciseId: string, unilateral: boolean): Promise<void> {
+    await supabase.from(DB.EXERCISES).update({ is_unilateral: unilateral }).eq('id', exerciseId)
+    setExercises(prev => {
+      const next = { ...prev }
+      for (const key of Object.keys(next)) {
+        next[key] = next[key].map(ex => ex.id === exerciseId ? { ...ex, is_unilateral: unilateral } : ex)
       }
       return next
     })
@@ -1986,7 +2058,10 @@ export default function Traning(): React.JSX.Element {
   const currentExercises: Exercise[] = exercises[activeTab!] ?? []
 
   // Workout progress
-  const totalSetsInSession = currentExercises.reduce((sum, ex) => sum + (logs[ex.id]?.sets ?? 3), 0)
+  const totalSetsInSession = currentExercises.reduce((sum, ex) => {
+    const target = logs[ex.id]?.sets ?? 3
+    return sum + (workoutId ? Math.max(target, completedSets[ex.id] ?? 0) : target)
+  }, 0)
   const completedSetsInSession = currentExercises.reduce((sum, ex) => sum + (completedSets[ex.id] ?? 0), 0)
   const workoutProgress = totalSetsInSession > 0 ? completedSetsInSession / totalSetsInSession : 0
   const allSessionDone = totalSetsInSession > 0 && completedSetsInSession >= totalSetsInSession
@@ -2111,7 +2186,7 @@ export default function Traning(): React.JSX.Element {
   const timerSetPlan = timerExId ? individualSets[timerExId]?.[timerSet - 1] : undefined
   const timerDisplayReps = timerSetPlan?.reps ?? timerExLog?.reps ?? 10
   const timerDisplayKg = timerSetPlan?.weight_kg ?? timerExLog?.kg ?? null
-  const timerIsUnilateral = timerExLog?.unilateral ?? false
+  const timerIsUnilateral = timerExercise?.is_unilateral ?? false
 
   // Find next exercise/set for rest overlay preview
   const nextUp: { setLabel: string; name: string } | { setLabel: ''; name: string } = (() => {
@@ -2311,7 +2386,7 @@ export default function Traning(): React.JSX.Element {
                     for (let i = 0; i < numSets; i++) {
                       const reps = indPlans?.[i]?.reps ?? log?.reps ?? 10
                       const workDur = reps * secPerRep
-                      const isUni = log?.unilateral ?? false
+                      const isUni = ex.is_unilateral
                       setTime += countdownSeconds + workDur + (isUni ? sidePauseSeconds + workDur : 0) + restSeconds
                     }
                     return sum + setTime
@@ -2402,6 +2477,7 @@ export default function Traning(): React.JSX.Element {
           onLog={handleLogSave}
           onSaveSetPlans={handleSaveSetPlans}
           onSaveNote={handleSaveNote}
+          onSaveUnilateral={handleSaveUnilateral}
           onDelete={handleDelete}
           onClose={() => { setLogging(null); setNaming(null) }}
         />
