@@ -18,6 +18,7 @@ import Traning from './components/sections/Traning/Traning'
 import Vecka from './components/sections/Vecka/Vecka'
 import Vikt from './components/sections/Vikt/Vikt'
 import Stats from './components/sections/Stats/Stats'
+import Coach from './components/sections/Coach/Coach'
 import styles from './App.module.scss'
 
 function SplashOverlay(): React.ReactElement | null {
@@ -42,6 +43,7 @@ function AppRoutes(): React.ReactElement {
         <div style={{ display: path === '/mat' ? 'block' : 'none' }}><Mat /></div>
         <div style={{ display: path === '/vecka' ? 'block' : 'none' }}><Vecka /></div>
         <div style={{ display: path === '/stats' ? 'block' : 'none' }}><Stats /></div>
+        <div style={{ display: path === '/coach' ? 'block' : 'none' }}><Coach /></div>
         <div style={{ display: path === '/settings' ? 'block' : 'none' }}><Settings /></div>
         <Routes>
           <Route path="/" element={<Navigate to="/traning" replace />} />

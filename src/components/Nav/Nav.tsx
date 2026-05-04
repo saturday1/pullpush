@@ -18,6 +18,7 @@ const links: NavLinkItem[] = [
     { to: '/vikt',    label: 'Weight' },
     { to: '/mat',     label: 'Food' },
     { to: '/stats',   label: 'Stats' },
+    { to: '/coach',   label: 'Coach' },
 ]
 
 function GearIcon(): React.ReactElement {

@@ -13,6 +13,7 @@
       "Bash(command -v sox)",
       "Bash(command -v afinfo)",
       "Bash(brew list *)",
+      "Bash(npx supabase:*)",
       "Bash(xargs ls *)",
       "Bash(xargs cat *)",
       "Bash(sed -n '1750,1770p' /Users/jbg/_workspace/private/pullpush/src/components/sections/Traning/Traning.tsx)",

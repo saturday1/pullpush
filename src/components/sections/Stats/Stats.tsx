@@ -684,7 +684,11 @@ const [prSort, setPrSort] = useState<'weight' | 'name'>('weight')
     if (isEmpty) {
         return (
             <section className={styles.emptyState}>
-                <div className={styles.emptyIcon}>🏋️</div>
+                <div className={styles.emptyIcon}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6.5 6.5h-2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1z"/><path d="M19.5 6.5h-2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1z"/><path d="M7.5 12h9"/><path d="M2 9.5v5M22 9.5v5"/>
+                    </svg>
+                </div>
                 <p className={styles.emptyTitle}>{t('No workouts yet')}</p>
                 <p className={styles.emptyText}>{t('Complete your first workout to see stats here')}</p>
             </section>
@@ -743,7 +747,11 @@ const [prSort, setPrSort] = useState<'weight' | 'name'>('weight')
                                             {w.is_deload && <span className={styles.deloadBadge}>Deload</span>}
                                             {w.pr_count > 0 && (
                                                 <span className={styles.prBadge}>
-                                                    <span className={styles.prBadgeIcon}>🏆</span>
+                                                    <span className={styles.prBadgeIcon}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10l-1 8a4 4 0 0 1-8 0L7 4z"/><path d="M7 4H4v3a3 3 0 0 0 3 3"/><path d="M17 4h3v3a3 3 0 0 1-3 3"/>
+                                                        </svg>
+                                                    </span>
                                                     <span className={styles.prBadgeText}>{w.pr_count > 1 ? `${w.pr_count}× ${t('PR!')}` : t('New PR!')}</span>
                                                 </span>
                                             )}
@@ -1052,7 +1060,11 @@ const [prSort, setPrSort] = useState<'weight' | 'name'>('weight')
 
                                     {openWorkout.pr_count > 0 && (
                                         <div className={styles.modalPrBanner}>
-                                            <span className={styles.modalPrBannerIcon}>🏆</span>
+                                            <span className={styles.modalPrBannerIcon}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10l-1 8a4 4 0 0 1-8 0L7 4z"/><path d="M7 4H4v3a3 3 0 0 0 3 3"/><path d="M17 4h3v3a3 3 0 0 1-3 3"/>
+                                                </svg>
+                                            </span>
                                             <span>{openWorkout.pr_count > 1 ? `${openWorkout.pr_count}× ${t('New Personal Records')}` : t('New Personal Record')}</span>
                                         </div>
                                     )}
@@ -1095,7 +1107,11 @@ const [prSort, setPrSort] = useState<'weight' | 'name'>('weight')
                                                 <div key={ex.id} className={styles.modalExerciseGroup}>
                                                     <div className={`${styles.modalExerciseName} ${isPr ? styles.modalExerciseNamePr : ''}`}>
                                                         {ex.name}
-                                                        {isPr && <span className={styles.modalExerciseNamePrIcon}>🏆</span>}
+                                                        {isPr && <span className={styles.modalExerciseNamePrIcon}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10l-1 8a4 4 0 0 1-8 0L7 4z"/><path d="M7 4H4v3a3 3 0 0 0 3 3"/><path d="M17 4h3v3a3 3 0 0 1-3 3"/>
+                                                            </svg>
+                                                        </span>}
                                                     </div>
                                                     {ex.sets.map((s, i) => (
                                                         <div key={i} className={styles.modalSetRow}>

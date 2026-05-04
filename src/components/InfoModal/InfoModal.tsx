@@ -12,9 +12,10 @@ export default function InfoModal({ title, text }: InfoModalProps): React.JSX.El
   const [closing, setClosing] = useState<boolean>(false)
 
   useEffect(() => {
-    if (open) document.body.classList.add('modal-open')
-    else document.body.classList.remove('modal-open')
-    return () => document.body.classList.remove('modal-open')
+    if (!open) return
+    const html = document.documentElement
+    html.style.overflow = 'hidden'
+    return () => { html.style.overflow = '' }
   }, [open])
 
   function requestClose(): void {
@@ -30,7 +31,7 @@ export default function InfoModal({ title, text }: InfoModalProps): React.JSX.El
     <>
       <button
         className={styles.trigger}
-        onClick={() => setOpen(true)}
+        onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(true) }}
         type="button"
         aria-label={`Info om ${title}`}
       >
